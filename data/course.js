@@ -53,8 +53,29 @@ window.COURSE = {
       readers: 0,
       status: "soon"
     }
-  ]
+  ],
+
+  /* العدد الكلي لحصص الفصل. المواضع من الحصة ٣ إلى هذا العدد
+     تُولَّد فارغة أدناه لتظهر في المنصة بحالة «قيد التحضير». */
+  totalSessions: 30
 };
+
+/* ═══ مواضع الحصص التي لم يصل محتواها بعد ═══
+   لا تُخترع هنا عناوين ولا صفحات: كل موضع يبقى بلا عنوان حتى يصل
+   نص الحصة من المذكرة، فيُستبدل بسطر حقيقي في المصفوفة أعلاه.
+   خطوات إضافة الحصة في «دليل التشغيل». */
+(function (C) {
+  var have = {};
+  C.sessions.forEach(function (s) { have[s.n] = true; });
+  for (var n = 1; n <= (C.totalSessions || 0); n++) {
+    if (have[n]) continue;
+    C.sessions.push({
+      n: n, title: "", subtitle: "", pages: "",
+      file: null, readers: 0, status: "soon", empty: true
+    });
+  }
+  C.sessions.sort(function (a, b) { return a.n - b.n; });
+})(window.COURSE);
 
 /* ═══ أدوات مشتركة تعتمد على بيانات المقرر ═══ */
 window.TP = (function (COURSE) {

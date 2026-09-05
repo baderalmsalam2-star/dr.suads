@@ -61,24 +61,46 @@
   }
 
   /* ─── بطاقات الحصص ─── */
-  function renderSessions() {
-    list.textContent = "";
-    (COURSE.sessions || []).forEach(function (s) {
-      var ready = s.status === "ready" && s.file;
-      var li = el("li", "card " + (ready ? "ready" : "soon"));
-      li.appendChild(el("span", "badge", ready ? "متاحة" : "قيد التحضير"));
+  var showAll = false;
+  var toggle = document.getElementById("toggleAll");
+  if (toggle) {
+    toggle.addEventListener("click", function () {
+      showAll = !showAll;
+      renderSessions();
+    });
+  }
 
-      var body = document.createElement(ready ? "a" : "div");
-      body.className = ready ? "open" : "body";
-      if (ready) body.href = s.file + "?section=" + encodeURIComponent(section.id);
+  function renderSessions() {
+    var all = COURSE.sessions || [];
+    var ready = all.filter(function (s) { return s.status === "ready" && s.file; });
+    var pending = all.filter(function (s) { return !(s.status === "ready" && s.file); });
+    var shown = showAll ? all : ready.concat(pending.filter(function (s) { return s.title; }));
+
+    if (toggle) {
+      toggle.textContent = showAll
+        ? "إخفاء الحصص التي لم تُجهَّز"
+        : "عرض كل حصص الفصل (" + ar(all.length) + ")";
+    }
+    document.getElementById("sessionsSub").textContent =
+      ar(ready.length) + " جاهزة من " + ar(all.length);
+
+    list.textContent = "";
+    shown.forEach(function (s) {
+      var isReady = s.status === "ready" && s.file;
+      var li = el("li", "card " + (isReady ? "ready" : "soon"));
+      li.appendChild(el("span", "badge", isReady ? "متاحة" : "قيد التحضير"));
+
+      var body = document.createElement(isReady ? "a" : "div");
+      body.className = isReady ? "open" : "body";
+      if (isReady) body.href = s.file + "?section=" + encodeURIComponent(section.id);
 
       body.appendChild(el("span", "no", "الحصة " + ar(s.n)));
-      body.appendChild(el("h2", "", s.title));
+      body.appendChild(el("h2", "", s.title || "لم يصل محتواها بعد"));
       if (s.subtitle) body.appendChild(el("div", "sub", s.subtitle));
 
       var meta = el("div", "meta");
       meta.appendChild(el("span", "", s.pages || ""));
-      if (ready && s.readers) {
+      if (isReady && s.readers) {
         var seat = TP.seatMaker(section.roster, TP.startAtFor(s));
         meta.appendChild(el("span", "readers",
           "القارئات: " + ar(seat(0)) + " – " + ar(seat(s.readers - 1))));
