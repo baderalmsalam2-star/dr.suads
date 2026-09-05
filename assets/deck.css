@@ -98,3 +98,53 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
     position:absolute;bottom:6px;left:0;right:0;text-align:center;
     font-family:var(--ui);font-size:9pt;color:#555}
 }
+
+/* ═══ لوحة رصد التفاعل داخل العرض ═══ */
+.rec-fab{position:fixed;inset-block-end:clamp(12px,2vw,22px);inset-inline-start:clamp(12px,2vw,22px);
+         z-index:40;background:var(--navy);opacity:.55;font-size:clamp(.7rem,1.2vw,.85rem)}
+.rec-fab:hover{opacity:1}
+
+/* الوسم hidden وحده لا يكفي: display:flex أدناه يتغلّب عليه */
+.rec[hidden]{display:none}
+.rec{position:fixed;inset-block:0;inset-inline-end:0;z-index:50;width:min(94vw,430px);
+     background:var(--navy-2);border-inline-start:1px solid var(--faculty);
+     display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,0,0,.45)}
+.rec-head{display:flex;align-items:center;gap:1em;padding:clamp(12px,1.8vw,18px);
+          border-bottom:1px solid var(--line)}
+.rec-title{flex:1;color:var(--faculty);font-size:clamp(.78rem,1.3vw,.92rem);line-height:1.5}
+.rec-x{padding:.25em .8em;font-size:.8rem;border-color:var(--line);color:var(--neutral)}
+
+.rec-grid{flex:1;overflow-y:auto;padding:clamp(10px,1.5vw,15px);
+          display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+          align-content:start;scrollbar-width:thin}
+.rec-chip{display:flex;align-items:center;gap:.55em;text-align:start;
+          border-color:var(--line);color:var(--surface);background:var(--navy);
+          padding:.5em .7em;font-size:clamp(.72rem,1.2vw,.86rem);min-width:0}
+.rec-chip:hover{border-color:var(--neutral)}
+.rec-chip .n{color:var(--neutral);font-variant-numeric:tabular-nums;flex:none;font-size:.85em}
+.rec-chip .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec-chip .pt{flex:none;color:var(--student);font-variant-numeric:tabular-nums;font-weight:600}
+.rec-chip.picked{border-color:var(--faculty);background:rgba(13,171,226,.16)}
+.rec-chip.reader{border-color:var(--student)}
+.rec-empty{color:var(--neutral);font-size:.85rem;line-height:1.9;padding:1em;grid-column:1/-1}
+
+.rec-kinds{border-top:1px solid var(--line);padding:clamp(10px,1.5vw,15px);
+           display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:64px}
+.rec-who{color:var(--student);font-family:var(--matn);font-weight:700;
+         font-size:clamp(.95rem,1.7vw,1.15rem);width:100%}
+.rec-kind{border-color:var(--faculty);color:var(--faculty);background:var(--navy);
+          padding:.4em .8em;font-size:clamp(.7rem,1.15vw,.82rem)}
+.rec-kind:hover{background:rgba(13,171,226,.15)}
+.rec-kind.undo{border-color:var(--line);color:var(--neutral)}
+.rec-hint{color:rgba(219,217,218,.55);font-size:clamp(.72rem,1.2vw,.85rem)}
+.rec-foot{padding:.7em clamp(10px,1.5vw,15px);border-top:1px solid var(--line);
+          color:rgba(219,217,218,.5);font-size:clamp(.62rem,1vw,.74rem)}
+
+.rec-flash{position:fixed;inset-block-end:22px;inset-inline-start:50%;
+           transform:translateX(50%) translateY(160%);z-index:60;
+           background:var(--navy-2);border:1px solid var(--student);color:var(--student);
+           padding:.55em 1.3em;font-size:clamp(.75rem,1.3vw,.9rem);transition:transform .2s ease}
+.rec-flash.on{transform:translateX(50%) translateY(0)}
+.rec-flash.bad{border-color:#e2725b;color:#e2725b}
+
+@media print{.rec,.rec-fab,.rec-flash{display:none!important}}

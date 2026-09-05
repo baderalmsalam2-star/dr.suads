@@ -1,0 +1,175 @@
+/* ═══ صفحة الطالبة: تفاعلها وتسليماتها وملفاتها ═══ */
+(function () {
+  "use strict";
+
+  var el = TPUI.el, ar = TP.ar;
+  var SHEETS = window.WORKSHEETS || [];
+  var KINDS = ((window.COURSE || {}).engagement || {}).kinds || [];
+  var LABEL = {};
+  KINDS.forEach(function (k) { LABEL[k.id] = k.label; });
+
+  var id = new URLSearchParams(location.search).get("id");
+  document.getElementById("credit").textContent = (window.COURSE || {}).credit || "";
+  document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
+
+  if (!id) return bail("لم تُحدَّد الطالبة.", "افتحي صفحتها من كشف الطالبات.");
+
+  Store.student(id).then(function (st) {
+    if (!st) return bail("لم أجد هذه الطالبة.", "قد تكون حُذفت من الكشف.");
+
+    var sec = TP.sections().filter(function (s) {
+      return String(s.id) === String(st.sectionId);
+    })[0] || { name: "" };
+
+    TPUI.chrome("students", st.name, sec.name + " · رقم " + ar(st.no));
+    document.getElementById("who").textContent = sec.name + " · رقم الكشف " + ar(st.no);
+    document.getElementById("sheetsLink").href =
+      "worksheets.html?section=" + encodeURIComponent(st.sectionId);
+
+    return Promise.all([
+      Store.events({ studentId: st.id }),
+      Store.submissions({ studentId: st.id }),
+      Store.ranking({ sectionId: st.sectionId }),
+      Store.ranking({ sectionId: st.sectionId, month: Store.monthKey(Store.dayKey()) })
+    ]).then(function (r) { paint(st, r[0], r[1], r[2], r[3]); });
+  }).catch(function (e) {
+    console.error(e);
+    bail("تعذّر تحميل الصفحة.", e.message || "");
+  });
+
+  function paint(st, events, subs, termRank, monthRank) {
+    var mine = termRank.filter(function (x) { return x.student.id === st.id; })[0] ||
+               { points: 0, total: 0 };
+    var place = termRank.filter(function (x) { return x.points > 0; })
+                        .findIndex(function (x) { return x.student.id === st.id; });
+    var monthMine = monthRank.filter(function (x) { return x.student.id === st.id; })[0] ||
+                    { points: 0 };
+    var submitted = subs.filter(function (s) { return s.status === "submitted"; });
+
+    /* ─── الأرقام ─── */
+    var stats = document.getElementById("stats");
+    [
+      ["نقاط التفاعل — الفصل", ar(mine.points), ""],
+      ["نقاط هذا الشهر", ar(monthMine.points), "blue"],
+      ["الترتيب في الشعبة", place >= 0 ? ar(place + 1) : "—", "blue"],
+      ["أوراق سُلِّمت", ar(submitted.length) + " من " + ar(SHEETS.length), ""]
+    ].forEach(function (row) {
+      var box = el("div", "stat");
+      box.appendChild(el("div", "k", row[0]));
+      box.appendChild(el("div", "v" + (row[2] ? " " + row[2] : ""), row[1]));
+      stats.appendChild(box);
+    });
+
+    /* ─── أوراق العمل ─── */
+    var ul = document.getElementById("sheets");
+    SHEETS.forEach(function (w) {
+      var sub = subs.filter(function (s) { return s.worksheetId === w.id; })[0];
+      var done = sub && sub.status === "submitted";
+
+      var li = el("li", "card ready" + (done ? " done" : ""));
+      li.appendChild(el("span", "badge", done ? "سُلِّمت" : (sub ? "مسودة" : "لم تبدأ")));
+
+      var a = el("a", "open");
+      a.href = "worksheet.html?w=" + encodeURIComponent(w.id) +
+               "&section=" + encodeURIComponent(st.sectionId) +
+               "&student=" + encodeURIComponent(st.id);
+      a.appendChild(el("span", "no", "الحصة " + ar(w.session) + " · " +
+                        (w.type === "homework" ? "واجب" : "ورقة عمل")));
+      a.appendChild(el("h2", "", w.title));
+
+      var meta = el("div", "meta");
+      meta.appendChild(el("span", "", done
+        ? TPUI.arDate((sub.submittedAt || "").slice(0, 10))
+        : TPUI.questions(w.items.length)));
+      meta.appendChild(el("span", "readers", done ? "بلا درجات" : "افتحيها للحل"));
+      a.appendChild(meta);
+      li.appendChild(a);
+      ul.appendChild(li);
+    });
+
+    /* ─── سجل التفاعل ─── */
+    var table = document.getElementById("events");
+    var evEmpty = document.getElementById("evEmpty");
+    document.getElementById("evSub").textContent =
+      TPUI.shares(events.length) + " · " + TPUI.points(mine.points);
+
+    if (!events.length) {
+      table.hidden = true;
+      evEmpty.appendChild(TPUI.empty("لا يوجد تفاعل مرصود بعد.",
+        "يُرصد أثناء الحصة من لوحة الرصد (مفتاح م داخل العرض)."));
+    } else {
+      var head = el("thead"), hr = el("tr");
+      ["اليوم", "الحصة", "النوع", "النقاط", ""].forEach(function (h) { hr.appendChild(el("th", "", h)); });
+      head.appendChild(hr);
+      table.appendChild(head);
+
+      var body = el("tbody");
+      events.slice().sort(function (a, b) { return (b.at || 0) - (a.at || 0); })
+        .forEach(function (e) {
+          var tr = el("tr");
+          tr.appendChild(el("td", "", TPUI.arDate(e.day)));
+          tr.appendChild(el("td", "num", e.session ? ar(e.session) : "—"));
+          tr.appendChild(el("td", "", LABEL[e.kind] || e.kind));
+          tr.appendChild(el("td", "num", ar(e.points != null ? e.points : 0)));
+
+          var act = el("td", "num");
+          var del = el("button", "sm ghost", "حذف");
+          del.addEventListener("click", function () {
+            if (!confirm("حذف هذا الرصد؟")) return;
+            Store.removeEvent(e.id).then(function () { location.reload(); });
+          });
+          act.appendChild(del);
+          tr.appendChild(act);
+          body.appendChild(tr);
+        });
+      table.appendChild(body);
+    }
+
+    /* ─── الملفات المرفوعة ─── */
+    var uploads = document.getElementById("uploads");
+    var upEmpty = document.getElementById("upEmpty");
+    var refs = [];
+    subs.forEach(function (s) {
+      Object.keys(s.files || {}).forEach(function (itemId) {
+        (s.files[itemId] || []).forEach(function (f) {
+          refs.push({ f: f, worksheetId: s.worksheetId });
+        });
+      });
+    });
+
+    if (!refs.length) {
+      upEmpty.appendChild(TPUI.empty("لا توجد ملفات مرفوعة.",
+        "تُرفع من داخل أسئلة «رفع ملف» في أوراق العمل."));
+      return;
+    }
+    refs.forEach(function (r) {
+      var li = el("li");
+      li.appendChild(el("span", "nm", r.f.name));
+      li.appendChild(el("span", "sz", TPUI.bytes(r.f.size)));
+
+      var open = el("button", "sm ghost", "فتح");
+      open.addEventListener("click", function () {
+        Store.getFile(r.f.fileId).then(function (rec) {
+          if (!rec) return TPUI.toast("الملف غير موجود على هذا الجهاز.", "bad");
+          var w = window.open();
+          if (!w) return TPUI.toast("المتصفح منع فتح نافذة جديدة.", "bad");
+          w.document.write('<title>' + rec.name + '</title>' +
+            '<body style="margin:0;background:#111">' +
+            (/^image\//.test(rec.type)
+              ? '<img src="' + rec.data + '" style="max-width:100%;display:block;margin:auto">'
+              : '<iframe src="' + rec.data + '" style="border:0;width:100%;height:100vh"></iframe>') +
+            '</body>');
+          w.document.close();
+        }).catch(function () { TPUI.toast("تعذّر فتح الملف.", "bad"); });
+      });
+      li.appendChild(open);
+      uploads.appendChild(li);
+    });
+  }
+
+  function bail(msg, hint) {
+    TPUI.chrome("students", "صفحة الطالبة");
+    document.querySelector(".control").hidden = true;
+    document.getElementById("stats").appendChild(TPUI.empty(msg, hint));
+  }
+})();

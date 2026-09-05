@@ -1,0 +1,185 @@
+/* ═══ أنماط صفحات المنصة (ما عدا صفحات العرض) ═══ */
+body{background:var(--navy);color:var(--surface);font-family:var(--ui);
+     min-height:100dvh;display:flex;flex-direction:column;
+     padding:clamp(16px,3vw,44px);gap:clamp(14px,2.2vw,26px)}
+
+/* الترويسة */
+.masthead{border:1px solid var(--faculty);position:relative;
+          padding:clamp(18px,3.2vw,42px) clamp(18px,4vw,54px)}
+.masthead::before{content:"";position:absolute;inset:5px;
+                  border:1px solid var(--line-faculty);pointer-events:none}
+.masthead .kicker{color:var(--student);font-family:var(--matn);font-weight:700;
+                  font-size:clamp(.95rem,1.8vw,1.35rem);margin-bottom:.45em}
+.masthead h1{font-family:var(--matn);font-weight:700;line-height:1.2;
+             font-size:clamp(1.7rem,4.6vw,3.4rem)}
+.masthead .who{font-family:var(--matn);color:var(--faculty);margin-top:.5em;
+               font-size:clamp(1rem,2vw,1.55rem)}
+
+/* شريط الأقسام */
+.nav-main{display:flex;flex-wrap:wrap;gap:0}
+.nav-main a{color:var(--neutral);text-decoration:none;padding:.6em 1.3em;
+            border:1px solid var(--line);margin-inline-start:-1px;
+            font-size:clamp(.78rem,1.3vw,.95rem);white-space:nowrap}
+.nav-main a:hover{color:var(--surface);background:var(--navy-2)}
+.nav-main a.on{color:var(--navy);background:var(--faculty);border-color:var(--faculty);font-weight:600}
+
+/* شريط أدوات */
+.control{display:flex;flex-wrap:wrap;align-items:center;gap:.7em 1.1em;
+         border:1px solid var(--line);padding:clamp(11px,1.5vw,17px) clamp(13px,2vw,22px);
+         font-size:clamp(.78rem,1.3vw,.95rem);color:var(--neutral)}
+.control label{color:var(--surface)}
+.control select,.control input[type=date],.control input[type=text],.control input[type=month]{
+  font:inherit;font-size:1em;color:var(--faculty);background:var(--navy-2);
+  border:1px solid var(--faculty);padding:.4em .9em}
+.control select option{background:var(--navy-2);color:var(--surface)}
+.control .spacer{margin-inline-start:auto}
+.control .hint{color:rgba(219,217,218,.62)}
+
+button.ghost{border-color:var(--line);color:var(--neutral)}
+button.ghost:hover{color:var(--surface);border-color:var(--neutral)}
+button.gold{border-color:var(--student);color:var(--student)}
+button.danger{border-color:#e2725b;color:#e2725b}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.sm{padding:.25em .7em;font-size:.85em}
+
+.section-title{font-family:var(--matn);color:var(--student);font-weight:700;
+               font-size:clamp(1.05rem,2vw,1.5rem);margin-top:.3em}
+.section-title .sub{font-family:var(--ui);color:var(--neutral);font-weight:400;
+                    font-size:.62em;margin-inline-start:.7em}
+
+/* جداول */
+table.grid{width:100%;border-collapse:collapse;font-size:clamp(.8rem,1.35vw,.98rem)}
+table.grid th,table.grid td{border:1px solid var(--line);padding:.55em .8em;text-align:right}
+table.grid th{background:var(--navy-2);color:var(--faculty);font-weight:600;
+              font-size:.9em;letter-spacing:.02em}
+table.grid td{color:var(--surface)}
+table.grid tbody tr:hover{background:rgba(13,171,226,.07)}
+table.grid .num{font-variant-numeric:tabular-nums;color:var(--neutral);width:1%;white-space:nowrap}
+table.grid a{color:var(--faculty);text-decoration:none;border-bottom:1px solid transparent}
+table.grid a:hover{border-bottom-color:var(--faculty)}
+.wrap{overflow-x:auto}
+
+/* بطاقات */
+.cards{list-style:none;display:grid;gap:clamp(12px,1.6vw,20px);
+       grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr))}
+.card{border:1px solid var(--line);position:relative;display:flex;flex-direction:column;
+      background:var(--navy-2);min-height:170px}
+.card a.open,.card .body{display:flex;flex-direction:column;flex:1;gap:.45em;
+                         padding:clamp(16px,2.2vw,26px);text-decoration:none;color:inherit;border:0}
+.card.ready{border-color:var(--faculty)}
+.card.ready:hover,.card.ready:focus-within{background:#0b3d70}
+.card .no{color:var(--faculty);font-size:clamp(.7rem,1.15vw,.85rem);letter-spacing:.06em;
+          font-variant-numeric:tabular-nums}
+.card h2{font-family:var(--matn);font-weight:700;line-height:1.3;
+         font-size:clamp(1.2rem,2.4vw,1.7rem);color:var(--surface)}
+.card .sub{font-family:var(--matn);color:var(--faculty);font-size:clamp(.95rem,1.6vw,1.15rem)}
+.card .meta{margin-top:auto;padding-top:.8em;display:flex;justify-content:space-between;
+            gap:.7em;flex-wrap:wrap;font-size:clamp(.68rem,1.1vw,.82rem);color:var(--neutral)}
+.card .readers{color:var(--student)}
+.card.soon{opacity:.72}
+.badge{position:absolute;top:-1px;left:clamp(14px,3vw,26px);transform:translateY(-50%);
+       background:var(--navy);border:1px solid var(--neutral);color:var(--neutral);
+       padding:.22em .95em;font-size:clamp(.64rem,1.05vw,.76rem);white-space:nowrap}
+.card.ready .badge{border-color:var(--student);color:var(--student)}
+.card.done .badge{border-color:var(--faculty);color:var(--faculty)}
+
+/* لوحة الشرف — المنصّة */
+.podium{display:grid;gap:clamp(12px,1.8vw,22px);
+        grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));align-items:end}
+.seat{border:1px solid var(--line);background:var(--navy-2);position:relative;
+      padding:clamp(20px,2.8vw,32px) clamp(14px,2vw,22px);text-align:center;
+      display:flex;flex-direction:column;gap:.4em}
+.seat .rank{font-family:var(--matn);font-weight:700;color:var(--neutral);
+            font-size:clamp(1.6rem,3.4vw,2.4rem);line-height:1}
+.seat .name{font-family:var(--matn);font-weight:700;color:var(--surface);
+            font-size:clamp(1.15rem,2.3vw,1.65rem);line-height:1.3}
+.seat .pts{color:var(--faculty);font-size:clamp(.82rem,1.4vw,1rem);font-variant-numeric:tabular-nums}
+.seat .tally{color:var(--neutral);font-size:clamp(.68rem,1.1vw,.8rem);line-height:1.7}
+.seat.p1{border-color:var(--student);background:rgba(248,216,27,.10);order:2}
+.seat.p1 .rank,.seat.p1 .pts{color:var(--student)}
+.seat.p1 .name{font-size:clamp(1.35rem,2.9vw,2.05rem)}
+.seat.p2{border-color:var(--faculty);order:1}
+.seat.p3{border-color:var(--faculty);opacity:.9;order:3}
+@media (max-width:700px){.seat.p1,.seat.p2,.seat.p3{order:0}}
+
+/* صفحة الطالبة */
+.profile{display:grid;gap:clamp(12px,1.8vw,20px);
+         grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+.stat{border:1px solid var(--line);background:var(--navy-2);padding:clamp(14px,2vw,22px)}
+.stat .k{color:var(--neutral);font-size:clamp(.7rem,1.15vw,.84rem)}
+.stat .v{font-family:var(--matn);font-weight:700;color:var(--student);
+         font-size:clamp(1.5rem,3vw,2.2rem);line-height:1.2;margin-top:.15em}
+.stat .v.blue{color:var(--faculty)}
+
+/* أوراق العمل */
+.item{border:1px solid var(--line);padding:clamp(16px,2.2vw,26px);background:var(--navy-2);
+      display:flex;flex-direction:column;gap:.8em}
+.item .prompt{font-family:var(--matn);font-size:clamp(1.05rem,2vw,1.45rem);
+              line-height:1.7;color:var(--surface)}
+.item .qno{color:var(--faculty);font-size:clamp(.7rem,1.15vw,.85rem);letter-spacing:.05em}
+.item textarea,.item input[type=text]{font:inherit;font-family:var(--matn);width:100%;
+  font-size:clamp(1rem,1.8vw,1.25rem);line-height:1.8;color:var(--surface);
+  background:var(--navy);border:1px solid var(--line);padding:.7em .9em;resize:vertical}
+.item textarea:focus,.item input:focus{outline:none;border-color:var(--faculty)}
+.choices{list-style:none;display:grid;gap:.5em}
+.choices label{font-family:var(--matn);font-size:clamp(1rem,1.8vw,1.35rem);
+               border:1px solid var(--line);padding:.5em .9em;display:flex;gap:.75em;
+               align-items:baseline;cursor:pointer}
+.choices label:hover{border-color:var(--neutral)}
+.choices input{accent-color:var(--faculty);flex:none}
+.choices label.picked{border-color:var(--faculty);background:rgba(13,171,226,.10)}
+.locked .choices label{cursor:default}
+.locked .choices label.correct{border-color:var(--student);background:rgba(248,216,27,.14)}
+.locked .choices label.correct::after{content:"✓";margin-inline-start:auto;color:var(--student)}
+.locked textarea,.locked input[type=text]{opacity:.85}
+.why{border-inline-start:2px solid var(--faculty);padding-inline-start:.9em;
+     color:var(--neutral);font-size:clamp(.82rem,1.4vw,1rem);line-height:1.8}
+
+.files{list-style:none;display:grid;gap:.45em}
+.files li{display:flex;align-items:center;gap:.7em;border:1px solid var(--line);
+          padding:.45em .8em;font-size:clamp(.75rem,1.25vw,.9rem)}
+.files li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files li .sz{color:var(--neutral);font-variant-numeric:tabular-nums;flex:none}
+.drop{border:1px dashed var(--line);padding:clamp(14px,2vw,22px);text-align:center;
+      color:var(--neutral);font-size:clamp(.78rem,1.3vw,.92rem);cursor:pointer}
+.drop.over{border-color:var(--faculty);color:var(--faculty);background:rgba(13,171,226,.07)}
+
+/* حالات ورسائل */
+.empty{border:1px dashed var(--line);padding:clamp(22px,3.4vw,42px);text-align:center;
+       color:var(--neutral);font-size:clamp(.85rem,1.5vw,1.05rem);line-height:1.9}
+.empty .hint{color:rgba(219,217,218,.55);font-size:.88em;margin-top:.5em}
+.toast{position:fixed;inset-block-end:22px;inset-inline-start:50%;transform:translateX(50%) translateY(160%);
+       background:var(--navy-2);border:1px solid var(--faculty);color:var(--surface);
+       padding:.7em 1.4em;font-size:clamp(.8rem,1.35vw,.95rem);z-index:60;
+       transition:transform .22s ease;max-width:min(90vw,520px);text-align:center}
+.toast.on{transform:translateX(50%) translateY(0)}
+.toast.bad{border-color:#e2725b}
+.toast.good{border-color:var(--student);color:var(--student)}
+
+.note-box{border-inline-start:2px solid var(--student);padding-inline-start:1em;
+          color:var(--neutral);font-size:clamp(.78rem,1.3vw,.94rem);line-height:1.9}
+.chip{display:inline-flex;align-items:center;gap:.4em;border:1px solid var(--line);
+      padding:.2em .7em;font-size:clamp(.68rem,1.1vw,.8rem);color:var(--neutral);white-space:nowrap}
+.chip.blue{border-color:var(--faculty);color:var(--faculty)}
+.chip.gold{border-color:var(--student);color:var(--student)}
+.row{display:flex;flex-wrap:wrap;gap:.6em;align-items:center}
+
+.foot{margin-top:auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:.8em;
+      font-size:clamp(.68rem,1.1vw,.82rem);color:rgba(219,217,218,.7);
+      border-top:1px solid var(--line);padding-top:1em}
+
+@media print{
+  body{background:#fff;color:#000}
+  .masthead,.card,.item,.seat,.stat{border-color:#999;background:#fff}
+  .masthead h1,.card h2,.item .prompt,.seat .name{color:#000}
+  .nav-main,.control,.drop,.toast,button{display:none!important}
+  table.grid th{background:#eee;color:#000}
+  table.grid td{color:#000}
+}
+
+/* اختيار الطالبة الخاطئ بعد التسليم */
+.locked .choices label.yours{border-color:#e2725b;background:rgba(226,114,91,.10)}
+.locked .choices label.yours::after{content:"إجابتك";margin-inline-start:auto;color:#e2725b;
+  font-family:var(--ui);font-size:.62em}
+.locked .choices label.correct::after{content:"الإجابة الصحيحة";margin-inline-start:auto;
+  color:var(--student);font-family:var(--ui);font-size:.62em}

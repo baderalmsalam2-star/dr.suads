@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<title>الطالبات — منصة التدريس</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23002856%27/%3E%3Crect x=%273%27 y=%273%27 width=%2726%27 height=%2726%27 fill=%27none%27 stroke=%27%230DABE2%27 stroke-width=%271.5%27/%3E%3Ctext x=%2716%27 y=%2723%27 font-size=%2718%27 text-anchor=%27middle%27 fill=%27%23F8D81B%27 font-family=%27serif%27%3E%D9%88%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<div class="control">
+  <label for="section">الشعبة:</label>
+  <select id="section" aria-label="اختيار الشعبة"></select>
+  <span class="hint" id="count"></span>
+  <span class="spacer"></span>
+  <button id="paste" type="button">لصق كشف الأسماء</button>
+  <button id="add" type="button" class="ghost">إضافة طالبة</button>
+  <button id="backup" type="button" class="ghost">نسخة احتياطية</button>
+  <button id="restore" type="button" class="ghost">استعادة</button>
+  <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+</div>
+
+<div id="pasteBox" hidden>
+  <div class="item">
+    <div class="prompt">الصقي أسماء الطالبات — اسم في كل سطر، بترتيب الكشف.</div>
+    <textarea id="pasteText" rows="10" placeholder="سارة أحمد&#10;نورة محمد&#10;..."></textarea>
+    <div class="row">
+      <button id="pasteSave" type="button">حفظ الكشف</button>
+      <button id="pasteCancel" type="button" class="ghost">إلغاء</button>
+      <span class="hint">يستبدل كشف هذه الشعبة وحدها. أرقام القارئات تتبع ترتيب الأسماء.</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">كشف الطالبات <span class="sub" id="sub"></span></div>
+<div class="wrap"><table class="grid" id="table"></table></div>
+<div id="emptyBox"></div>
+
+<footer class="foot">
+  <div>البيانات محفوظة على هذا الجهاز — صدِّري نسخة احتياطية من صفحة الطالبات بين حين وآخر.</div>
+  <div id="credit"></div>
+</footer>
+
+<script src="data/course.js"></script>
+<script src="data/worksheets.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/students.js"></script>
+</body>
+</html>

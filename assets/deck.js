@@ -48,14 +48,36 @@
   var seat = TP.seatMaker(roster, startAt);
   var readerSlides = [].slice.call(document.querySelectorAll("[data-reader]"));
   readerSlides.forEach(function (el, k) {
+    el.dataset.readerNo = seat(k);
     el.dataset.tab = "تقرأ: الطالبة رقم " + ar(seat(k));
   });
 
-  /* قارئات الحصة القادمة */
+  var nextSeat = TP.seatMaker(roster, startAt + readerSlides.length);
   var nx = document.getElementById("next");
   if (nx) {
-    var nextSeat = TP.seatMaker(roster, startAt + readerSlides.length);
     nx.textContent = [0, 1, 2].map(function (k) { return "رقم " + ar(nextSeat(k)); }).join(" · ");
+  }
+
+  /* إن وُجد كشف بالأسماء، يحل الاسم محل الرقم على اللسان. يجري
+     بعد العرض الأول حتى لا تتأخر الشريحة الأولى على التخزين. */
+  if (window.Store) {
+    Store.students(section.id).then(function (list) {
+      if (!list.length) return;
+      var byNo = {};
+      list.forEach(function (s) { if (!s.placeholder) byNo[s.no] = s.name; });
+      if (!Object.keys(byNo).length) return;
+
+      readerSlides.forEach(function (el, k) {
+        var name = byNo[seat(k)];
+        if (name) el.dataset.tab = "تقرأ: " + name;
+      });
+      if (nx) {
+        nx.textContent = [0, 1, 2].map(function (k) {
+          return byNo[nextSeat(k)] || "رقم " + ar(nextSeat(k));
+        }).join(" · ");
+      }
+      show(i);                                  /* تحديث اللسان الظاهر */
+    }).catch(function () { /* يبقى الترقيم كما هو */ });
   }
 
   /* ─── المؤقت ─── */
@@ -87,6 +109,7 @@
     src.textContent = s.dataset.src || "";
     s.classList.remove("reveal");
     if (s.dataset.timer) startTimer(+s.dataset.timer); else stopTimer();
+    dispatchEvent(new CustomEvent("tp:slide", { detail: { index: i, slide: s } }));
   }
 
   function reveal() {
@@ -133,6 +156,12 @@
   /* الرجوع إلى المنصة مع الاحتفاظ بالشعبة */
   var home = document.getElementById("home");
   if (home) home.href = "../index.html?section=" + encodeURIComponent(section.id);
+
+  /* تتاح للوحة الرصد ولأي إضافة لاحقة */
+  window.DECK = {
+    section: section, session: sessionNo, roster: roster, startAt: startAt,
+    slides: slides, show: show, current: function () { return i; }
+  };
 
   show(0);
 })();
