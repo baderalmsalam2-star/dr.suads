@@ -1,0 +1,21 @@
+/* ═══ رموز التصميم المشتركة لمنصة التدريس ═══
+   تُستورد في كل صفحة قبل بقية ملفات الأنماط. */
+:root{
+  --navy:#002856;            /* أرضية العرض — اللون الرئيسي للجامعة */
+  --navy-2:#0A3565;          /* سطح مرتفع */
+  --faculty:#0DABE2;         /* أزرق: ما يصدر عن الدكتورة — العناوين، المؤقت، المصدر */
+  --student:#F8D81B;         /* أصفر: ما يخص الطالبة — القارئة، الإجابة الصحيحة */
+  --neutral:#DBD9DA;         /* رمادي: الحدود والنص الثانوي */
+  --surface:#FFFFFF;
+  --matn:"Amiri","Scheherazade New","Traditional Arabic",Georgia,serif;
+  --ui:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
+
+  --line:rgba(219,217,218,.28);
+  --line-faculty:rgba(13,171,226,.38);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+button,a.btn{font:inherit;color:var(--faculty);background:none;
+  border:1px solid var(--faculty);padding:.35em 1.1em;cursor:pointer;text-decoration:none}
+button:focus-visible,a:focus-visible,li:focus-visible,select:focus-visible{
+  outline:2px solid var(--surface);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
