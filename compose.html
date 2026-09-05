@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<title>مُنشئ الحصص — منصة التدريس</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23002856%27/%3E%3Crect x=%273%27 y=%273%27 width=%2726%27 height=%2726%27 fill=%27none%27 stroke=%27%230DABE2%27 stroke-width=%271.5%27/%3E%3Ctext x=%2716%27 y=%2723%27 font-size=%2718%27 text-anchor=%27middle%27 fill=%27%23F8D81B%27 font-family=%27serif%27%3E%D9%88%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/compose.css">
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<div class="control">
+  <label for="n">رقم الحصة:</label>
+  <input type="text" id="n" size="3" value="3">
+  <label for="title">العنوان:</label>
+  <input type="text" id="title" placeholder="مثلًا: الولاية العامة">
+  <label for="subtitle">سطر تعريفي:</label>
+  <input type="text" id="subtitle" placeholder="مقاصدها ومراتبها">
+  <label for="pages">الصفحات:</label>
+  <input type="text" id="pages" size="8" placeholder="ص ٣–٤">
+</div>
+
+<div class="section-title">١ · الصق نص الحصة من المذكرة</div>
+<div class="item">
+  <div class="prompt">افصل كل فقرة عن التي بعدها بسطر فارغ. كل فقرة تصير شريحة، وتقدر تغيّر نوعها بعدين.</div>
+  <textarea id="raw" rows="8" placeholder="الفقرة الأولى...&#10;&#10;الفقرة الثانية...&#10;&#10;الفقرة الثالثة..."></textarea>
+  <div class="row">
+    <button id="split" type="button">قسّم إلى شرائح</button>
+    <button id="addQ" type="button" class="ghost">أضف سؤالًا</button>
+    <button id="addClose" type="button" class="ghost">أضف شريحة ختام</button>
+    <span class="hint" id="tally"></span>
+  </div>
+</div>
+
+<div class="section-title">٢ · رتّب الشرائح <span class="sub" id="blocksSub"></span></div>
+<div id="blocks"></div>
+<div id="blocksEmpty"></div>
+
+<div class="section-title">٣ · المعاينة والحفظ</div>
+<div class="control">
+  <button id="build" type="button">ابنِ الحصة</button>
+  <button id="download" type="button" class="gold" disabled>نزّل ملف الحصة</button>
+  <span class="hint" id="buildState"></span>
+</div>
+<iframe id="preview" title="معاينة الحصة"></iframe>
+
+<div id="snippets" hidden>
+  <div class="section-title">٤ · أضف هذين السطرين</div>
+  <div class="item">
+    <div class="qno">في <b>data/course.js</b> داخل <b>sessions</b></div>
+    <textarea id="snipCourse" rows="10" readonly></textarea>
+    <button id="copyCourse" type="button" class="ghost sm">نسخ</button>
+  </div>
+  <div class="item">
+    <div class="qno">في <b>data/worksheets.js</b> — ورقة عمل من أسئلة الحصة (اختياري)</div>
+    <textarea id="snipSheet" rows="10" readonly></textarea>
+    <button id="copySheet" type="button" class="ghost sm">نسخ</button>
+  </div>
+  <div class="note-box">
+    احفظ الملف المنزَّل داخل مجلد <b>sessions/</b>، ثم الصق السطر الأول في
+    <b>data/course.js</b>. حدِّث الصفحة الرئيسية فتظهر الحصة «متاحة».
+  </div>
+</div>
+
+<footer class="foot">
+  <div>الأداة تبني ملف الحصة من نصك أنت — لا تُنشئ محتوى من عندها.</div>
+  <div id="credit"></div>
+</footer>
+
+<script src="data/course.js"></script>
+<script src="data/worksheets.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/compose.js"></script>
+</body>
+</html>

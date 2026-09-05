@@ -1,0 +1,38 @@
+/* ═══ مُنشئ الحصص ═══ */
+.control input[type=text]{font:inherit;color:var(--surface);background:var(--navy-2);
+  border:1px solid var(--line);padding:.4em .8em;min-width:6em}
+.control input[type=text]:focus{outline:none;border-color:var(--faculty)}
+#raw{font-family:var(--matn);font-size:clamp(1rem,1.8vw,1.2rem);line-height:1.9}
+
+.blk{border:1px solid var(--line);background:var(--navy-2);margin-bottom:10px}
+.blk-head{display:flex;flex-wrap:wrap;gap:.5em;align-items:center;
+          padding:.55em .8em;border-bottom:1px solid var(--line)}
+.blk-head .idx{color:var(--neutral);font-variant-numeric:tabular-nums;
+               font-size:.8rem;min-width:2em}
+.blk-head select,.blk-head input{font:inherit;font-size:.85rem;color:var(--surface);
+  background:var(--navy);border:1px solid var(--line);padding:.3em .6em}
+.blk-head select{color:var(--faculty)}
+.blk-head .grow{flex:1;min-width:120px}
+.blk-head .ops{display:flex;gap:4px;margin-inline-start:auto}
+.blk-head .ops button{padding:.2em .6em;font-size:.78rem;border-color:var(--line);color:var(--neutral)}
+.blk-head .ops button:hover{color:var(--surface);border-color:var(--neutral)}
+.blk-head .ops button.del{border-color:#e2725b;color:#e2725b}
+.blk-body{padding:.7em .8em;display:grid;gap:.5em}
+.blk-body textarea,.blk-body input[type=text]{font:inherit;font-family:var(--matn);width:100%;
+  font-size:clamp(.95rem,1.6vw,1.15rem);line-height:1.85;color:var(--surface);
+  background:var(--navy);border:1px solid var(--line);padding:.55em .75em;resize:vertical}
+.blk-body textarea:focus,.blk-body input:focus{outline:none;border-color:var(--faculty)}
+.blk-body label{color:var(--neutral);font-size:.78rem}
+.blk.q{border-color:var(--faculty)}
+.blk.closing{border-color:var(--student)}
+.opts-edit{display:grid;gap:.35em}
+.opt-row{display:flex;gap:.5em;align-items:center}
+.opt-row input[type=radio]{accent-color:var(--student);flex:none}
+.opt-row .lt{color:var(--faculty);font-size:.85rem;flex:none;min-width:1.2em}
+.opt-row input[type=text]{flex:1}
+
+#preview{width:100%;height:min(70vh,560px);border:1px solid var(--line);background:var(--navy);display:none}
+#preview.on{display:block}
+#snippets textarea{font-family:ui-monospace,Menlo,Consolas,monospace;direction:ltr;text-align:left;
+  font-size:.8rem;line-height:1.6;width:100%;color:var(--surface);background:var(--navy);
+  border:1px solid var(--line);padding:.6em}

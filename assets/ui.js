@@ -9,7 +9,8 @@
     { id: "home",       label: "الرئيسية",     href: "index.html" },
     { id: "students",   label: "الطالبات",     href: "students.html" },
     { id: "worksheets", label: "أوراق العمل",  href: "worksheets.html" },
-    { id: "honors",     label: "لوحة الشرف",   href: "honors.html" }
+    { id: "honors",     label: "لوحة الشرف",   href: "honors.html" },
+    { id: "compose",    label: "مُنشئ الحصص",  href: "compose.html" }
   ];
 
   var AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
@@ -162,6 +163,8 @@
   var STUDENTS = ["طالبة واحدة", "طالبتان", "طالبات", "طالبة"];
   var SHARES   = ["مشاركة واحدة", "مشاركتان", "مشاركات", "مشاركة"];
   var QS       = ["سؤال واحد", "سؤالان", "أسئلة", "سؤالًا"];
+  var SLIDES   = ["شريحة واحدة", "شريحتان", "شرائح", "شريحة"];
+  var READS    = ["شريحة قراءة", "شريحتا قراءة", "شرائح قراءة", "شريحة قراءة"];
 
   function bytes(n) {
     if (n < 1024) return ar(n) + " بايت";
@@ -177,6 +180,8 @@
     points:   function (n) { return count(n, POINTS); },
     students: function (n) { return count(n, STUDENTS); },
     shares:   function (n) { return count(n, SHARES); },
-    questions:function (n) { return count(n, QS); }
+    questions:function (n) { return count(n, QS); },
+    slides:   function (n) { return count(n, SLIDES); },
+    reads:    function (n) { return count(n, READS); }
   };
 })();
