@@ -104,8 +104,6 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
          z-index:40;background:var(--navy);opacity:.55;font-size:clamp(.7rem,1.2vw,.85rem)}
 .rec-fab:hover{opacity:1}
 
-/* الوسم hidden وحده لا يكفي: display:flex أدناه يتغلّب عليه */
-.rec[hidden]{display:none}
 .rec{position:fixed;inset-block:0;inset-inline-end:0;z-index:50;width:min(94vw,430px);
      background:var(--navy-2);border-inline-start:1px solid var(--faculty);
      display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,0,0,.45)}

@@ -14,6 +14,9 @@
   --line-faculty:rgba(13,171,226,.38);
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* وسم hidden لا يصمد أمام display:flex المعلَن على الصنف، فيُثبَّت هنا
+   مرة واحدة لكل الصفحات بدل ملاحقته صنفًا صنفًا. */
+[hidden]{display:none!important}
 button,a.btn{font:inherit;color:var(--faculty);background:none;
   border:1px solid var(--faculty);padding:.35em 1.1em;cursor:pointer;text-decoration:none}
 button:focus-visible,a:focus-visible,li:focus-visible,select:focus-visible{

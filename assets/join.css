@@ -1,0 +1,62 @@
+/* ═══ صفحتا الباركود والتسجيل ═══ */
+/* ── شاشة العرض على البروجكتر ── */
+.qr-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:clamp(14px,2.4vw,28px);border:1px solid var(--faculty);position:relative;
+          padding:clamp(18px,3vw,40px)}
+.qr-stage::before{content:"";position:absolute;inset:6px;border:1px solid var(--line-faculty);
+                  pointer-events:none}
+.qr-head{text-align:center}
+.qr-kicker{color:var(--student);font-family:var(--matn);font-weight:700;
+           font-size:clamp(1rem,2vw,1.6rem);margin-bottom:.3em}
+.qr-stage h2{font-family:var(--matn);font-weight:700;color:var(--surface);
+             font-size:clamp(1.5rem,4vw,3rem);line-height:1.25}
+.qr-box{background:#fff;padding:clamp(10px,1.4vw,18px);line-height:0;
+        width:min(56vh,72vw,520px)}
+.qr-box svg{width:100%;height:auto;display:block}
+.qr-box.small{width:min(62vw,300px)}
+.qr-foot{text-align:center;display:flex;flex-direction:column;gap:.7em;align-items:center}
+.qr-url{color:var(--faculty);font-family:ui-monospace,Menlo,Consolas,monospace;
+        direction:ltr;font-size:clamp(.75rem,1.5vw,1rem);word-break:break-all}
+.qr-steps{list-style:none;counter-reset:s;display:flex;flex-wrap:wrap;gap:.6em 1.6em;
+          justify-content:center;color:var(--neutral);font-size:clamp(.75rem,1.4vw,.98rem)}
+.qr-steps li{counter-increment:s;display:flex;gap:.5em;align-items:baseline}
+.qr-steps li::before{content:counter(s);color:var(--student);
+                     font-variant-numeric:tabular-nums;font-weight:600}
+
+/* ── صفحة الطالبة ── */
+.join-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:clamp(8px,2vw,20px)}
+.join-card{width:min(100%,460px);border:1px solid var(--faculty);background:var(--navy-2);
+           padding:clamp(20px,4vw,36px);display:flex;flex-direction:column;gap:.7em}
+.join-kicker{color:var(--student);font-family:var(--matn);font-weight:700;
+             font-size:clamp(.95rem,2vw,1.25rem)}
+.join-card h2{font-family:var(--matn);font-weight:700;color:var(--surface);
+              font-size:clamp(1.4rem,3.4vw,2rem);line-height:1.3;margin-bottom:.2em}
+.join-card label{color:var(--neutral);font-size:clamp(.78rem,1.5vw,.9rem);margin-top:.4em}
+.join-card input,.join-card select{font:inherit;font-size:clamp(1rem,2vw,1.15rem);
+  color:var(--surface);background:var(--navy);border:1px solid var(--line);padding:.65em .8em;width:100%}
+.join-card input:focus,.join-card select:focus{outline:none;border-color:var(--faculty)}
+.join-card select option{background:var(--navy-2)}
+.join-card>button#go{margin-top:1em;padding:.75em;font-size:clamp(1rem,2vw,1.1rem);
+  background:var(--faculty);color:var(--navy);border-color:var(--faculty);font-weight:600}
+.join-note{color:rgba(219,217,218,.62);font-size:clamp(.72rem,1.4vw,.85rem);line-height:1.8}
+.code-line{font-family:ui-monospace,Menlo,Consolas,monospace;direction:ltr;text-align:left;
+  font-size:.7rem;color:var(--neutral);background:var(--navy);border:1px solid var(--line);
+  padding:.6em;word-break:break-all;user-select:all}
+
+/* ── استقبال التسجيل عند الدكتورة ── */
+.scan-wrap{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
+.scan-video{width:100%;max-width:420px;border:1px solid var(--faculty);background:#000;display:block}
+.scan-log{list-style:none;display:grid;gap:.35em;max-height:240px;overflow-y:auto}
+.scan-log li{border:1px solid var(--line);padding:.4em .7em;font-size:.85rem;
+             display:flex;gap:.6em;align-items:baseline}
+.scan-log li.new{border-color:var(--student);color:var(--student)}
+.scan-log li.dup{opacity:.55}
+
+@media print{
+  body{background:#fff}
+  .nav-main,.control,.foot,#urlBox{display:none!important}
+  .qr-stage{border-color:#999;min-height:92vh}
+  .qr-stage h2,.qr-steps{color:#000}
+  .qr-kicker{color:#333}
+  .qr-url{color:#333}
+}

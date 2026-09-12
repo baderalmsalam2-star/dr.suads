@@ -22,7 +22,8 @@
     })[0] || { name: "" };
 
     TPUI.chrome("students", st.name, sec.name + " · رقم " + ar(st.no));
-    document.getElementById("who").textContent = sec.name + " · رقم الكشف " + ar(st.no);
+    document.getElementById("who").textContent = sec.name + " · رقم الكشف " + ar(st.no) +
+      (st.uid ? " · الرقم الجامعي " + ar(st.uid) : "");
     document.getElementById("sheetsLink").href =
       "worksheets.html?section=" + encodeURIComponent(st.sectionId);
 

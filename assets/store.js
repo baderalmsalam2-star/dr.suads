@@ -202,7 +202,9 @@
       for (var n = 1; n <= (sec.roster || 0); n++) {
         out.push({
           id: uid("st"), no: n, sectionId: sec.id,
-          name: "طالبة رقم " + n, placeholder: true, active: true
+          name: "طالبة رقم " + String(n).replace(/\d/g, function (d) {
+            return "٠١٢٣٤٥٦٧٨٩"[d];
+          }), placeholder: true, active: true
         });
       }
     });

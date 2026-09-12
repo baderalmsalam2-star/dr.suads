@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<title>باركود التسجيل — منصة التدريس</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23002856%27/%3E%3Crect x=%273%27 y=%273%27 width=%2726%27 height=%2726%27 fill=%27none%27 stroke=%27%230DABE2%27 stroke-width=%271.5%27/%3E%3Ctext x=%2716%27 y=%2723%27 font-size=%2718%27 text-anchor=%27middle%27 fill=%27%23F8D81B%27 font-family=%27serif%27%3E%D9%88%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/join.css">
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<div class="control">
+  <label for="section">الشعبة:</label>
+  <select id="section" aria-label="اختيار الشعبة"></select>
+  <span class="spacer"></span>
+  <button id="print" type="button" class="ghost">طباعة</button>
+  <button id="full" type="button">ملء الشاشة</button>
+</div>
+
+<div id="urlBox" class="item" hidden>
+  <div class="prompt">عنوان المنصة على الشبكة</div>
+  <div class="why">الباركود لازم يحمل عنوانًا يفتح من جوال الطالبة. شغّلي خادمًا محليًا على جهازك ثم اكتبي عنوانه هنا — الخطوات في «دليل التشغيل».</div>
+  <input type="text" id="baseUrl" placeholder="http://192.168.1.14:8000">
+  <div class="row"><button id="saveUrl" type="button">حفظ</button>
+    <span class="hint">يُحفظ على هذا الجهاز فلا تُعيدي كتابته.</span></div>
+</div>
+
+<div class="qr-stage" id="stage">
+  <div class="qr-head">
+    <div class="qr-kicker" id="kicker"></div>
+    <h2 id="qrTitle">امسحي الرمز للتسجيل</h2>
+  </div>
+  <div class="qr-box" id="qr"></div>
+  <div class="qr-foot">
+    <div class="qr-url" id="shownUrl"></div>
+    <ol class="qr-steps">
+      <li>افتحي كاميرا الجوال ووجّهيها إلى الرمز.</li>
+      <li>اكتبي اسمك الكامل ورقمك الجامعي.</li>
+      <li>اعرضي الرمز الذي يظهر لكِ على الدكتورة.</li>
+    </ol>
+  </div>
+</div>
+
+<footer class="foot">
+  <div id="credit"></div>
+</footer>
+
+<script src="data/course.js"></script>
+<script src="data/worksheets.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/qr.js"></script>
+<script src="assets/register.js"></script>
+</body>
+</html>

@@ -71,6 +71,142 @@
     }).then(function () { TPUI.toast("أُضيفت الطالبة.", "good"); render(); }).catch(fail);
   });
 
+  /* ─── استقبال التسجيل بالباركود ─── */
+  var intakeBox = document.getElementById("intakeBox");
+  var scanLog = document.getElementById("scanLog");
+  var cam = document.getElementById("cam");
+  var stream = null, scanning = false, lastSeen = "";
+
+  document.getElementById("intake").addEventListener("click", function () {
+    intakeBox.hidden = !intakeBox.hidden;
+    if (intakeBox.hidden) stopCam();
+    else document.getElementById("camNote").textContent = camSupport()
+      ? "وجّهي الكاميرا إلى رمز الطالبة — تُضاف فور قراءتها."
+      : "هذا المتصفح لا يدعم قراءة الباركود بالكاميرا. استعملي اللصق أو الملفات، أو افتحي المنصة في Chrome.";
+  });
+
+  function camSupport() {
+    return "BarcodeDetector" in window && navigator.mediaDevices &&
+           navigator.mediaDevices.getUserMedia;
+  }
+
+  document.getElementById("camStart").addEventListener("click", function () {
+    if (!camSupport()) return TPUI.toast("الكاميرا غير مدعومة في هذا المتصفح.", "bad");
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(function (st) {
+        stream = st; cam.srcObject = st; cam.hidden = false; cam.play();
+        document.getElementById("camStop").hidden = false;
+        scanning = true;
+        loop(new window.BarcodeDetector({ formats: ["qr_code"] }));
+      })
+      .catch(function (e) {
+        TPUI.toast("تعذّر فتح الكاميرا: " + (e.message || ""), "bad");
+      });
+  });
+
+  document.getElementById("camStop").addEventListener("click", stopCam);
+
+  function stopCam() {
+    scanning = false;
+    if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+    stream = null; cam.hidden = true;
+    document.getElementById("camStop").hidden = true;
+  }
+
+  function loop(detector) {
+    if (!scanning) return;
+    detector.detect(cam).then(function (codes) {
+      if (codes && codes.length) {
+        var v = codes[0].rawValue;
+        if (v && v !== lastSeen) { lastSeen = v; take([v]); }
+      }
+    }).catch(function () { /* إطار غير صالح — تجاهل */ })
+      .then(function () { setTimeout(function () { loop(detector); }, 350); });
+  }
+
+  /* ─── اللصق والملفات ─── */
+  document.getElementById("addCodes").addEventListener("click", function () {
+    var lines = document.getElementById("pasteCodes").value
+      .split("\n").map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length; });
+    if (!lines.length) return TPUI.toast("الصقي رمزًا واحدًا على الأقل.", "bad");
+    take(lines);
+    document.getElementById("pasteCodes").value = "";
+  });
+
+  var joinFileInput = document.getElementById("joinFileInput");
+  document.getElementById("joinFiles").addEventListener("click", function () { joinFileInput.click(); });
+  joinFileInput.addEventListener("change", function () {
+    var files = [].slice.call(joinFileInput.files);
+    Promise.all(files.map(function (f) {
+      return TPUI.readAsText(f).then(function (t) {
+        var o = JSON.parse(t);
+        return o && o.kind === "tp-join" ? o.code : null;
+      }).catch(function () { return null; });
+    })).then(function (codes) {
+      take(codes.filter(Boolean));
+    }).then(function () { joinFileInput.value = ""; });
+  });
+
+  /* ─── إضافة المسجَّلات ─── */
+  function parse(code) {
+    var p = String(code).split("|");
+    if (p[0] !== "TPJ1" || p.length < 4) return null;
+    var name = p.slice(2, p.length - 1).join("|").trim();
+    var uid = p[p.length - 1].trim();
+    if (!name || !uid) return null;
+    return { sectionId: p[1].trim(), name: name, uid: uid };
+  }
+
+  function take(codes) {
+    var parsed = codes.map(parse);
+    var bad = parsed.filter(function (x) { return !x; }).length;
+    var added = 0, dup = 0;
+
+    /* يُقرأ الكشف من جديد مع كل طالبة: لو قُرئ مرة واحدة لأخذت
+       المسجَّلات كلُّهن نفس الموضع الشاغر فطمست إحداهن الأخرى. */
+    var chain = Promise.resolve();
+    parsed.filter(Boolean).forEach(function (rec) {
+      chain = chain.then(function () {
+        return Store.students(rec.sectionId).then(function (mine) {
+          var exist = mine.filter(function (s) { return s.uid && s.uid === rec.uid; })[0];
+          if (exist) {
+            dup++; logLine(rec, "مسجَّلة من قبل", "dup");
+            return Store.saveStudent({ id: exist.id, name: rec.name });
+          }
+          added++;
+          logLine(rec, "أُضيفت", "new");
+          var slot = mine.filter(function (s) { return s.placeholder; })
+                         .sort(function (a, b) { return (a.no || 0) - (b.no || 0); })[0];
+          if (slot) {
+            return Store.saveStudent({ id: slot.id, name: rec.name, uid: rec.uid,
+                                       placeholder: false });
+          }
+          return Store.saveStudent({ no: mine.length + 1, sectionId: rec.sectionId,
+                                     name: rec.name, uid: rec.uid, active: true });
+        });
+      });
+    });
+
+    chain.then(function () { return { added: added, dup: dup }; }).then(function (r) {
+      var msg = [];
+      if (r.added) msg.push("أُضيفت " + TPUI.students(r.added));
+      if (r.dup) msg.push(ar(r.dup) + " مسجَّلة من قبل");
+      if (bad) msg.push(TPUI.codes(bad) + " غير صالح");
+      TPUI.toast(msg.join(" · ") || "لا جديد.", bad && !r.added ? "bad" : "good");
+      render();
+    }).catch(fail);
+  }
+
+  function logLine(rec, what, cls) {
+    var li = el("li", cls);
+    li.appendChild(el("span", "", rec.name));
+    li.appendChild(el("span", "sz", ar(rec.uid)));
+    li.appendChild(el("span", "", what));
+    scanLog.insertBefore(li, scanLog.firstChild);
+    while (scanLog.children.length > 40) scanLog.removeChild(scanLog.lastChild);
+  }
+
   /* ─── نسخة احتياطية واستعادة ─── */
   document.getElementById("backup").addEventListener("click", function () {
     Store.exportAll().then(function (data) {
@@ -125,7 +261,7 @@
 
       var head = el("thead");
       var hr = el("tr");
-      ["#", "الاسم", "نقاط التفاعل", "التسليمات", ""].forEach(function (h) {
+      ["#", "الاسم", "الرقم الجامعي", "نقاط التفاعل", "التسليمات", ""].forEach(function (h) {
         hr.appendChild(el("th", "", h));
       });
       head.appendChild(hr);
@@ -148,6 +284,7 @@
           tdName.appendChild(el("span", "chip", "اسم مبدئي"));
         }
         tr.appendChild(tdName);
+        tr.appendChild(el("td", "num", s.uid ? ar(s.uid) : "—"));
 
         var row = rank[s.id];
         tr.appendChild(el("td", "num", ar((row && row.points) || 0)));
