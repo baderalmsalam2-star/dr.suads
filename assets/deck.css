@@ -148,3 +148,9 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 .rec-flash.bad{border-color:#e2725b;color:#e2725b}
 
 @media print{.rec,.rec-fab,.rec-flash{display:none!important}}
+
+/* نص المذكرة أكثف من نص الحصة الأولى المكتوب يدويًا، فله مقياس
+   أصغر وسطر أعرض حتى تسع الشريحةُ الفقرةَ بلا تمرير. */
+.matn.flow{font-size:clamp(.98rem,1.85vw,1.42rem);line-height:1.9;max-width:62ch}
+.matn.flow p+p{margin-top:.7em}
+@media (max-width:640px){.matn.flow{max-width:none}}
