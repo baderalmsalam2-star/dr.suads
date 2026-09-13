@@ -26,9 +26,12 @@
   var today = document.getElementById("today");
 
   function render() {
-    document.getElementById("hint").textContent =
-      "القارئات تُوزَّع على " + TPUI.students(section.roster) + " في الشعبة";
-    renderSessions();
+    Store.students(section.id).then(function (list) {
+      var n = list.length || section.roster;
+      document.getElementById("hint").textContent =
+        "القارئات تُوزَّع على " + TPUI.students(n) + " في الشعبة";
+      renderSessions(n);
+    }).catch(function () { renderSessions(section.roster); });
     renderToday();
   }
 
@@ -70,7 +73,7 @@
     });
   }
 
-  function renderSessions() {
+  function renderSessions(rosterSize) {
     var all = COURSE.sessions || [];
     var ready = all.filter(function (s) { return s.status === "ready" && s.file; });
     var pending = all.filter(function (s) { return !(s.status === "ready" && s.file); });
@@ -101,7 +104,7 @@
       var meta = el("div", "meta");
       meta.appendChild(el("span", "", s.pages || ""));
       if (isReady && s.readers) {
-        var seat = TP.seatMaker(section.roster, TP.startAtFor(s));
+        var seat = TP.seatMaker(rosterSize || section.roster, TP.startAtFor(s));
         meta.appendChild(el("span", "readers",
           "القارئات: " + ar(seat(0)) + " – " + ar(seat(s.readers - 1))));
       }

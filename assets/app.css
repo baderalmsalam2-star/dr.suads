@@ -183,3 +183,9 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
   font-family:var(--ui);font-size:.62em}
 .locked .choices label.correct::after{content:"الإجابة الصحيحة";margin-inline-start:auto;
   color:var(--student);font-family:var(--ui);font-size:.62em}
+
+/* صف تحرير الطالبة داخل الجدول */
+table.grid td input[type=text]{font:inherit;width:100%;min-width:7em;color:var(--surface);
+  background:var(--navy);border:1px solid var(--faculty);padding:.35em .6em}
+table.grid td input[type=text].num{font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
+table.grid td input[type=text]:focus{outline:none;border-color:var(--student)}

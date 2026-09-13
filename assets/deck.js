@@ -63,13 +63,20 @@
   if (window.Store) {
     Store.students(section.id).then(function (list) {
       if (!list.length) return;
+
+      /* الكشف الحقيقي هو المرجع في عدد القارئات، لا الرقم المكتوب في
+         data/course.js — وإلا التفّت الدورة على عدد خاطئ. */
+      var real = params.get("roster") ? roster : list.length;
+      seat = TP.seatMaker(real, startAt);
+      nextSeat = TP.seatMaker(real, startAt + readerSlides.length);
+
       var byNo = {};
       list.forEach(function (s) { if (!s.placeholder) byNo[s.no] = s.name; });
-      if (!Object.keys(byNo).length) return;
 
       readerSlides.forEach(function (el, k) {
+        el.dataset.readerNo = seat(k);
         var name = byNo[seat(k)];
-        if (name) el.dataset.tab = "تقرأ: " + name;
+        el.dataset.tab = name ? "تقرأ: " + name : "تقرأ: الطالبة رقم " + ar(seat(k));
       });
       if (nx) {
         nx.textContent = [0, 1, 2].map(function (k) {

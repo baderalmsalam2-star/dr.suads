@@ -29,46 +29,63 @@
   });
   document.getElementById("pasteCancel").addEventListener("click", function () { pasteBox.hidden = true; });
 
+  /* السطر إما اسم وحده، أو رقم جامعي ثم اسم (أو العكس).
+     الرقم: ٦ خانات فأكثر في أول السطر أو آخره. */
+  function parseLine(line) {
+    var t = line.replace(/[\t،,;|]+/g, " ").replace(/\s+/g, " ").trim();
+    var m = t.match(/^(\d{6,})\s+(.+)$/) || null;
+    if (m) return { uid: m[1], name: m[2].trim() };
+    m = t.match(/^(.+?)\s+(\d{6,})$/);
+    if (m) return { uid: m[2], name: m[1].trim() };
+    return { uid: "", name: t };
+  }
+
   document.getElementById("pasteSave").addEventListener("click", function () {
-    var names = pasteText.value.split("\n")
-      .map(function (n) { return n.trim(); })
-      .filter(function (n) { return n.length; });
-    if (!names.length) return TPUI.toast("لم تُدخلي أي اسم.", "bad");
+    var rows = pasteText.value.split("\n")
+      .map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length; })
+      .map(parseLine)
+      .filter(function (r) { return r.name.length; });
+    if (!rows.length) return TPUI.toast("لم تُدخلي أي اسم.", "bad");
 
     Store.students().then(function (all) {
       var mine = all.filter(function (s) { return String(s.sectionId) === String(section.id); });
       var others = all.filter(function (s) { return String(s.sectionId) !== String(section.id); });
 
-      /* يُعاد استعمال معرّف الطالبة إن بقي اسمها في مكانه، حتى لا
-         ينفصل سجل تفاعلها وتسليماتها عنها. */
-      var byName = {};
-      mine.forEach(function (s) { if (!s.placeholder) byName[s.name] = s; });
+      /* يُعاد استعمال معرّف الطالبة إن بقيت في الكشف — بالرقم الجامعي
+         أولًا ثم بالاسم — حتى لا ينفصل سجل تفاعلها وتسليماتها عنها. */
+      var byUid = {}, byName = {};
+      mine.forEach(function (s) {
+        if (s.placeholder) return;
+        if (s.uid) byUid[s.uid] = s;
+        byName[s.name] = s;
+      });
 
-      var rebuilt = names.map(function (name, i) {
-        var keep = byName[name];
+      var rebuilt = rows.map(function (r, i) {
+        var keep = (r.uid && byUid[r.uid]) || byName[r.name];
         return keep
-          ? Object.assign({}, keep, { no: i + 1, placeholder: false })
-          : { id: Store.uid("st"), no: i + 1, sectionId: section.id, name: name, active: true };
+          ? Object.assign({}, keep, { no: i + 1, name: r.name,
+                                      uid: r.uid || keep.uid || "", placeholder: false })
+          : { id: Store.uid("st"), no: i + 1, sectionId: section.id,
+              name: r.name, uid: r.uid, active: true };
       });
 
       return Store.setStudents(others.concat(rebuilt));
     }).then(function () {
       pasteBox.hidden = true;
-      TPUI.toast("حُفظ كشف " + section.name + " — " + TPUI.students(names.length) + ".", "good");
+      var withId = rows.filter(function (r) { return r.uid; }).length;
+      TPUI.toast("حُفظ كشف " + section.name + " — " + TPUI.students(rows.length) +
+                 (withId ? " (" + ar(withId) + " بأرقام جامعية)" : "") + ".", "good");
       render();
     }).catch(fail);
   });
 
   /* ─── إضافة طالبة ─── */
+  var editing = null;            /* معرّف الصف المفتوح للتحرير، أو "new" */
+
   document.getElementById("add").addEventListener("click", function () {
-    var name = prompt("اسم الطالبة:");
-    if (!name || !name.trim()) return;
-    Store.students(section.id).then(function (list) {
-      return Store.saveStudent({
-        no: list.length + 1, sectionId: section.id,
-        name: name.trim(), active: true
-      });
-    }).then(function () { TPUI.toast("أُضيفت الطالبة.", "good"); render(); }).catch(fail);
+    editing = "new";
+    render();
   });
 
   /* ─── استقبال التسجيل بالباركود ─── */
@@ -251,10 +268,10 @@
       table.textContent = "";
       emptyBox.textContent = "";
 
-      if (!list.length) {
+      if (!list.length && editing !== "new") {
         table.hidden = true;
         emptyBox.appendChild(TPUI.empty("لا توجد طالبات في هذه الشعبة بعد.",
-          "اضغطي «لصق كشف الأسماء» وألصقي الأسماء اسمًا في كل سطر."));
+          "«لصق كشف الأسماء» للكشف كاملًا، أو «إضافة طالبة» لواحدة."));
         return;
       }
       table.hidden = false;
@@ -275,6 +292,11 @@
         var tr = el("tr");
         tr.appendChild(el("td", "num", ar(s.no)));
 
+        if (editing === s.id) {
+          body.appendChild(editRow(tr, s));
+          return;
+        }
+
         var tdName = el("td");
         var a = el("a", "", s.name);
         a.href = "student.html?id=" + encodeURIComponent(s.id);
@@ -292,16 +314,11 @@
 
         var tdAct = el("td", "num");
         var ren = el("button", "sm ghost", "تعديل");
-        ren.addEventListener("click", function () {
-          var n = prompt("اسم الطالبة:", s.name);
-          if (!n || !n.trim()) return;
-          Store.saveStudent({ id: s.id, name: n.trim(), placeholder: false })
-            .then(render).catch(fail);
-        });
+        ren.addEventListener("click", function () { editing = s.id; render(); });
         var del = el("button", "sm danger", "حذف");
         del.addEventListener("click", function () {
           if (!confirm("حذف «" + s.name + "»؟ سجل تفاعلها وتسليماتها لن يظهر بعد الحذف.")) return;
-          Store.removeStudent(s.id).then(render).catch(fail);
+          Store.removeStudent(s.id).then(function () { editing = null; render(); }).catch(fail);
         });
         tdAct.appendChild(ren);
         tdAct.appendChild(document.createTextNode(" "));
@@ -310,6 +327,12 @@
 
         body.appendChild(tr);
       });
+      if (editing === "new") {
+        var tr2 = el("tr");
+        tr2.appendChild(el("td", "num", ar(list.length + 1)));
+        body.appendChild(editRow(tr2, { sectionId: section.id, no: list.length + 1 }));
+      }
+
       table.appendChild(body);
 
       if (anyPlaceholder) {
@@ -318,6 +341,75 @@
           "استبدليها بالكشف الحقيقي من زر «لصق كشف الأسماء» — أرقام القارئات في الحصص تتبع ترتيب الكشف."));
       }
     }).catch(fail);
+  }
+
+  /* صف تحرير داخل الجدول — أوضح من نافذة prompt، ويحرّر الاسم
+     والرقم الجامعي معًا. Enter يحفظ و Esc يلغي. */
+  function editRow(tr, s) {
+    var isNew = !s.id;
+
+    function field(val, placeholder, cls) {
+      var i = document.createElement("input");
+      i.type = "text";
+      i.value = val || "";
+      i.placeholder = placeholder;
+      if (cls) i.className = cls;
+      return i;
+    }
+    var nameIn = field(s.placeholder ? "" : s.name, "الاسم الكامل");
+    var uidIn = field(s.uid, "الرقم الجامعي", "num");
+    uidIn.setAttribute("inputmode", "numeric");
+
+    var tdN = el("td"); tdN.appendChild(nameIn); tr.appendChild(tdN);
+    var tdU = el("td"); tdU.appendChild(uidIn); tr.appendChild(tdU);
+    tr.appendChild(el("td", "num", "—"));
+    tr.appendChild(el("td", "num", "—"));
+
+    function save() {
+      var name = nameIn.value.trim().replace(/\s+/g, " ");
+      var uid = uidIn.value.trim();
+      if (name.length < 2) return TPUI.toast("اكتبي اسم الطالبة.", "bad");
+
+      Store.students(section.id).then(function (list) {
+        var clash = list.filter(function (x) {
+          return uid && x.uid === uid && x.id !== s.id;
+        })[0];
+        if (clash) {
+          TPUI.toast("الرقم الجامعي مستعمل لـ«" + clash.name + "».", "bad");
+          throw new Error("dup");
+        }
+        return isNew
+          ? Store.saveStudent({ no: list.length + 1, sectionId: section.id,
+                                name: name, uid: uid, active: true })
+          : Store.saveStudent({ id: s.id, name: name, uid: uid, placeholder: false });
+      }).then(function () {
+        editing = null;
+        TPUI.toast(isNew ? "أُضيفت الطالبة." : "حُفظ التعديل.", "good");
+        render();
+      }).catch(function (e) { if (e.message !== "dup") fail(e); });
+    }
+
+    function cancel() { editing = null; render(); }
+
+    [nameIn, uidIn].forEach(function (i) {
+      i.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); save(); }
+        else if (e.key === "Escape") { e.preventDefault(); cancel(); }
+      });
+    });
+
+    var tdAct = el("td", "num");
+    var ok = el("button", "sm", "حفظ");
+    ok.addEventListener("click", save);
+    var no = el("button", "sm ghost", "إلغاء");
+    no.addEventListener("click", cancel);
+    tdAct.appendChild(ok);
+    tdAct.appendChild(document.createTextNode(" "));
+    tdAct.appendChild(no);
+    tr.appendChild(tdAct);
+
+    setTimeout(function () { nameIn.focus(); }, 0);
+    return tr;
   }
 
   function fail(e) {
