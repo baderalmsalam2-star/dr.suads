@@ -300,9 +300,50 @@
     }).catch(fail);
   });
 
+  /* التقويم الجامعي — يُعرض ليُقاس عليه الجدول لا ليُحفظ */
+  function renderTerm() {
+    var T = COURSE.term, box = document.getElementById("termBox");
+    if (!box || !T) return;
+    box.textContent = "";
+    var rows = [
+      ["بدء الدراسة", T.start],
+      ["آخر يوم في الدراسة", T.lastClass],
+      ["الامتحانات النهائية", T.finalsFrom + "…" + T.finalsTo]
+    ].concat((T.marks || []).map(function (m) { return [m.label, m.date]; }));
+
+    rows.forEach(function (r) {
+      var d = el("div", "term-item");
+      d.appendChild(el("span", "k", r[0]));
+      d.appendChild(el("span", "v", r[1].indexOf("…") > 0
+        ? TPUI.arDate(r[1].split("…")[0]) + " — " + TPUI.arDate(r[1].split("…")[1])
+        : TPUI.arDate(r[1])));
+      box.appendChild(d);
+    });
+  }
+
+  /* هل خرج الجدول عن حدود الفصل؟ سؤالٌ يُجاب قبل أن يقع لا بعده */
+  function checkTerm() {
+    var T = COURSE.term, warn = document.getElementById("termWarn");
+    if (!warn) return;
+    if (!T || !T.lastClass) { warn.hidden = true; return; }
+
+    var over = Object.keys(sched).filter(function (n) {
+      return sched[n] && sched[n] > T.lastClass;
+    }).map(Number).sort(function (a, b) { return a - b; });
+
+    if (!over.length) { warn.hidden = true; return; }
+    warn.hidden = false;
+    warn.textContent = "تجاوزت " + TPUI.lessons(over.length) +
+      " آخر يوم في الدراسة (" + TPUI.arDate(T.lastClass) + ") — " +
+      (over.length === 1 ? "هي الحصة " : "أولاها الحصة ") + ar(over[0]) +
+      ". قدّمي التواريخ أو ادمجي حصصًا.";
+  }
+
   function renderSchedule() {
     var t = document.getElementById("schedTable");
     t.textContent = "";
+    renderTerm();
+    checkTerm();
     var head = el("thead"), hr = el("tr");
     ["الحصة", "العنوان", "التاريخ"].forEach(function (h) { hr.appendChild(el("th", "", h)); });
     head.appendChild(hr); t.appendChild(head);
