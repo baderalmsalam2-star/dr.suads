@@ -249,8 +249,14 @@
     schedBox.hidden = !schedBox.hidden;
   });
 
-  /* أيام المحاضرة مختارة سلفًا من خطة المقرر، وتبقى قابلة للتغيير */
+  /* أيام المحاضرة وتاريخ أول محاضرة مملوءان سلفًا من خطة المقرر،
+     ويبقيان قابلين للتغيير */
   (COURSE.classDays || []).forEach(function (i) { chosen[i] = true; });
+  if (COURSE.firstClass) document.getElementById("startDate").value = COURSE.firstClass;
+
+  /* أيام الاختبارات: يوم الاختبار يشغل وقت المحاضرة فلا درس فيه */
+  var EXAMS = {};
+  (COURSE.examDays || []).forEach(function (e) { EXAMS[e.date] = e; });
 
   DAYS.forEach(function (d, i) {
     var pill = el("span", "day-pill" + (chosen[i] ? " on" : ""), d);
@@ -277,16 +283,18 @@
     var d = new Date(+p[0], +p[1] - 1, +p[2]);
     var map = {}, n = 1, guard = 0;
     while (n <= sessions.length && guard++ < 2000) {
-      if (days.indexOf(d.getDay()) >= 0) {
-        map[n] = d.getFullYear() + "-" +
-                 ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+      var key = d.getFullYear() + "-" +
+                ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+      if (days.indexOf(d.getDay()) >= 0 && !EXAMS[key]) {
+        map[n] = key;
         n++;
       }
       d.setDate(d.getDate() + 1);
     }
     Store.setSchedule(section.id, map).then(function () {
       sched = map;
-      TPUI.toast("وُلِّدت تواريخ " + ar(Object.keys(map).length) + " حصة.", "good");
+      TPUI.toast("وُلِّدت تواريخ " + TPUI.lessons(Object.keys(map).length) +
+                 "، وتُخطّيت أيام الاختبارات.", "good");
       renderSchedule();
       loadSheet();
     }).catch(fail);
@@ -301,6 +309,13 @@
 
     var body = el("tbody");
     sessions.forEach(function (s) {
+      /* الاختبار الواقع بين حصتين يظهر صفًّا في موضعه من التسلسل */
+      (COURSE.examDays || []).forEach(function (e) {
+        var prev = sched[s.n - 1];
+        if (!prev || !sched[s.n]) return;
+        if (e.date > prev && e.date < sched[s.n]) body.appendChild(examRow(e));
+      });
+
       var tr = el("tr");
       tr.appendChild(el("td", "num", ar(s.n)));
       tr.appendChild(el("td", "", s.title || "—"));
@@ -318,7 +333,20 @@
       tr.appendChild(td);
       body.appendChild(tr);
     });
+    /* وما وقع بعد آخر حصة يُذيَّل به الجدول */
+    var last = sched[sessions[sessions.length - 1].n];
+    (COURSE.examDays || []).forEach(function (e) {
+      if (last && e.date > last) body.appendChild(examRow(e));
+    });
     t.appendChild(body);
+  }
+
+  function examRow(e) {
+    var tr = el("tr", "exam-row");
+    tr.appendChild(el("td", "num", "—"));
+    tr.appendChild(el("td", "", e.label));
+    tr.appendChild(el("td", "num", TPUI.arDate(e.date)));
+    return tr;
   }
 
   /* ─── التصدير ─── */

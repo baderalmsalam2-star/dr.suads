@@ -215,3 +215,6 @@ table.cmp textarea{font:inherit;font-family:var(--matn);width:100%;min-width:11e
   border:1px solid var(--line);padding:.45em .6em;resize:vertical;line-height:1.7}
 table.cmp textarea:focus{outline:none;border-color:var(--faculty)}
 table.cmp textarea:disabled{opacity:.8}
+
+/* يوم اختبار في جدول التواريخ — ليس حصة */
+tr.exam-row td{background:rgba(248,216,27,.09);color:var(--student);font-weight:600}
