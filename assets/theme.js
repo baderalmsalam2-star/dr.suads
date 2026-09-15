@@ -13,17 +13,107 @@
     { id: "wine",   label: "عنّابية",  dot: "#E9A8A0" },
     { id: "indigo", label: "بنفسجية",  dot: "#A99BF5" },
     { id: "slate",  label: "فحمية",    dot: "#79B8E8" },
-    { id: "paper",  label: "ورقية",    dot: "#166149" }
+    { id: "paper",  label: "ورقية",    dot: "#166149" },
+    { id: "mix",    label: "مزاجي",    dot: "", mix: true }
   ];
+
+  var MIX_KEY = "tp.theme.mix";
 
   function read() {
     try { return localStorage.getItem(KEY) || ""; } catch (e) { return ""; }
   }
 
+  function readMix() {
+    try { return JSON.parse(localStorage.getItem(MIX_KEY) || "null"); }
+    catch (e) { return null; }
+  }
+
+  function writeMix(m) {
+    try {
+      if (m) localStorage.setItem(MIX_KEY, JSON.stringify(m));
+      else localStorage.removeItem(MIX_KEY);
+    } catch (e) { /* تصفح خاص */ }
+  }
+
+  /* ─── حساب الألوان ─── */
+  function rgb(hex) {
+    hex = String(hex || "").replace("#", "");
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    var n = parseInt(hex, 16) || 0;
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function hex(a) {
+    return "#" + a.map(function (v) {
+      return ("0" + Math.max(0, Math.min(255, Math.round(v))).toString(16)).slice(-2);
+    }).join("");
+  }
+
+  /* سطوع مُدرَك (sRGB relative luminance) — عليه يُبنى قلب النص */
+  function lum(a) {
+    var c = a.map(function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+
+  function mix(a, b, t) {
+    return [a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t, a[2] + (b[2]-a[2])*t];
+  }
+
+  /* ─── تركيب لوحة كاملة من ثلاثة ألوان ───
+     الأرضية وحدها تقرّر لون النصّ: فإن اختارت الدكتورة أرضيةً فاتحة
+     انقلب الحبر داكنًا من نفسه. بلا هذا كان اختيارُ لونٍ فاتح يجعل
+     المنصة بيضاء على بيضاء. */
+  function compose(m) {
+    var bg = rgb(m.bg), light = lum(bg) > 0.4;
+    var ink = light ? [26, 23, 18] : [255, 255, 255];
+    var v = {
+      "--navy": m.bg,
+      "--navy-2": hex(mix(bg, light ? [255,255,255] : [255,255,255], light ? 0.55 : 0.08)),
+      "--faculty": m.faculty,
+      "--student": m.student,
+      "--surface": hex(ink),
+      "--neutral": hex(mix(ink, bg, light ? 0.35 : 0.22)),
+      "--navy-rgb": rgb(m.bg).join(","),
+      "--faculty-rgb": rgb(m.faculty).join(","),
+      "--student-rgb": rgb(m.student).join(","),
+      "--surface-rgb": ink.join(","),
+      "--neutral-rgb": mix(ink, bg, light ? 0.35 : 0.22).map(Math.round).join(",")
+    };
+    v["--line"] = "rgba(" + v["--neutral-rgb"] + ",.3)";
+    return v;
+  }
+
+  var MIX_STYLE_ID = "tp-mix";
+
+  function applyMix(m) {
+    var tag = document.getElementById(MIX_STYLE_ID);
+    if (!m) { if (tag) tag.remove(); return; }
+    if (!tag) {
+      tag = document.createElement("style");
+      tag.id = MIX_STYLE_ID;
+      (document.head || document.documentElement).appendChild(tag);
+    }
+    var v = compose(m), out = "";
+    Object.keys(v).forEach(function (k) { out += k + ":" + v[k] + ";"; });
+    /* يُكتب على :root نفسه ليعلو على كل لوحة معرَّفة في tokens.css */
+    tag.textContent = ":root,html[data-theme]{" + out + "}";
+  }
+
   function apply(id) {
+    if (id === "mix") {
+      document.documentElement.setAttribute("data-theme", "mix");
+      applyMix(readMix() || DEFAULT_MIX);
+      return;
+    }
+    applyMix(null);
     if (id) document.documentElement.setAttribute("data-theme", id);
     else document.documentElement.removeAttribute("data-theme");
   }
+
+  var DEFAULT_MIX = { bg: "#1B2A41", faculty: "#7FB3D5", student: "#E8C466" };
 
   /* قبل أي شيء: طبّق المحفوظ */
   apply(read());
@@ -37,6 +127,14 @@
       apply(id);
     },
 
+    mix: function () { return readMix() || DEFAULT_MIX; },
+
+    setMix: function (m) {
+      writeMix(m);
+      try { localStorage.setItem(KEY, "mix"); } catch (e) { /**/ }
+      apply("mix");
+    },
+
     /* شريط النقاط الملوّنة — يُركَّب في ترويسة الصفحة */
     picker: function () {
       var wrap = document.createElement("div");
@@ -47,23 +145,90 @@
       THEMES.forEach(function (t) {
         var b = document.createElement("button");
         b.type = "button";
-        b.className = "theme-dot";
-        b.style.setProperty("--dot", t.dot);
-        b.title = t.label;
-        b.setAttribute("aria-label", "اللوحة " + t.label);
-        if (t.id === read()) b.classList.add("on");
+        b.className = "theme-dot" + (t.mix ? " mix" : "");
+        b.style.setProperty("--dot", t.mix ? (readMix() || DEFAULT_MIX).bg : t.dot);
+        b.title = t.mix ? "لون على مزاجك" : t.label;
+        b.setAttribute("aria-label", t.mix ? "لوحة على مزاجك" : "اللوحة " + t.label);
+
         b.addEventListener("click", function () {
+          if (t.mix && b.classList.contains("on")) return toggleMixer();
           TPTheme.set(t.id);
-          [].slice.call(wrap.children).forEach(function (x) {
-            x.classList.remove("on");
-            x.removeAttribute("aria-current");
-          });
-          b.classList.add("on");
-          b.setAttribute("aria-current", "true");
+          mark(t.id);
+          if (t.mix) toggleMixer(true);
         });
-        if (t.id === read()) b.setAttribute("aria-current", "true");
         wrap.appendChild(b);
       });
+
+      mark(read());
+      function mark(id) {
+        [].slice.call(wrap.querySelectorAll(".theme-dot")).forEach(function (x, i) {
+          var on = THEMES[i].id === id;
+          x.classList.toggle("on", on);
+          if (on) x.setAttribute("aria-current", "true");
+          else x.removeAttribute("aria-current");
+        });
+        if (id !== "mix") closeMixer();
+      }
+
+      /* ─── لوحة المزج ─── */
+      var panel = null;
+
+      function toggleMixer(force) {
+        if (panel && !force) return closeMixer();
+        if (panel) return;
+        panel = buildMixer();
+        wrap.appendChild(panel);
+      }
+
+      function closeMixer() {
+        if (panel) { panel.remove(); panel = null; }
+      }
+
+      function buildMixer() {
+        var m = Object.assign({}, readMix() || DEFAULT_MIX);
+        var box = document.createElement("div");
+        box.className = "mixer";
+        box.setAttribute("role", "group");
+        box.setAttribute("aria-label", "تركيب لون على مزاجك");
+
+        [["bg", "الأرضية"], ["faculty", "لون الدكتورة"], ["student", "لون الطالبة"]]
+          .forEach(function (f) {
+            var lab = document.createElement("label");
+            lab.className = "mix-field";
+            var inp = document.createElement("input");
+            inp.type = "color";
+            inp.value = m[f[0]];
+            inp.setAttribute("aria-label", f[1]);
+            inp.addEventListener("input", function () {
+              m[f[0]] = inp.value;
+              TPTheme.setMix(m);
+              var dot = wrap.querySelector(".theme-dot.mix");
+              if (dot) dot.style.setProperty("--dot", m.bg);
+            });
+            lab.appendChild(inp);
+            lab.appendChild(document.createTextNode(f[1]));
+            box.appendChild(lab);
+          });
+
+        var note = document.createElement("div");
+        note.className = "mix-note";
+        note.textContent = "لون النصّ يُحسب من الأرضية — فاختاري فاتحةً ينقلب الحبر داكنًا.";
+        box.appendChild(note);
+
+        var reset = document.createElement("button");
+        reset.type = "button";
+        reset.className = "sm ghost";
+        reset.textContent = "ابدئي من جديد";
+        reset.addEventListener("click", function () {
+          TPTheme.setMix(Object.assign({}, DEFAULT_MIX));
+          closeMixer(); toggleMixer(true);
+          var dot = wrap.querySelector(".theme-dot.mix");
+          if (dot) dot.style.setProperty("--dot", DEFAULT_MIX.bg);
+        });
+        box.appendChild(reset);
+        return box;
+      }
+
       return wrap;
     }
   };

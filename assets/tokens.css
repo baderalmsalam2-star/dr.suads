@@ -114,3 +114,21 @@ button:focus-visible,a:focus-visible,li:focus-visible,select:focus-visible{
 .theme-dot.on{border-color:var(--surface);
   box-shadow:0 0 0 2px rgba(var(--surface-rgb),.55)}
 @media print{.theme-picker{display:none}}
+
+/* النقطة الأخيرة: لوحة على المزاج — حلقةٌ تميّزها عن الجاهزة */
+.theme-dot.mix{position:relative;border-style:dashed}
+.theme-dot.mix::after{content:"";position:absolute;inset:-4px;border-radius:50%;
+  border:1px dotted var(--neutral);opacity:.55}
+
+.mixer{position:absolute;z-index:40;margin-top:1.9em;
+  display:flex;flex-direction:column;gap:.55em;
+  background:var(--navy-2);border:1px solid var(--faculty);
+  padding:.9em 1em;min-width:14em;
+  box-shadow:0 8px 26px rgba(var(--shadow-rgb),.45)}
+.mix-field{display:flex;align-items:center;gap:.6em;color:var(--surface);
+  font-size:.82rem;cursor:pointer}
+.mix-field input[type=color]{inline-size:2.2em;block-size:1.7em;padding:0;
+  border:1px solid var(--line);background:none;cursor:pointer}
+.mix-note{color:var(--neutral);opacity:.75;font-size:.72rem;line-height:1.6;
+  max-inline-size:16em;border-top:1px solid var(--line);padding-top:.5em}
+.mixer button{align-self:flex-start}

@@ -23,7 +23,7 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);
 .nav-main a:hover{color:var(--surface);background:var(--navy-2)}
 .nav-main a.on{color:var(--navy);background:var(--faculty);border-color:var(--faculty);font-weight:600}
 /* المبدّل يُدفع إلى طرف الشريط ولا يزاحم روابط الأقسام */
-.nav-main .theme-picker{margin-inline-start:auto;padding-inline-start:1.2em}
+.nav-main .theme-picker{margin-inline-start:auto;padding-inline-start:1.2em;position:relative}
 @media (max-width:640px){.nav-main .theme-picker{margin-inline-start:0;padding:.7em 0 0}}
 
 /* شريط أدوات */
