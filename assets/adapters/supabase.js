@@ -21,6 +21,14 @@
   var AUTH = CFG.url.replace(/\/$/, "") + "/auth/v1/";
   var STORAGE = CFG.url.replace(/\/$/, "") + "/storage/v1/";
   var SESSION_KEY = "tp.sb.session";
+  var PKCE_KEY = "tp.sb.pkce";
+
+  /* base64url بلا حشو — ما يقبله معيار PKCE */
+  function b64url(bytes) {
+    var s = "";
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
 
   /* ─── الجلسة ─── */
   function session() {
@@ -388,9 +396,70 @@
       });
     },
 
-    /* بعد العودة من رابط البريد تأتي الجلسة في جزء العنوان */
+    /* ─── الدخول بحساب الجامعة (Microsoft Entra) ───
+       لا كلمة سر جديدة ولا رابط بريد: الطالبة تدخل بنفس حساب تيمز،
+       وبريدها الجامعي هو الذي يربط حسابها بصفّها في الكشف (انظري
+       link_student_account في supabase/schema.sql).
+
+       نستعمل PKCE حين يتوفّر crypto.subtle — وهو يتوفّر على كل
+       عنوان https — ونرجع إلى التدفّق الضمني على http المحلي. */
+    signInWithUniversity: function (redirect) {
+      var base = AUTH + "authorize?provider=azure" +
+                 "&scopes=" + encodeURIComponent("openid email profile") +
+                 "&redirect_to=" + encodeURIComponent(redirect || location.href.split("#")[0]);
+
+      var sub = window.crypto && window.crypto.subtle;
+      if (!sub) { location.href = base; return Promise.resolve(); }
+
+      var verifier = b64url(window.crypto.getRandomValues(new Uint8Array(48)));
+      try { sessionStorage.setItem(PKCE_KEY, verifier); } catch (e) { /* تصفح خاص */ }
+
+      return sub.digest("SHA-256", new TextEncoder().encode(verifier))
+        .then(function (buf) {
+          location.href = base + "&code_challenge=" + b64url(new Uint8Array(buf)) +
+                                 "&code_challenge_method=s256";
+        })
+        .catch(function () { location.href = base; });
+    },
+
+    /* العودة من رابط البريد أو من صفحة الجامعة. تعيد وعدًا دائمًا:
+       الجلسة إن وُجدت، أو null إن لم يكن في العنوان شيء، أو خطأً إن
+       ردّت جهة الهوية بالرفض. */
     captureFromUrl: function () {
-      if (!location.hash || location.hash.indexOf("access_token") < 0) return null;
+      var q0 = new URLSearchParams(location.search);
+
+      /* عودة PKCE: رمز في الاستعلام يُبدَّل بجلسة */
+      if (q0.get("code")) {
+        var code = q0.get("code"), verifier = "";
+        try { verifier = sessionStorage.getItem(PKCE_KEY) || ""; } catch (e) { /**/ }
+        try { sessionStorage.removeItem(PKCE_KEY); } catch (e) { /**/ }
+        history.replaceState(null, "", location.pathname);
+        return fetch(AUTH + "token?grant_type=pkce", {
+          method: "POST",
+          headers: { apikey: CFG.anonKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ auth_code: code, code_verifier: verifier })
+        }).then(function (r) {
+          return r.json().then(function (d) {
+            if (!r.ok) throw new Error(d.error_description || d.msg || "تعذّر إتمام الدخول.");
+            d.expires_at = Date.now() + (d.expires_in || 3600) * 1000;
+            setSession(d);
+            return d;
+          });
+        });
+      }
+
+      /* رفض من جهة الجامعة يصل في الاستعلام أو في الجزء */
+      var err = q0.get("error_description") || q0.get("error");
+      if (!err && location.hash) {
+        var qh = new URLSearchParams(location.hash.slice(1));
+        err = qh.get("error_description") || qh.get("error");
+      }
+      if (err) {
+        history.replaceState(null, "", location.pathname);
+        return Promise.reject(new Error(decodeURIComponent(String(err).replace(/\+/g, " "))));
+      }
+
+      if (!location.hash || location.hash.indexOf("access_token") < 0) return Promise.resolve(null);
       var q = new URLSearchParams(location.hash.slice(1));
       var s = {
         access_token: q.get("access_token"),
@@ -399,7 +468,7 @@
       };
       setSession(s);
       history.replaceState(null, "", location.pathname + location.search);
-      return s;
+      return Promise.resolve(s);
     },
 
     me: function () {

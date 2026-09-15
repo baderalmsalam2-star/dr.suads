@@ -118,8 +118,8 @@ create policy students_self on students for select
   using (auth_uid = auth.uid());
 
 -- لا سياسة تسمح للطالبة بتعديل جدول الطالبات إطلاقًا.
--- الربط بين حساب الطالبة وصفّها تفعله الدكتورة بسطر SQL — انظري
--- «حسابات الطالبات» في supabase/الإعداد.md.
+-- الربط بين حساب الطالبة وصفّها يقع تلقائيًا في link_student_account()
+-- أدناه، وهي دالة تعمل في الخادم لا في المتصفّح.
 --
 -- (كانت هنا سياسة تسمح للطالبة بربط أي صفّ لم يُربط بعد بحسابها،
 --  وهي ثغرة: تمكّن أي حساب من الاستيلاء على صفّ طالبة أخرى وتغيير
@@ -170,6 +170,70 @@ create policy schedule_read on schedule for select using (auth.uid() is not null
 drop policy if exists schedule_write on schedule;
 create policy schedule_write on schedule for all
   using (is_owner()) with check (is_owner());
+
+-- ═══════════════════════════════════════════════════════════════
+--  الربط التلقائي بحساب الجامعة
+--
+--  بريد الطالبة في جامعة الكويت مبنيّ على رقمها الجامعي:
+--      s2202142639@ku.edu.kw  ←  الرقم الجامعي 2202142639
+--  فمتى دخلت الطالبة بحسابها الجامعي، انتزعنا الرقم من بريدها
+--  ووصلنا الحساب بصفّها في كشف الدكتورة. لا مطابقة أسماء ولا خطوة
+--  يدوية ولا احتمال خطأ.
+--
+--  لماذا هذا آمن والسياسة المحذوفة أعلاه لم تكن؟
+--    • البريد يأتي موقَّعًا من Entra (هوية الجامعة) لا من المتصفّح،
+--      فلا تستطيع الطالبة ادّعاء رقم زميلتها.
+--    • الدالة تعمل بصلاحية المالك (security definer) في الخادم،
+--      والطالبة لا تملك استدعاءها.
+--    • ولا تربط إلا صفًّا شاغرًا (auth_uid is null)، فحساب ثانٍ
+--      بالرقم نفسه لا ينتزع صفًّا مربوطًا.
+--
+--  بريد الدكتورة مبنيّ على الاسم (suad.almutawa@ku.edu.kw) فلا يطابق
+--  الصيغة ولا يُربط بأي صفّ — وهو ما نريده.
+-- ═══════════════════════════════════════════════════════════════
+create or replace function link_student_account() returns trigger
+language plpgsql security definer set search_path = public, auth as $$
+declare sid text;
+begin
+  sid := substring(lower(coalesce(new.email,'')) from '^s([0-9]{6,12})@ku\.edu\.kw$');
+  if sid is null then return new; end if;
+
+  update students
+     set auth_uid = new.id, updated_at = now()
+   where uid = sid
+     and auth_uid is null
+     and not exists (select 1 from students s2 where s2.auth_uid = new.id);
+  return new;
+end $$;
+
+-- عند إنشاء الحساب، وعند أول مرة يُثبت فيها البريد
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function link_student_account();
+
+--  الاتجاه المعاكس: الطالبة قد تدخل قبل أن تضيفها الدكتورة للكشف.
+--  فعند إضافة صفّ جديد (أو تصحيح رقم جامعي) نبحث عن حساب موجود
+--  ببريد ذلك الرقم ونربطه. هكذا يستوي الترتيبان.
+create or replace function link_student_row() returns trigger
+language plpgsql security definer set search_path = public, auth as $$
+declare aid uuid;
+begin
+  if new.auth_uid is not null or new.uid is null then return new; end if;
+
+  select u.id into aid from auth.users u
+   where lower(u.email) = 's' || new.uid || '@ku.edu.kw'
+     and not exists (select 1 from students s2 where s2.auth_uid = u.id)
+   limit 1;
+
+  new.auth_uid := aid;
+  return new;
+end $$;
+
+drop trigger if exists on_student_row_saved on students;
+create trigger on_student_row_saved
+  before insert or update of uid on students
+  for each row execute function link_student_row();
 
 -- ═══ تخزين ملفات الطالبات ═══
 insert into storage.buckets (id, name, public)

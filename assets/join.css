@@ -94,3 +94,8 @@ tr.deny td{color:#e2725b}
 .day-pill{border:1px solid var(--line);padding:.3em .8em;cursor:pointer;color:var(--neutral);
           font-size:.85rem;user-select:none}
 .day-pill.on{border-color:var(--faculty);color:var(--faculty);background:rgba(13,171,226,.12)}
+
+/* فاصل «أو» بين الدخول الجامعي والدخول بالبريد */
+.or{display:flex;align-items:center;gap:.7rem;margin:1.1rem 0 .3rem;
+    color:var(--neutral);opacity:.75;font-size:.82rem}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}

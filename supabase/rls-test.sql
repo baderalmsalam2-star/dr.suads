@@ -146,6 +146,46 @@ with u as (update submissions set answers='{"q1":1}' where id='t-sub2' returning
   insert into rls_results select 'تعدّل مسودتها هي', count(*)=1 from u;
 commit;
 
+-- ── الربط التلقائي بحساب الجامعة ──
+-- ترتيب أ: الكشف أولًا ثم دخول الطالبة
+insert into students(id,section_id,no,name,uid) values ('t-auto1','9',4,'منيرة','2202142639');
+insert into auth.users(id,email) values ('44444444-4444-4444-4444-444444444444','S2202142639@KU.EDU.KW');
+insert into rls_results select 'الكشف أولًا ثم الدخول ⇒ ارتبط',
+  (select auth_uid from students where id='t-auto1')='44444444-4444-4444-4444-444444444444';
+
+-- ترتيب ب: دخول الطالبة أولًا ثم إضافتها للكشف
+insert into auth.users(id,email) values ('55555555-5555-5555-5555-555555555555','s2202149999@ku.edu.kw');
+insert into students(id,section_id,no,name,uid) values ('t-auto2','9',5,'دلال','2202149999');
+insert into rls_results select 'الدخول أولًا ثم الكشف ⇒ ارتبط',
+  (select auth_uid from students where id='t-auto2')='55555555-5555-5555-5555-555555555555';
+
+-- بريد الدكتورة مبنيّ على الاسم، فلا يُربط بأي صفّ
+insert into auth.users(id,email) values ('66666666-6666-6666-6666-666666666666','suad.almutawa@ku.edu.kw');
+insert into rls_results select 'بريد الدكتورة لا يُربط بصفّ',
+  not exists (select 1 from students where auth_uid='66666666-6666-6666-6666-666666666666');
+
+-- رقم ليس في الكشف: يمرّ بلا ربط ولا خطأ
+insert into auth.users(id,email) values ('77777777-7777-7777-7777-777777777777','s2202100000@ku.edu.kw');
+insert into rls_results select 'رقم خارج الكشف يمرّ بلا ربط',
+  not exists (select 1 from students where auth_uid='77777777-7777-7777-7777-777777777777');
+
+-- حساب ثانٍ بالرقم نفسه لا ينتزع صفًّا مربوطًا
+insert into auth.users(id,email) values ('88888888-8888-8888-8888-888888888888','s2202142639@ku.edu.kw');
+insert into rls_results select 'حساب ثانٍ لا ينتزع صفًّا مربوطًا',
+  (select auth_uid from students where id='t-auto1')='44444444-4444-4444-4444-444444444444';
+
+-- بريد من نطاق آخر يحاكي الصيغة: لا يُربط
+insert into students(id,section_id,no,name,uid) values ('t-auto3','9',6,'شهد','2202147777');
+insert into auth.users(id,email) values ('99999999-9999-9999-9999-999999999999','s2202147777@gmail.com');
+insert into rls_results select 'نطاق غير الجامعة لا يُربط',
+  (select auth_uid from students where id='t-auto3') is null;
+
+-- الطالبة المرتبطة ترى صفّها فعلًا تحت قواعد الحماية
+begin; set local role authenticated; set local request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+insert into rls_results select 'المرتبطة تلقائيًا ترى صفّها وحده',
+  (select count(*) from students)=1 and (select id from students)='t-auto1';
+commit;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

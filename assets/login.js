@@ -16,7 +16,20 @@
     return;
   }
 
-  TPAuth.captureFromUrl();                  /* العودة من رابط البريد */
+  /* العودة من رابط البريد أو من صفحة الجامعة */
+  var returning = TPAuth.captureFromUrl();
+  if (returning) {
+    state.textContent = "جارٍ إتمام الدخول…";
+    returning.then(function () { refresh(); })
+             .catch(function (e) {
+               state.textContent = "";
+               TPUI.toast(e.message || "تعذّر إتمام الدخول.", "bad");
+               refresh();
+             });
+  }
+
+  /* زر الجامعة لا يظهر إلا إذا كان المحوّل يعرفه */
+  if (TPAuth.signInWithUniversity) document.getElementById("uniBox").hidden = false;
 
   function show(id) {
     ["form", "who", "migrate", "offline"].forEach(function (k) {
@@ -41,9 +54,22 @@
       document.getElementById("form").hidden = true;
       document.getElementById("who").hidden = false;
       document.getElementById("title").textContent = "أنتِ داخلة";
-      document.getElementById("whoText").textContent = me.email +
-        (owner ? " — صلاحية كاملة (مالكة)." :
-                 " — حساب طالبة. إن كنتِ الدكتورة فأضيفي معرّفك في جدول owners.");
+      if (owner) {
+        document.getElementById("whoText").textContent =
+          me.email + " — صلاحية كاملة (مالكة).";
+        checkLocal();
+        return;
+      }
+      /* حساب طالبة: هل ارتبط بصفّ؟ */
+      Store.students().then(function (rows) {
+        document.getElementById("whoText").textContent = rows && rows.length
+          ? me.email + " — حساب " + rows[0].name + "."
+          : me.email + " — الحساب سليم، لكنه غير مرتبط بصفّ في الكشف بعد. " +
+            "إن كنتِ طالبة فأبلغي الدكتورة لتضيفك، وسيرتبط حسابك تلقائيًا. " +
+            "وإن كنتِ الدكتورة فأضيفي معرّفك في جدول owners.";
+      }).catch(function () {
+        document.getElementById("whoText").textContent = me.email + " — حساب طالبة.";
+      });
       checkLocal();
     }).catch(function (e) {
       state.textContent = e.message || "تعذّر التحقق.";
@@ -97,6 +123,11 @@
     }).catch(function (e) { TPUI.toast(e.message || "تعذّر الإرسال.", "bad"); });
   });
 
+  document.getElementById("uni").addEventListener("click", function () {
+    state.textContent = "جارٍ التحويل إلى صفحة الجامعة…";
+    TPAuth.signInWithUniversity(location.href.split("#")[0].split("?")[0]);
+  });
+
   document.getElementById("out").addEventListener("click", function () {
     TPAuth.signOut().then(refresh);
   });
@@ -144,5 +175,5 @@
     });
   });
 
-  refresh();
+  if (!returning) refresh();
 })();
