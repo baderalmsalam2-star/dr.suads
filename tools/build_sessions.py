@@ -345,9 +345,9 @@ def main(docx):
                json.dumps(sp['src'], ensure_ascii=False), name, readers))
 
         items = ',\n'.join(
-            '      { id: "q%d", kind: "mcq",\n'
+            '      { id: "w%dq%d", kind: "mcq",\n'
             '        prompt: %s,\n        options: %s,\n        answer: %d,\n        why: %s }'
-            % (j + 1, json.dumps(q['q'], ensure_ascii=False),
+            % (sp['n'], j + 1, json.dumps(q['q'], ensure_ascii=False),
                json.dumps(q['o'], ensure_ascii=False), q['a'],
                json.dumps(q['w'], ensure_ascii=False))
             for j, q in enumerate(sp['questions']))

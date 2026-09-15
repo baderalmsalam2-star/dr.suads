@@ -61,3 +61,18 @@ tr.incomplete td.sum::after{content:" ⋯";opacity:.6}
 }
 
 .warn-dot{cursor:help}
+
+/* ═══ صفحة الفحص ═══ */
+.checks{list-style:none;display:flex;flex-direction:column;gap:.4em;margin:.6rem 0 1.4rem}
+.chk{display:flex;align-items:baseline;gap:.8em;flex-wrap:wrap;
+  border:1px solid var(--line);border-inline-start-width:3px;padding:.5em .9em}
+.chk .mark{width:1.2em;text-align:center;font-weight:700}
+.chk .lbl{flex:1;min-width:14em;color:var(--surface)}
+.chk .det{color:var(--neutral);opacity:.85;font-size:.85em}
+.chk.good{border-inline-start-color:var(--student)}
+.chk.good .mark{color:var(--student)}
+.chk.warn{border-inline-start-color:var(--faculty)}
+.chk.warn .mark{color:var(--faculty)}
+.chk.bad{border-inline-start-color:var(--danger);background:rgba(var(--danger-rgb),.07)}
+.chk.bad .mark{color:var(--danger)}
+.chk.pending{opacity:.6}

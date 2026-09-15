@@ -14,7 +14,9 @@
     { id: "grades",     label: "الدرجات",      href: "grades.html" },
     { id: "honors",     label: "لوحة الشرف",   href: "honors.html" },
     { id: "compose",    label: "مُنشئ الحصص",  href: "compose.html" },
-    { id: "login",      label: "الحساب",       href: "login.html" }
+    { id: "login",      label: "الحساب",       href: "login.html" },
+    /* لا يظهر إلا للمشرف — يُضاف في chrome() بعد سؤال TPRole */
+    { id: "admin",      label: "الفحص",        href: "admin.html", admin: true }
   ];
 
   var AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
@@ -61,6 +63,14 @@
       var a = el("a", p.id === activeId ? "on" : "", p.label);
       a.href = p.href;
       if (p.id === activeId) a.setAttribute("aria-current", "page");
+      /* رابط المشرف مخفي حتى يُعرف الدور — والسؤال غير متزامن،
+         فيُخفى أولًا ثم يُكشف، لا العكس. */
+      if (p.admin) {
+        a.hidden = true;
+        if (window.TPRole) {
+          TPRole.isAdmin().then(function (yes) { a.hidden = !yes; });
+        }
+      }
       nav.appendChild(a);
     });
     /* مبدّل الألوان في طرف الشريط — يظهر إن كان theme.js محمَّلًا */

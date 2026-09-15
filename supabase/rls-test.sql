@@ -24,7 +24,8 @@ insert into auth.users(id,email) values
  ('11111111-1111-1111-1111-111111111111','owner@test'),
  ('22222222-2222-2222-2222-222222222222','sara@test'),
  ('33333333-3333-3333-3333-333333333333','noura@test') on conflict do nothing;
-insert into owners(uid,label) values ('11111111-1111-1111-1111-111111111111','مالكة الاختبار') on conflict do nothing;
+insert into owners(uid,label,role) values
+ ('11111111-1111-1111-1111-111111111111','مالكة الاختبار','teacher') on conflict do nothing;
 insert into students(id,section_id,no,name,uid,auth_uid) values
  ('t-sara','9',1,'سارة','900001','22222222-2222-2222-2222-222222222222'),
  ('t-noura','9',2,'نورة','900002','33333333-3333-3333-3333-333333333333'),
@@ -258,6 +259,56 @@ end $$;
 begin; set local role authenticated; set local request.jwt.claim.sub = :'OWNER';
 insert into rls_results select 'المالكة ترى درجات الجميع', (select count(*) from grades)=2;
 commit;
+
+-- ── دورا المالكات: مدرِّسة ومشرف ──
+insert into auth.users(id,email) values
+ ('bbbbbbbb-0000-0000-0000-000000000001','admin@test') on conflict do nothing;
+insert into owners(uid,label,role) values
+ ('bbbbbbbb-0000-0000-0000-000000000001','المشرف التقني','admin') on conflict do nothing;
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'OWNER';
+insert into rls_results select 'الدكتورة ليست مشرفًا', is_admin() = false;
+insert into rls_results select 'الدكتورة مالكة',       is_owner() = true;
+commit;
+
+begin; set local role authenticated;
+set local request.jwt.claim.sub = 'bbbbbbbb-0000-0000-0000-000000000001';
+insert into rls_results select 'المشرف مشرف',              is_admin() = true;
+insert into rls_results select 'المشرف مالك أيضًا',         is_owner() = true;
+insert into rls_results select 'المشرف يرى الطالبات كلهن', (select count(*) from students where section_id='9')>=3;
+commit;
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into rls_results select 'الطالبة ليست مشرفًا', is_admin() = false;
+commit;
+
+-- الطالبة لا تُنصّب نفسها مشرفًا
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into owners(uid,label,role)
+      values ('22222222-2222-2222-2222-222222222222','أنا','admin');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا تنصّب نفسها مشرفًا', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا تنصّب نفسها مشرفًا', true);
+  end;
+end $$;
+
+-- ودورٌ ثالث لا يُقبل أصلًا
+do $$
+begin
+  begin
+    insert into auth.users(id,email) values ('cccccccc-0000-0000-0000-000000000001','x@test');
+    insert into owners(uid,label,role) values ('cccccccc-0000-0000-0000-000000000001','س','root');
+    insert into rls_results values ('لا يُقبل دور خارج الاثنين', false);
+  exception when others then
+    insert into rls_results values ('لا يُقبل دور خارج الاثنين', true);
+  end;
+end $$;
 
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;

@@ -5,23 +5,48 @@
 --  يُشغَّل مرة واحدة، وإعادة تشغيله آمنة.
 --
 --  نموذج الصلاحيات:
---    • الدكتورة  = حساب واحد، معرّفه في جدول owners. ترى وتعدّل كل شيء.
+--    • الدكتورة  = حساب في owners بدور teacher. ترى وتعدّل كل شيء.
+--    • المشرف    = حساب في owners بدور admin. مثلها، وفوقه صفحة الفحص.
 --    • الطالبة   = حسابها مربوط بصفها في students.auth_uid.
 --                  ترى صفّها وحده، وتكتب تسليماتها وحدها،
 --                  ولا ترى حضور غيرها ولا نقاطهن ولا تسليماتهن.
 --    • بلا حساب  = لا شيء إطلاقًا.
 -- ═══════════════════════════════════════════════════════════════
 
--- ─── المالكات (الدكتورة ومن تفوّضه) ───
+-- ─── المالكات ───
+--  role يفرّق بين صلاحيتين، وكلتاهما ترى البيانات كاملةً:
+--    teacher  الدكتورة — التدريس كلّه: الكشف والحضور والدرجات والأنشطة.
+--    admin    المشرف التقني — كل ما تراه الدكتورة، وفوقه صفحة الفحص:
+--             حالة التخزين وسلامة البيانات وتشخيص الأعطال.
+--  الفرق في الواجهة لا في البيانات: لا يملك المشرف بيانات لا تملكها
+--  الدكتورة، وإنما أدوات تشخيص لا تعني المدرِّسة ولا ينبغي أن تزحم
+--  صفحاتها.
 create table if not exists owners (
   uid   uuid primary key references auth.users(id) on delete cascade,
   label text,
+  role  text not null default 'teacher'
+        check (role in ('teacher', 'admin')),
   added timestamptz not null default now()
 );
+
+-- ترقية جدولٍ أُنشئ قبل إضافة العمود
+alter table owners add column if not exists role text not null default 'teacher';
+do $$ begin
+  alter table owners add constraint owners_role_chk
+    check (role in ('teacher','admin'));
+exception when duplicate_object then null; end $$;
 
 create or replace function is_owner() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from owners where uid = auth.uid());
+$$;
+
+-- المشرف التقني وحده
+create or replace function is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from owners where uid = auth.uid() and role = 'admin'
+  );
 $$;
 
 -- ─── الطالبات ───
@@ -297,8 +322,13 @@ create policy tpfiles_self on storage.objects for all
 --  بعد التشغيل: سجّلي دخولك مرة، ثم نفّذي هذا السطر بمعرّفك
 --  (تجدينه في Authentication ← Users):
 --
---      insert into owners (uid, label)
---      values ('<معرّف حسابك>', 'د. سعاد المطوع');
+--      insert into owners (uid, label, role)
+--      values ('<معرّف حسابك>', 'د. سعاد المطوع', 'teacher');
+--
+--  وللمشرف التقني:
+--
+--      insert into owners (uid, label, role)
+--      values ('<معرّف حسابه>', 'بدر المسلم', 'admin');
 --
 --  بلا هذا السطر لن ترى شيئًا — وهذا مقصود.
 -- ═══════════════════════════════════════════════════════════════

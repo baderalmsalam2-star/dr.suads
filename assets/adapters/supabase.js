@@ -536,6 +536,20 @@
       }).catch(function () { return false; });
     },
 
+    /* "admin" | "teacher" | null — من صفّ هذا الحساب وحده.
+       تُرشَّح بالمعرّف لا بأول صفّ: الجدول يُرجع كل المالكات لمن
+       يقرؤه، فأخذُ أوّلها كان يعطي الدكتورة دور المشرف أو العكس. */
+    role: function () {
+      if (!session()) return Promise.resolve(null);
+      return TPAuth.me().then(function (me) {
+        if (!me || !me.id) return null;
+        return req("owners?select=role&uid=eq." + enc(me.id))
+          .then(function (rows) {
+            return (rows && rows.length) ? (rows[0].role || "teacher") : null;
+          });
+      }).catch(function () { return null; });
+    },
+
     signOut: function () { setSession(null); return Promise.resolve(); }
   };
 
