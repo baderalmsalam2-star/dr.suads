@@ -11,6 +11,7 @@
     { id: "register",   label: "الباركود",     href: "register.html" },
     { id: "attendance", label: "الحضور",       href: "attendance.html" },
     { id: "worksheets", label: "أوراق العمل",  href: "worksheets.html" },
+    { id: "grades",     label: "الدرجات",      href: "grades.html" },
     { id: "honors",     label: "لوحة الشرف",   href: "honors.html" },
     { id: "compose",    label: "مُنشئ الحصص",  href: "compose.html" },
     { id: "login",      label: "الحساب",       href: "login.html" }
@@ -170,6 +171,7 @@
   var CODES    = ["رمز واحد", "رمزان", "رموز", "رمزًا"];
   var LESSONS  = ["حصة واحدة", "حصتان", "حصص", "حصة"];
   var READS    = ["شريحة قراءة", "شريحتا قراءة", "شرائح قراءة", "شريحة قراءة"];
+  var SHEETS   = ["ورقة عمل واحدة", "ورقتا عمل", "أوراق عمل", "ورقة عمل"];
 
   function bytes(n) {
     if (n < 1024) return ar(n) + " بايت";
@@ -189,6 +191,7 @@
     slides:   function (n) { return count(n, SLIDES); },
     codes:    function (n) { return count(n, CODES); },
     lessons:  function (n) { return count(n, LESSONS); },
-    reads:    function (n) { return count(n, READS); }
+    reads:    function (n) { return count(n, READS); },
+    sheets:   function (n) { return count(n, SHEETS); }
   };
 })();

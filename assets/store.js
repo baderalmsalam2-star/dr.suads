@@ -220,6 +220,48 @@
       return Promise.resolve(map);
     },
 
+    /* الدرجات اليدوية: سجل واحد لكل (طالبة، بند) ------------- */
+    grades: function (f) {
+      f = f || {};
+      var all = read("grades", []);
+      return Promise.resolve(all.filter(function (g) {
+        if (f.sectionId != null && String(g.sectionId) !== String(f.sectionId)) return false;
+        if (f.studentId && g.studentId !== f.studentId) return false;
+        if (f.itemId && g.itemId !== f.itemId) return false;
+        return true;
+      }));
+    },
+
+    /* درجة فارغة تُحذف بدل أن تُحفظ صفرًا — فرقٌ بين «لم تُرصد» و«صفر» */
+    saveGrade: function (rec) {
+      var all = read("grades", []);
+      var i = -1;
+      for (var k = 0; k < all.length; k++) {
+        if (all[k].studentId === rec.studentId && all[k].itemId === rec.itemId) { i = k; break; }
+      }
+      if (rec.score == null || rec.score === "") {
+        if (i >= 0) { all.splice(i, 1); write("grades", all); }
+        return Promise.resolve(null);
+      }
+      rec.id = (i >= 0 ? all[i].id : uid("gr"));
+      if (i >= 0) all[i] = Object.assign({}, all[i], rec); else all.push(rec);
+      write("grades", all);
+      return Promise.resolve(rec);
+    },
+
+    /* توزيعة الشعبة — كجدول الحصص: خريطة لكل شعبة */
+    scheme: function (sectionId) {
+      var all = read("scheme", {});
+      return Promise.resolve(sectionId == null ? all : (all[String(sectionId)] || null));
+    },
+
+    setScheme: function (sectionId, sch) {
+      var all = read("scheme", {});
+      all[String(sectionId)] = sch;
+      write("scheme", all);
+      return Promise.resolve(sch);
+    },
+
     /* الملفات ------------------------------------------------- */
     putFile: function (rec) {
       rec.id = rec.id || uid("f");
@@ -259,6 +301,41 @@
     return out;
   }
 
+  /* التوزيعة الافتراضية من data/course.js — نسخة لا مرجعًا،
+     فتحريرها في صفحة الدرجات لا يمسّ الأصل */
+  function defaultScheme() {
+    var g = (window.COURSE || {}).grading || {};
+    return JSON.parse(JSON.stringify({
+      confirmed: !!g.confirmed,
+      items: g.items || [],
+      grades: g.grades || []
+    }));
+  }
+
+  /* تمييز العدد. الآلة في ui.js وهو يُحمَّل بعد هذا الملف، فالنداء
+     لا يقع إلا وقت العرض — ومع ذلك يُحرَس، إذ قد تُستعمل طبقة
+     البيانات وحدها في اختبار أو أداة. */
+  var PTS   = ["نقطة واحدة", "نقطتان", "نقاط", "نقطة"];
+  var SHTS  = ["ورقة عمل واحدة", "ورقتا عمل", "أوراق عمل", "ورقة عمل"];
+  function plural(n, forms) {
+    if (window.TPUI && TPUI.count) return TPUI.count(n, forms);
+    return TP.ar(n) + " " + forms[3];
+  }
+
+  function labelOf(scheme, id) {
+    var hit = (scheme.items || []).filter(function (i) { return i.id === id; })[0];
+    return hit ? hit.label : id;
+  }
+
+  /* التقدير من النسبة المئوية */
+  function gradeLabel(pct) {
+    var list = ((window.COURSE || {}).grading || {}).grades || [];
+    for (var i = 0; i < list.length; i++) {
+      if (pct >= list[i].min) return list[i].label;
+    }
+    return "";
+  }
+
   /* ─── الواجهة العامة ─── */
   var A = window.TP_ADAPTER || Local;
 
@@ -292,6 +369,15 @@
     saveSubmission: function (s) { return A.saveSubmission(s); },
     removeSubmission: function (id) { return A.removeSubmission(id); },
 
+    grades: function (f) { return A.grades(f); },
+    saveGrade: function (r) { return A.saveGrade(r); },
+    scheme: function (sec) {
+      return A.scheme(sec).then(function (sch) {
+        return sch || defaultScheme();
+      });
+    },
+    setScheme: function (sec, sch) { return A.setScheme(sec, sch); },
+
     putFile: function (r) { return A.putFile(r); },
     getFile: function (id) { return A.getFile(id); },
     removeFile: function (id) { return A.removeFile(id); },
@@ -324,6 +410,173 @@
                      (a.student.no || 0) - (b.student.no || 0);
             });
         });
+    },
+
+    /* ─── كشف الدرجات ───
+       يجمع المحسوب من سجلات المنصة مع المُدخَل باليد في صفٍّ واحد
+       لكل طالبة. يُرجع { scheme, rows, held, sheets } حيث كل صفّ:
+
+         { student, cells:{ itemId:{score,max,note,auto} },
+           total, outOf, pct, grade, complete }
+
+       البنود المحسوبة لا تُخزَّن — تُشتقّ عند كل عرض من البيانات
+       الحيّة، فلا تتقادم إذا رُصد تفاعل أو حضور بعد اليوم. */
+    gradebook: function (sectionId) {
+      var COURSE = window.COURSE || {};
+      var SHEETS = window.WORKSHEETS || [];
+      var ATT = (COURSE.attendance || {}).states || [];
+      var countsBy = {};
+      ATT.forEach(function (st) { countsBy[st.id] = st.counts; });
+
+      return Promise.all([
+        Store.scheme(sectionId),
+        Store.ranking({ sectionId: sectionId }),
+        A.attendance({ sectionId: sectionId }),
+        A.submissions({}),          /* لا يُرشَّح بالشعبة — يُفهرس بالطالبة أدناه */
+        A.grades({ sectionId: sectionId }),
+        A.schedule(sectionId)
+      ]).then(function (r) {
+        var scheme = r[0], rank = r[1], att = r[2],
+            subs = r[3], manual = r[4], sched = r[5] || {};
+
+        /* الحصص التي انعقدت فعلًا: ما رُصد فيها حضور */
+        var heldSet = {};
+        att.forEach(function (a) { heldSet[a.session] = true; });
+        var held = Object.keys(heldSet).length;
+
+        /* أوراق العمل المطلوبة: ما صدر منها لحصص انعقدت */
+        var sheets = SHEETS.filter(function (w) {
+          return !w.session || heldSet[w.session];
+        });
+
+        /* أعلى نقاط تفاعل في الشعبة — أساس البند النسبي */
+        var top = 0;
+        rank.forEach(function (x) { if (x.points > top) top = x.points; });
+
+        var byStudent = {};
+        rank.forEach(function (x) { byStudent[x.student.id] = x; });
+
+        var attBy = {}, subBy = {}, manBy = {};
+        att.forEach(function (a) {
+          (attBy[a.studentId] = attBy[a.studentId] || []).push(a);
+        });
+        subs.forEach(function (x) {
+          if (x.status !== "submitted" && x.status !== "locked") return;
+          (subBy[x.studentId] = subBy[x.studentId] || {})[x.worksheetId] = true;
+        });
+        manual.forEach(function (g) {
+          (manBy[g.studentId] = manBy[g.studentId] || {})[g.itemId] = g;
+        });
+
+        /* سياسة الغياب: نسبة الغياب وحدّ الحرمان — لا درجة لها */
+        var POL = COURSE.attendance || {};
+
+        var rows = rank.map(function (x) {
+          var st = x.student, cells = {}, total = 0, outOf = 0, complete;
+
+          scheme.items.forEach(function (it) {
+            var max = +it.max || 0, score = null, note = "",
+                auto = it.source !== "manual";
+            /* البند التعويضي لا يزيد المقسوم عليه — يحلّ محلّ غيره */
+            if (!it.makeupFor) outOf += max;
+
+            if (it.source === "engagement") {
+              if (it.basis === "absolute") {
+                var t = +it.target || 1;
+                score = Math.min(1, x.points / t) * max;
+                note = TP.ar(x.points) + " من " + plural(t, PTS);
+              } else {
+                score = top > 0 ? (x.points / top) * max : 0;
+                note = plural(x.points, PTS) +
+                       (top > 0 ? " · الأعلى " + TP.ar(top) : "");
+              }
+
+            } else if (it.source === "worksheets") {
+              var done = 0, mineS = subBy[st.id] || {};
+              sheets.forEach(function (w) { if (mineS[w.id]) done++; });
+              score = sheets.length > 0 ? (done / sheets.length) * max : null;
+              note = sheets.length > 0
+                ? TP.ar(done) + " من " + plural(sheets.length, SHTS)
+                : "لم تصدر أوراق بعد";
+            } else {
+              var g = (manBy[st.id] || {})[it.id];
+              score = g && g.score != null ? +g.score : null;
+              if (score === null && !it.makeupFor) note = "لم تُرصد";
+            }
+
+            cells[it.id] = { score: score, max: max, note: note, auto: auto,
+                             bonus: +it.bonus || 0, makeup: !!it.makeupFor };
+          });
+
+          /* ─── الاختبار التعويضي ───
+             لا يُجمع، بل يحلّ محلّ اختبارٍ واحد فات الطالبة. فإن
+             فاتها اثنان سدّ واحدًا فقط — «تعويضي لمن فاتها أحد
+             الاختبارين». */
+          scheme.items.forEach(function (it) {
+            if (!it.makeupFor) return;
+            var mk = cells[it.id];
+            if (!mk || mk.score == null) return;
+
+            var gap = it.makeupFor.filter(function (tid) {
+              return cells[tid] && cells[tid].score == null;
+            });
+            if (!gap.length) {
+              mk.note = "لم تحتجه — جلست الاختبارين";
+              mk.score = null;                    /* لا يُحتسب لمن حضرتهما */
+              return;
+            }
+            var target = cells[gap[0]];
+            var val = Math.min(+mk.score, +it.cap || target.max);
+            target.score = val;
+            target.note = "تعويضي";
+            target.viaMakeup = true;
+            mk.note = "عوّض «" + labelOf(scheme, gap[0]) + "»";
+            if (gap.length > 1) {
+              cells[gap[1]].score = 0;
+              cells[gap[1]].note = "فات ولا تعويض ثانٍ";
+            }
+          });
+
+          /* الاكتمال يُقرَّر بعد التعويض لا قبله، وإلا حُسبت المعوَّضة
+             ناقصةً وهي تامّة */
+          complete = scheme.items.every(function (it) {
+            return it.makeupFor || cells[it.id].score != null;
+          });
+
+          /* المجموع بعد استقرار التعويض */
+          scheme.items.forEach(function (it) {
+            if (it.makeupFor) return;
+            total += cells[it.id].score || 0;
+          });
+
+          /* الغياب: إنذار لا درجة */
+          var mine = attBy[st.id] || [], counted = 0, missed = 0;
+          mine.forEach(function (a) {
+            var c = countsBy[a.status];
+            if (c === null) return;              /* بعذر: خارج الحساب */
+            counted++;
+            if (c === false) missed++;
+          });
+          var absRate = counted > 0 ? missed / counted : 0;
+          var att_ = {
+            counted: counted, missed: missed, rate: absRate,
+            barred: counted > 0 && absRate >= (POL.absentLimit || 1),
+            warn: counted > 0 && absRate >= (POL.warnAt || 1)
+          };
+
+          /* التقدير يُسقَف، والمجموع يُعرض كما هو ليُرى البونص */
+          var cap = +((COURSE.grading || {}).capAt) || 100;
+          var pct = outOf > 0 ? (total / outOf) * 100 : 0;
+          var capped = Math.min(pct, cap);
+
+          return { student: st, cells: cells, total: total, outOf: outOf,
+                   pct: pct, capped: capped,
+                   grade: att_.barred ? "محرومة" : gradeLabel(capped),
+                   complete: complete, att: att_ };
+        });
+
+        return { scheme: scheme, rows: rows, held: held, sheets: sheets.length };
+      });
     },
 
     /* تصدير كل البيانات (بلا الملفات) للنسخ الاحتياطي أو النقل */

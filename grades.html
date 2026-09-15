@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<title>الدرجات — منصة التدريس</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23002856%27/%3E%3Crect x=%273%27 y=%273%27 width=%2726%27 height=%2726%27 fill=%27none%27 stroke=%27%230DABE2%27 stroke-width=%271.5%27/%3E%3Ctext x=%2716%27 y=%2723%27 font-size=%2718%27 text-anchor=%27middle%27 fill=%27%23F8D81B%27 font-family=%27serif%27%3E%D9%88%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/join.css">
+<link rel="stylesheet" href="assets/grades.css">
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<div id="draftBanner" class="banner" hidden>
+  <b>هذه توزيعة مبدئية لم تُعتمد.</b>
+  الأرقام أدناه من وضع البرنامج لا من خطة المقرر — بدّليها بتوزيعتك
+  الرسمية ثم اضغطي «اعتمدي التوزيعة»، فتختفي هذه اللافتة من كل الصفحات.
+</div>
+
+<div class="control">
+  <label for="section">الشعبة:</label>
+  <select id="section" aria-label="اختيار الشعبة"></select>
+  <span class="hint" id="basis"></span>
+  <span class="spacer"></span>
+  <button id="schemeBtn" type="button" class="ghost">توزيعة الدرجات</button>
+  <button id="exportBtn" type="button" class="ghost">تصدير إلى Excel</button>
+  <button id="printBtn" type="button" class="ghost">طباعة</button>
+</div>
+
+<div id="schemeBox" hidden>
+  <div class="item">
+    <div class="prompt">توزيعة الدرجات</div>
+    <div class="why">المجموع لا بد أن يبلغ ١٠٠. البنود المحسوبة تأخذ درجتها
+      من سجلات المنصة نفسها، والاختبارات تُرصد باليد.</div>
+    <div class="wrap"><table class="grid" id="schemeTable"></table></div>
+    <div class="control">
+      <span class="hint" id="schemeSum"></span>
+      <span class="spacer"></span>
+      <button id="addItem" type="button" class="ghost sm">أضيفي بندًا</button>
+      <button id="resetScheme" type="button" class="ghost sm">الافتراضية</button>
+      <button id="saveScheme" type="button" class="gold">احفظي</button>
+      <button id="confirmScheme" type="button">اعتمدي التوزيعة</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap"><table class="grid gradebook" id="book"></table></div>
+<div id="bookEmpty"></div>
+
+<div class="section-title">توزيع التقديرات <span class="sub" id="distSub"></span></div>
+<div id="dist" class="dist"></div>
+
+<footer class="foot">
+  <div id="foot-note"></div>
+  <div id="credit"></div>
+</footer>
+
+<script src="data/course.js"></script>
+<script src="data/worksheets.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/adapters/supabase.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/grades.js"></script>
+</body>
+</html>

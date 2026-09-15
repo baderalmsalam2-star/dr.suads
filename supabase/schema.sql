@@ -90,8 +90,32 @@ create table if not exists schedule (
   primary key (section_id, session)
 );
 
+-- ─── الدرجات اليدوية: سجل واحد لكل (طالبة، بند) ───
+--  البنود المحسوبة (المشاركة، الحضور، أوراق العمل) لا تُخزَّن هنا،
+--  بل تُشتقّ عند العرض من سجلات المنصة نفسها فلا تتقادم.
+create table if not exists grades (
+  id          text primary key,
+  student_id  text not null references students(id) on delete cascade,
+  section_id  text not null,
+  item_id     text not null,
+  score       numeric,
+  note        text,
+  updated_at  timestamptz not null default now(),
+  unique (student_id, item_id)
+);
+create index if not exists grades_scope on grades (section_id, item_id);
+
+-- ─── توزيعة الدرجات لكل شعبة ───
+create table if not exists scheme (
+  section_id  text primary key,
+  data        jsonb not null,
+  updated_at  timestamptz not null default now()
+);
+
 -- ═══ تفعيل حماية الصفوف ═══
 alter table owners      enable row level security;
+alter table grades      enable row level security;
+alter table scheme      enable row level security;
 alter table students    enable row level security;
 alter table events      enable row level security;
 alter table attendance  enable row level security;
@@ -162,6 +186,24 @@ drop policy if exists submissions_self_update on submissions;
 create policy submissions_self_update on submissions for update
   using (student_id = my_student_id() and status <> 'submitted')
   with check (student_id = my_student_id());
+
+-- ─── grades: المالكة ترصد، والطالبة تقرأ درجتها هي وحدها ───
+drop policy if exists grades_owner on grades;
+create policy grades_owner on grades for all
+  using (is_owner()) with check (is_owner());
+
+drop policy if exists grades_self on grades;
+create policy grades_self on grades for select
+  using (student_id = my_student_id());
+
+-- ─── scheme: الجميع يقرأ التوزيعة (الطالبة ترى على أي أساس تُقيَّم)،
+--             والمالكة وحدها تكتبها ───
+drop policy if exists scheme_read on scheme;
+create policy scheme_read on scheme for select using (auth.uid() is not null);
+
+drop policy if exists scheme_write on scheme;
+create policy scheme_write on scheme for all
+  using (is_owner()) with check (is_owner());
 
 -- ─── schedule: الجميع يقرأ، والمالكة وحدها تكتب ───
 drop policy if exists schedule_read on schedule;

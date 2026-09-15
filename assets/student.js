@@ -33,12 +33,70 @@
       Store.ranking({ sectionId: st.sectionId }),
       Store.ranking({ sectionId: st.sectionId, month: Store.monthKey(Store.dayKey()) }),
       Store.attendance({ studentId: st.id }),
-      Store.attendance({ sectionId: st.sectionId })
-    ]).then(function (r) { paint(st, r[0], r[1], r[2], r[3]); paintAttendance(st, r[4], r[5]); });
+      Store.attendance({ sectionId: st.sectionId }),
+      Store.gradebook(st.sectionId)
+    ]).then(function (r) {
+      paint(st, r[0], r[1], r[2], r[3]);
+      paintAttendance(st, r[4], r[5]);
+      paintGrades(st, r[6]);
+    });
   }).catch(function (e) {
     console.error(e);
     bail("تعذّر تحميل الصفحة.", e.message || "");
   });
+
+  /* ─── درجاتها هي ───
+     الأعمدة نفسها التي تراها الدكتورة، بلا ترتيب ولا مقارنة بغيرها:
+     الطالبة ترى بندها ودرجتها والمجموع، لا صفوف زميلاتها. */
+  function paintGrades(st, gb) {
+    var t = document.getElementById("grades");
+    var row = gb.rows.filter(function (r) { return r.student.id === st.id; })[0];
+    if (!row) {
+      t.hidden = true;
+      TPUI.empty(document.getElementById("grEmpty"), "لا درجات بعد.", "");
+      return;
+    }
+    t.hidden = false;
+    t.textContent = "";
+
+    document.getElementById("grSub").textContent =
+      (gb.scheme.confirmed ? "" : "توزيعة مبدئية · ") +
+      "المجموع حتى الآن " + fmt(row.total) + " من " + ar(row.outOf) +
+      (row.complete ? "" : " (لم تكتمل)");
+
+    var head = el("tr");
+    ["البند", "الدرجة", "من", "الأساس"].forEach(function (h) {
+      head.appendChild(el("th", "", h));
+    });
+    t.appendChild(el("thead")).appendChild(head);
+
+    var tb = el("tbody");
+    gb.scheme.items.forEach(function (it) {
+      var c = row.cells[it.id];
+      /* التعويضي لا يُعرض لمن لم تحتجه */
+      if (it.makeupFor && c.score == null && !c.note) return;
+      var tr = el("tr");
+      tr.appendChild(el("td", "", it.label));
+      tr.appendChild(el("td", "sum", c.score == null ? "لم تُرصد" : fmt(c.score)));
+      tr.appendChild(el("td", "num", it.makeupFor ? "تعويضي" :
+        ar(it.max) + (it.bonus ? " + " + ar(it.bonus) : "")));
+      tr.appendChild(el("td", "auto", c.note || (c.auto ? "" : "من الاختبار")));
+      tb.appendChild(tr);
+    });
+
+    var sum = el("tr");
+    sum.appendChild(el("th", "", "المجموع"));
+    sum.appendChild(el("td", "sum", fmt(row.total)));
+    sum.appendChild(el("td", "num", ar(row.outOf)));
+    sum.appendChild(el("td", "gr", row.grade));
+    tb.appendChild(sum);
+    t.appendChild(tb);
+
+    function fmt(v) {
+      var r = Math.round(v * 10) / 10;
+      return ar(r % 1 === 0 ? String(r) : r.toFixed(1));
+    }
+  }
 
   function paint(st, events, subs, termRank, monthRank) {
     var mine = termRank.filter(function (x) { return x.student.id === st.id; })[0] ||

@@ -193,6 +193,72 @@ insert into rls_results select 'المرتبطة تلقائيًا ترى صفّ�
   (select count(*) from students)=1 and (select id from students)='t-auto1';
 commit;
 
+-- ── الدرجات والتوزيعة ──
+insert into grades(id,student_id,section_id,item_id,score) values
+ ('t-g1','t-sara','9','exam1',18),
+ ('t-g2','t-noura','9','exam1',12) on conflict do nothing;
+insert into scheme(section_id,data) values ('9','{"confirmed":true}') on conflict do nothing;
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into rls_results select 'ترى درجتها هي وحدها', (select count(*) from grades)=1;
+insert into rls_results select 'الدرجة التي تراها درجتها',
+  (select item_id||':'||score from grades)='exam1:18';
+insert into rls_results select 'ترى التوزيعة التي تُقيَّم بها', (select count(*) from scheme)=1;
+commit;
+
+begin; set local role anon;
+insert into rls_results select 'بلا حساب لا يرى درجات', (select count(*) from grades)=0;
+insert into rls_results select 'بلا حساب لا يرى التوزيعة', (select count(*) from scheme)=0;
+commit;
+
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    update grades set score = 20 where id='t-g1';
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا ترفع درجتها بنفسها', (select score from grades where id='t-g1')=18);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا ترفع درجتها بنفسها', true);
+  end;
+end $$;
+
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    update scheme set data='{"confirmed":false}' where section_id='9';
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا تعدّل توزيعة الدرجات',
+      (select data->>'confirmed' from scheme where section_id='9')='true');
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا تعدّل توزيعة الدرجات', true);
+  end;
+end $$;
+
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into grades(id,student_id,section_id,item_id,score)
+      values ('t-gx','t-sara','9','final',40);
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا ترصد لنفسها درجة', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا ترصد لنفسها درجة', true);
+  end;
+end $$;
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'OWNER';
+insert into rls_results select 'المالكة ترى درجات الجميع', (select count(*) from grades)=2;
+commit;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

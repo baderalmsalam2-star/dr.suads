@@ -103,6 +103,9 @@
   var M_SUB = { studentId: "student_id", worksheetId: "worksheet_id",
                 submittedAt: "submitted_at", updatedAt: "updated_at" };
 
+  var M_GRADE = { studentId: "student_id", sectionId: "section_id",
+                  itemId: "item_id", updatedAt: "updated_at" };
+
   function mapAll(map, rows) { return (rows || []).map(function (r) { return fromDb(map, r); }); }
 
   function uid(p) {
@@ -288,6 +291,54 @@
     },
 
     /* الملفات -------------------------------------------------- */
+    /* الدرجات اليدوية ----------------------------------------- */
+    grades: function (f) {
+      f = f || {};
+      var q = "grades?select=*";
+      if (f.sectionId != null) q += "&section_id=eq." + enc(f.sectionId);
+      if (f.studentId) q += "&student_id=eq." + enc(f.studentId);
+      if (f.itemId) q += "&item_id=eq." + enc(f.itemId);
+      return req(q).then(function (rows) { return mapAll(M_GRADE, rows); });
+    },
+
+    /* درجة فارغة تُحذف بدل أن تُحفظ صفرًا */
+    saveGrade: function (rec) {
+      if (rec.score == null || rec.score === "") {
+        return req("grades?student_id=eq." + enc(rec.studentId) +
+                   "&item_id=eq." + enc(rec.itemId), { method: "DELETE" })
+               .then(function () { return null; });
+      }
+      var body = toDb(M_GRADE, rec);
+      body.id = rec.id || uid("gr");
+      body.updated_at = new Date().toISOString();
+      return req("grades?on_conflict=student_id,item_id", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+        body: body
+      }).then(function (rows) { return fromDb(M_GRADE, (rows || [])[0] || body); });
+    },
+
+    /* توزيعة الشعبة */
+    scheme: function (sectionId) {
+      var q = "scheme?select=section_id,data";
+      if (sectionId != null) q += "&section_id=eq." + enc(sectionId);
+      return req(q).then(function (rows) {
+        if (sectionId != null) return (rows || []).length ? rows[0].data : null;
+        var out = {};
+        (rows || []).forEach(function (r) { out[r.section_id] = r.data; });
+        return out;
+      });
+    },
+
+    setScheme: function (sectionId, sch) {
+      return req("scheme?on_conflict=section_id", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates" },
+        body: { section_id: String(sectionId), data: sch,
+                updated_at: new Date().toISOString() }
+      }).then(function () { return sch; });
+    },
+
     putFile: function (rec) {
       rec.id = rec.id || uid("f");
       var path = (rec.studentId || "shared") + "/" + rec.id;
