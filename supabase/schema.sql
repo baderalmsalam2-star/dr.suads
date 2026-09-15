@@ -117,10 +117,14 @@ drop policy if exists students_self on students;
 create policy students_self on students for select
   using (auth_uid = auth.uid());
 
--- الطالبة تربط صفّها بحسابها مرة واحدة فقط (وهو صفّ لم يُربط بعد)
+-- لا سياسة تسمح للطالبة بتعديل جدول الطالبات إطلاقًا.
+-- الربط بين حساب الطالبة وصفّها تفعله الدكتورة بسطر SQL — انظري
+-- «حسابات الطالبات» في supabase/الإعداد.md.
+--
+-- (كانت هنا سياسة تسمح للطالبة بربط أي صفّ لم يُربط بعد بحسابها،
+--  وهي ثغرة: تمكّن أي حساب من الاستيلاء على صفّ طالبة أخرى وتغيير
+--  اسمها ورقمها الجامعي. أُزيلت.)
 drop policy if exists students_claim on students;
-create policy students_claim on students for update
-  using (auth_uid is null) with check (auth_uid = auth.uid());
 
 -- ─── events ───
 drop policy if exists events_owner on events;
