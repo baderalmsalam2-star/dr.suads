@@ -16,7 +16,7 @@
 .blk-head .ops{display:flex;gap:4px;margin-inline-start:auto}
 .blk-head .ops button{padding:.2em .6em;font-size:.78rem;border-color:var(--line);color:var(--neutral)}
 .blk-head .ops button:hover{color:var(--surface);border-color:var(--neutral)}
-.blk-head .ops button.del{border-color:#e2725b;color:#e2725b}
+.blk-head .ops button.del{border-color:var(--danger);color:var(--danger)}
 .blk-body{padding:.7em .8em;display:grid;gap:.5em}
 .blk-body textarea,.blk-body input[type=text]{font:inherit;font-family:var(--matn);width:100%;
   font-size:clamp(.95rem,1.6vw,1.15rem);line-height:1.85;color:var(--surface);

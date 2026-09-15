@@ -2,7 +2,7 @@
 
 /* لافتة التوزيعة غير المعتمدة — تُرى ولا تُحجب عنها الطاولة */
 .banner{border:1px solid var(--student);border-inline-start-width:5px;
-  background:rgba(248,216,27,.08);color:var(--surface);
+  background:rgba(var(--student-rgb),.08);color:var(--surface);
   padding:.8em 1.1em;margin:0 0 1rem;font-size:clamp(.82rem,1.5vw,.95rem);
   line-height:1.75}
 .banner b{color:var(--student)}
@@ -24,11 +24,11 @@ td.auto .note{display:block;font-size:.78em;opacity:.7;white-space:nowrap}
 td.man{padding:.25em .4em}
 td.man input{font:inherit;font-size:.95em;width:4.5em;text-align:center;
   font-variant-numeric:tabular-nums;color:var(--surface);
-  background:rgba(255,255,255,.05);border:1px solid var(--line);padding:.3em}
+  background:rgba(var(--surface-rgb),.05);border:1px solid var(--line);padding:.3em}
 td.man input:focus{outline:none;border-color:var(--faculty);
-  background:rgba(13,171,226,.1)}
-td.man input.filled{border-color:rgba(13,171,226,.45)}
-td.man input:invalid{border-color:#e2725b}
+  background:rgba(var(--faculty-rgb),.1)}
+td.man input.filled{border-color:rgba(var(--faculty-rgb),.45)}
+td.man input:invalid{border-color:var(--danger)}
 
 td.sum{font-weight:600;font-variant-numeric:tabular-nums;color:var(--student)}
 td.gr{font-weight:600;color:var(--faculty);text-align:center}
@@ -48,11 +48,11 @@ tr.incomplete td.sum::after{content:" ⋯";opacity:.6}
 #schemeTable input[type=number]{width:5em;text-align:center;
   font-variant-numeric:tabular-nums}
 #schemeTable input{font:inherit;color:var(--surface);
-  background:rgba(255,255,255,.05);border:1px solid var(--line);padding:.3em .5em}
+  background:rgba(var(--surface-rgb),.05);border:1px solid var(--line);padding:.3em .5em}
 #schemeTable input:focus{outline:none;border-color:var(--faculty)}
 #schemeTable select{font:inherit;color:var(--surface);background:var(--navy-2);
   border:1px solid var(--line);padding:.3em .5em}
-#schemeSum.bad{color:#e2725b}
+#schemeSum.bad{color:var(--danger)}
 #schemeSum.good{color:var(--student)}
 
 @media print{

@@ -10,9 +10,91 @@
   --matn:"Amiri","Scheherazade New","Traditional Arabic",Georgia,serif;
   --ui:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
 
-  --line:rgba(219,217,218,.28);
-  --line-faculty:rgba(13,171,226,.38);
+  --danger:#E2725B;          /* أحمر طيني: الغياب والحذف والخطأ */
+  --ink:#0B3D70;             /* حبر داكن على الأسطح الفاتحة */
+
+  /* ثلاثيات القنوات — تتيح اشتقاق شفافيات من اللون نفسه.
+     بلا هذه كان تبديل اللوحة يترك نصف الألوان على حالها، إذ كانت
+     rgba(13,171,226,.07) مكتوبةً بأرقامها في عشرة مواضع. */
+  --navy-rgb:0,40,86;
+  --faculty-rgb:13,171,226;
+  --student-rgb:248,216,27;
+  --neutral-rgb:219,217,218;
+  --danger-rgb:226,114,91;
+  --surface-rgb:255,255,255;
+  --shadow-rgb:0,0,0;
+
+  --line:rgba(var(--neutral-rgb),.28);
+  --line-faculty:rgba(var(--faculty-rgb),.38);
 }
+
+/* ═══ اللوحات البديلة ═══
+   تُبدَّل من زرّ «الألوان» في ترويسة أي صفحة، ويُحفظ الاختيار على
+   الجهاز. كل لوحة تعيد تعريف الرموز نفسها — ولا شيء غيرها — فلا
+   تحتاج صفحةٌ ولا ملفُ أنماطٍ تعديلًا عند إضافة لوحة جديدة.
+
+   قاعدة اللوحة: لونان متمايزان لا يلتبسان —
+     faculty = ما يصدر عن الدكتورة   ·   student = ما يخصّ الطالبة
+   وأرضية داكنة تريح العين في قاعة مظلمة، أو فاتحة تصلح للطباعة
+   والشاشات الساطعة. */
+
+/* ١) خضراء ذهبية — خضرة داكنة وذهب المخطوطات */
+html[data-theme="green"]{
+  --navy:#0E2A20;  --navy-2:#16382B;
+  --faculty:#6FD8B0;  --student:#E8C466;  --neutral:#D8DED9;
+  --danger:#E8836B;   --ink:#0E2A20;
+  --navy-rgb:14,42,32;      --faculty-rgb:111,216,176;
+  --student-rgb:232,196,102; --neutral-rgb:216,222,217;
+  --danger-rgb:232,131,107;
+}
+
+/* ٢) عنّابية — نبيذ داكن ووردة ورملي */
+html[data-theme="wine"]{
+  --navy:#2A1218;  --navy-2:#3B1B23;
+  --faculty:#E9A8A0;  --student:#EFC96A;  --neutral:#E2D8D6;
+  --danger:#FF8A75;   --ink:#2A1218;
+  --navy-rgb:42,18,24;      --faculty-rgb:233,168,160;
+  --student-rgb:239,201,106; --neutral-rgb:226,216,214;
+  --danger-rgb:255,138,117;
+}
+
+/* ٣) ليلية بنفسجية — نيلي عميق وبنفسج وكهرمان */
+html[data-theme="indigo"]{
+  --navy:#171634;  --navy-2:#232149;
+  --faculty:#A99BF5;  --student:#F5C453;  --neutral:#DCDAE8;
+  --danger:#F0806B;   --ink:#171634;
+  --navy-rgb:23,22,52;      --faculty-rgb:169,155,245;
+  --student-rgb:245,196,83;  --neutral-rgb:220,218,232;
+  --danger-rgb:240,128,107;
+}
+
+/* ٤) فحمية — رمادي محايد بلا صبغة، لمن تريد الهدوء */
+html[data-theme="slate"]{
+  --navy:#1B1E22;  --navy-2:#272B31;
+  --faculty:#79B8E8;  --student:#E5B94F;  --neutral:#D7DADE;
+  --danger:#E27D65;   --ink:#1B1E22;
+  --navy-rgb:27,30,34;      --faculty-rgb:121,184,232;
+  --student-rgb:229,185,79;  --neutral-rgb:215,218,222;
+  --danger-rgb:226,125,101;
+}
+
+/* ٥) ورقية — أرضية فاتحة كورق المخطوط، حبر داكن.
+   وهي اللوحة الوحيدة التي ينقلب فيها المعنى: surface صار داكنًا
+   لأنه لون النصّ على الأرضية الفاتحة. */
+html[data-theme="paper"]{
+  --navy:#F6F1E6;  --navy-2:#FFFBF2;
+  --faculty:#166149;  --student:#9A6212;  --neutral:#5A5347;
+  --surface:#1A1712;  --danger:#B03A24;   --ink:#1A1712;
+  --navy-rgb:246,241,230;   --faculty-rgb:22,97,73;
+  --student-rgb:154,98,18;   --neutral-rgb:90,83,71;
+  --surface-rgb:26,23,18;    --danger-rgb:176,58,36;
+  --line:rgba(var(--neutral-rgb),.34);
+}
+/* على الورقية تُقلب حدود التركيز لتُرى على الفاتح */
+html[data-theme="paper"] button:focus-visible,
+html[data-theme="paper"] a:focus-visible,
+html[data-theme="paper"] select:focus-visible{outline-color:var(--faculty)}
+
 *{box-sizing:border-box;margin:0;padding:0}
 /* وسم hidden لا يصمد أمام display:flex المعلَن على الصنف، فيُثبَّت هنا
    مرة واحدة لكل الصفحات بدل ملاحقته صنفًا صنفًا. */
@@ -22,3 +104,13 @@ button,a.btn{font:inherit;color:var(--faculty);background:none;
 button:focus-visible,a:focus-visible,li:focus-visible,select:focus-visible{
   outline:2px solid var(--surface);outline-offset:3px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ═══ مبدّل اللوحات ═══ */
+.theme-picker{display:flex;gap:.4em;align-items:center}
+.theme-dot{width:1.15em;height:1.15em;padding:0;border-radius:50%;
+  border:1px solid var(--line);background:var(--dot);cursor:pointer;
+  transition:transform .12s ease,box-shadow .12s ease}
+.theme-dot:hover{transform:scale(1.18)}
+.theme-dot.on{border-color:var(--surface);
+  box-shadow:0 0 0 2px rgba(var(--surface-rgb),.55)}
+@media print{.theme-picker{display:none}}

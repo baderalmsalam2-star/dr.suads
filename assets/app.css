@@ -22,6 +22,9 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);
             font-size:clamp(.78rem,1.3vw,.95rem);white-space:nowrap}
 .nav-main a:hover{color:var(--surface);background:var(--navy-2)}
 .nav-main a.on{color:var(--navy);background:var(--faculty);border-color:var(--faculty);font-weight:600}
+/* المبدّل يُدفع إلى طرف الشريط ولا يزاحم روابط الأقسام */
+.nav-main .theme-picker{margin-inline-start:auto;padding-inline-start:1.2em}
+@media (max-width:640px){.nav-main .theme-picker{margin-inline-start:0;padding:.7em 0 0}}
 
 /* شريط أدوات */
 .control{display:flex;flex-wrap:wrap;align-items:center;gap:.7em 1.1em;
@@ -33,12 +36,12 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);
   border:1px solid var(--faculty);padding:.4em .9em}
 .control select option{background:var(--navy-2);color:var(--surface)}
 .control .spacer{margin-inline-start:auto}
-.control .hint{color:rgba(219,217,218,.62)}
+.control .hint{color:rgba(var(--neutral-rgb),.62)}
 
 button.ghost{border-color:var(--line);color:var(--neutral)}
 button.ghost:hover{color:var(--surface);border-color:var(--neutral)}
 button.gold{border-color:var(--student);color:var(--student)}
-button.danger{border-color:#e2725b;color:#e2725b}
+button.danger{border-color:var(--danger);color:var(--danger)}
 button:disabled{opacity:.4;cursor:not-allowed}
 button.sm{padding:.25em .7em;font-size:.85em}
 
@@ -53,7 +56,7 @@ table.grid th,table.grid td{border:1px solid var(--line);padding:.55em .8em;text
 table.grid th{background:var(--navy-2);color:var(--faculty);font-weight:600;
               font-size:.9em;letter-spacing:.02em}
 table.grid td{color:var(--surface)}
-table.grid tbody tr:hover{background:rgba(13,171,226,.07)}
+table.grid tbody tr:hover{background:rgba(var(--faculty-rgb),.07)}
 table.grid .num{font-variant-numeric:tabular-nums;color:var(--neutral);width:1%;white-space:nowrap}
 table.grid a{color:var(--faculty);text-decoration:none;border-bottom:1px solid transparent}
 table.grid a:hover{border-bottom-color:var(--faculty)}
@@ -67,7 +70,7 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 .card a.open,.card .body{display:flex;flex-direction:column;flex:1;gap:.45em;
                          padding:clamp(16px,2.2vw,26px);text-decoration:none;color:inherit;border:0}
 .card.ready{border-color:var(--faculty)}
-.card.ready:hover,.card.ready:focus-within{background:#0b3d70}
+.card.ready:hover,.card.ready:focus-within{background:var(--ink)}
 .card .no{color:var(--faculty);font-size:clamp(.7rem,1.15vw,.85rem);letter-spacing:.06em;
           font-variant-numeric:tabular-nums}
 .card h2{font-family:var(--matn);font-weight:700;line-height:1.3;
@@ -95,7 +98,7 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
             font-size:clamp(1.15rem,2.3vw,1.65rem);line-height:1.3}
 .seat .pts{color:var(--faculty);font-size:clamp(.82rem,1.4vw,1rem);font-variant-numeric:tabular-nums}
 .seat .tally{color:var(--neutral);font-size:clamp(.68rem,1.1vw,.8rem);line-height:1.7}
-.seat.p1{border-color:var(--student);background:rgba(248,216,27,.10);order:2}
+.seat.p1{border-color:var(--student);background:rgba(var(--student-rgb),.10);order:2}
 .seat.p1 .rank,.seat.p1 .pts{color:var(--student)}
 .seat.p1 .name{font-size:clamp(1.35rem,2.9vw,2.05rem)}
 .seat.p2{border-color:var(--faculty);order:1}
@@ -127,9 +130,9 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
                align-items:baseline;cursor:pointer}
 .choices label:hover{border-color:var(--neutral)}
 .choices input{accent-color:var(--faculty);flex:none}
-.choices label.picked{border-color:var(--faculty);background:rgba(13,171,226,.10)}
+.choices label.picked{border-color:var(--faculty);background:rgba(var(--faculty-rgb),.10)}
 .locked .choices label{cursor:default}
-.locked .choices label.correct{border-color:var(--student);background:rgba(248,216,27,.14)}
+.locked .choices label.correct{border-color:var(--student);background:rgba(var(--student-rgb),.14)}
 .locked .choices label.correct::after{content:"✓";margin-inline-start:auto;color:var(--student)}
 .locked textarea,.locked input[type=text]{opacity:.85}
 .why{border-inline-start:2px solid var(--faculty);padding-inline-start:.9em;
@@ -142,18 +145,18 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 .files li .sz{color:var(--neutral);font-variant-numeric:tabular-nums;flex:none}
 .drop{border:1px dashed var(--line);padding:clamp(14px,2vw,22px);text-align:center;
       color:var(--neutral);font-size:clamp(.78rem,1.3vw,.92rem);cursor:pointer}
-.drop.over{border-color:var(--faculty);color:var(--faculty);background:rgba(13,171,226,.07)}
+.drop.over{border-color:var(--faculty);color:var(--faculty);background:rgba(var(--faculty-rgb),.07)}
 
 /* حالات ورسائل */
 .empty{border:1px dashed var(--line);padding:clamp(22px,3.4vw,42px);text-align:center;
        color:var(--neutral);font-size:clamp(.85rem,1.5vw,1.05rem);line-height:1.9}
-.empty .hint{color:rgba(219,217,218,.55);font-size:.88em;margin-top:.5em}
+.empty .hint{color:rgba(var(--neutral-rgb),.55);font-size:.88em;margin-top:.5em}
 .toast{position:fixed;inset-block-end:22px;inset-inline-start:50%;transform:translateX(50%) translateY(160%);
        background:var(--navy-2);border:1px solid var(--faculty);color:var(--surface);
        padding:.7em 1.4em;font-size:clamp(.8rem,1.35vw,.95rem);z-index:60;
        transition:transform .22s ease;max-width:min(90vw,520px);text-align:center}
 .toast.on{transform:translateX(50%) translateY(0)}
-.toast.bad{border-color:#e2725b}
+.toast.bad{border-color:var(--danger)}
 .toast.good{border-color:var(--student);color:var(--student)}
 
 .note-box{border-inline-start:2px solid var(--student);padding-inline-start:1em;
@@ -165,7 +168,7 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 .row{display:flex;flex-wrap:wrap;gap:.6em;align-items:center}
 
 .foot{margin-top:auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:.8em;
-      font-size:clamp(.68rem,1.1vw,.82rem);color:rgba(219,217,218,.7);
+      font-size:clamp(.68rem,1.1vw,.82rem);color:rgba(var(--neutral-rgb),.7);
       border-top:1px solid var(--line);padding-top:1em}
 
 @media print{
@@ -178,8 +181,8 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 }
 
 /* اختيار الطالبة الخاطئ بعد التسليم */
-.locked .choices label.yours{border-color:#e2725b;background:rgba(226,114,91,.10)}
-.locked .choices label.yours::after{content:"إجابتك";margin-inline-start:auto;color:#e2725b;
+.locked .choices label.yours{border-color:var(--danger);background:rgba(var(--danger-rgb),.10)}
+.locked .choices label.yours::after{content:"إجابتك";margin-inline-start:auto;color:var(--danger);
   font-family:var(--ui);font-size:.62em}
 .locked .choices label.correct::after{content:"الإجابة الصحيحة";margin-inline-start:auto;
   color:var(--student);font-family:var(--ui);font-size:.62em}
@@ -193,7 +196,7 @@ table.grid td input[type=text]:focus{outline:none;border-color:var(--student)}
 /* ═══ الأنشطة: تصنيف ومطابقة وترتيب وجدول مقارنة ═══ */
 .sortlist{list-style:none;display:flex;flex-direction:column;gap:.5em;margin-top:.7em}
 .sortrow{display:flex;align-items:center;gap:.8em;flex-wrap:wrap;
-  border:1px solid var(--line);padding:.5em .8em;background:rgba(255,255,255,.03)}
+  border:1px solid var(--line);padding:.5em .8em;background:rgba(var(--surface-rgb),.03)}
 .sortrow .txt{flex:1;min-width:12em;font-family:var(--matn);
   font-size:clamp(.95rem,1.7vw,1.12rem);line-height:1.7}
 .sortrow select{font:inherit;font-size:.92em;color:var(--surface);
@@ -201,8 +204,8 @@ table.grid td input[type=text]:focus{outline:none;border-color:var(--student)}
   max-width:min(100%,22em)}
 .sortrow select:focus{outline:none;border-color:var(--faculty)}
 .sortrow select.rank{width:4.2em;text-align:center}
-.sortrow.right{border-color:rgba(248,216,27,.5);background:rgba(248,216,27,.07)}
-.sortrow.wrong{border-color:rgba(226,114,91,.55);background:rgba(226,114,91,.07)}
+.sortrow.right{border-color:rgba(var(--student-rgb),.5);background:rgba(var(--student-rgb),.07)}
+.sortrow.wrong{border-color:rgba(var(--danger-rgb),.55);background:rgba(var(--danger-rgb),.07)}
 .sortrow .fix{width:100%;font-size:.84em;color:var(--student);
   border-top:1px solid var(--line);padding-top:.4em}
 
@@ -211,10 +214,10 @@ table.cmp th.rowh{background:var(--navy-2);color:var(--surface);
   font-family:var(--matn);font-weight:700;min-width:8em;vertical-align:top}
 table.cmp td{padding:.35em;vertical-align:top}
 table.cmp textarea{font:inherit;font-family:var(--matn);width:100%;min-width:11em;
-  color:var(--surface);background:rgba(255,255,255,.05);
+  color:var(--surface);background:rgba(var(--surface-rgb),.05);
   border:1px solid var(--line);padding:.45em .6em;resize:vertical;line-height:1.7}
 table.cmp textarea:focus{outline:none;border-color:var(--faculty)}
 table.cmp textarea:disabled{opacity:.8}
 
 /* يوم اختبار في جدول التواريخ — ليس حصة */
-tr.exam-row td{background:rgba(248,216,27,.09);color:var(--student);font-weight:600}
+tr.exam-row td{background:rgba(var(--student-rgb),.09);color:var(--student);font-weight:600}

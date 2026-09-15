@@ -63,6 +63,8 @@
       if (p.id === activeId) a.setAttribute("aria-current", "page");
       nav.appendChild(a);
     });
+    /* مبدّل الألوان في طرف الشريط — يظهر إن كان theme.js محمَّلًا */
+    if (window.TPTheme) nav.appendChild(TPTheme.picker());
     head.appendChild(nav);
   }
 
