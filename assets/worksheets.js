@@ -93,18 +93,26 @@
       students.forEach(function (s) { ids[s.id] = true; });
       var mine = subs.filter(function (s) { return ids[s.studentId]; });
 
-      cards("sheets", SHEETS.filter(function (w) { return w.type !== "homework"; }), mine, students.length);
-      cards("homework", SHEETS.filter(function (w) { return w.type === "homework"; }), mine, students.length);
+      cards("classwork", byType("classwork"), mine, students.length);
+      cards("homework",  byType("homework"),  mine, students.length);
+      cards("sheets",    byType("worksheet"), mine, students.length);
+
+      function byType(t) {
+        return SHEETS.filter(function (w) { return (w.type || "worksheet") === t; });
+      }
       matrix(students, mine);
     }).catch(fail);
   }
+
+  var KIND = { classwork: "نشاط صفّي", homework: "واجب لاصفّي", worksheet: "ورقة مراجعة" };
 
   function cards(containerId, list, subs, total) {
     var ul = document.getElementById(containerId);
     ul.textContent = "";
     if (!list.length) {
       ul.appendChild(el("li", "", "")).appendChild(
-        TPUI.empty("لا شيء هنا بعد.", "تُعرَّف الأوراق في data/worksheets.js"));
+        TPUI.empty("لا شيء هنا بعد.",
+          "الأنشطة في data/activities.js، وأوراق المراجعة في data/worksheets.js"));
       return;
     }
     list.forEach(function (w) {
@@ -118,14 +126,15 @@
       var a = el("a", "open");
       a.href = "worksheet.html?w=" + encodeURIComponent(w.id) +
                "&section=" + encodeURIComponent(section.id);
-      a.appendChild(el("span", "no", "الحصة " + ar(w.session) + " · " +
-                        (w.type === "homework" ? "واجب" : "ورقة عمل")));
+      a.appendChild(el("span", "no", "الحصة " + ar(w.session) + " · " + KIND[w.type || "worksheet"]));
       a.appendChild(el("h2", "", w.title));
       if (w.subtitle) a.appendChild(el("div", "sub", w.subtitle));
 
       var meta = el("div", "meta");
       meta.appendChild(el("span", "", w.pages || ""));
-      meta.appendChild(el("span", "readers", TPUI.questions(w.items.length) + " · بلا درجات"));
+      var graded = w.type === "classwork" || w.type === "homework";
+      meta.appendChild(el("span", "readers", TPUI.questions(w.items.length) +
+        (graded ? " · التسليم يُحتسب" : " · للمراجعة")));
       a.appendChild(meta);
       li.appendChild(a);
       ul.appendChild(li);

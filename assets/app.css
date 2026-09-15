@@ -189,3 +189,29 @@ table.grid td input[type=text]{font:inherit;width:100%;min-width:7em;color:var(-
   background:var(--navy);border:1px solid var(--faculty);padding:.35em .6em}
 table.grid td input[type=text].num{font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
 table.grid td input[type=text]:focus{outline:none;border-color:var(--student)}
+
+/* ═══ الأنشطة: تصنيف ومطابقة وترتيب وجدول مقارنة ═══ */
+.sortlist{list-style:none;display:flex;flex-direction:column;gap:.5em;margin-top:.7em}
+.sortrow{display:flex;align-items:center;gap:.8em;flex-wrap:wrap;
+  border:1px solid var(--line);padding:.5em .8em;background:rgba(255,255,255,.03)}
+.sortrow .txt{flex:1;min-width:12em;font-family:var(--matn);
+  font-size:clamp(.95rem,1.7vw,1.12rem);line-height:1.7}
+.sortrow select{font:inherit;font-size:.92em;color:var(--surface);
+  background:var(--navy-2);border:1px solid var(--line);padding:.35em .6em;
+  max-width:min(100%,22em)}
+.sortrow select:focus{outline:none;border-color:var(--faculty)}
+.sortrow select.rank{width:4.2em;text-align:center}
+.sortrow.right{border-color:rgba(248,216,27,.5);background:rgba(248,216,27,.07)}
+.sortrow.wrong{border-color:rgba(226,114,91,.55);background:rgba(226,114,91,.07)}
+.sortrow .fix{width:100%;font-size:.84em;color:var(--student);
+  border-top:1px solid var(--line);padding-top:.4em}
+
+table.cmp{margin-top:.7em}
+table.cmp th.rowh{background:var(--navy-2);color:var(--surface);
+  font-family:var(--matn);font-weight:700;min-width:8em;vertical-align:top}
+table.cmp td{padding:.35em;vertical-align:top}
+table.cmp textarea{font:inherit;font-family:var(--matn);width:100%;min-width:11em;
+  color:var(--surface);background:rgba(255,255,255,.05);
+  border:1px solid var(--line);padding:.45em .6em;resize:vertical;line-height:1.7}
+table.cmp textarea:focus{outline:none;border-color:var(--faculty)}
+table.cmp textarea:disabled{opacity:.8}

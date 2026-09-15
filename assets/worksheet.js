@@ -75,6 +75,10 @@
 
       if (it.kind === "mcq") buildMcq(box, it, locked);
       else if (it.kind === "file") buildFile(box, it, locked);
+      else if (it.kind === "sort") buildSort(box, it, locked);
+      else if (it.kind === "pair") buildPair(box, it, locked);
+      else if (it.kind === "order") buildOrder(box, it, locked);
+      else if (it.kind === "table") buildTable(box, it, locked);
       else buildText(box, it, locked);
 
       if (locked && it.why) {
@@ -149,6 +153,164 @@
     box.appendChild(input);
   }
 
+  /* ─── تصنيف: كل عنصر إلى خانته ───
+     it.buckets = [{id,label}]  ·  it.entries = [{id,text,bucket}]
+     الإجابة: { entryId: bucketId } */
+  function buildSort(box, it, locked) {
+    var ans = sub.answers[it.id] || (sub.answers[it.id] = {});
+    var ul = el("ul", "sortlist");
+    it.entries.forEach(function (e) {
+      var li = el("li", "sortrow");
+      li.appendChild(el("span", "txt", e.text));
+      var sel = document.createElement("select");
+      sel.disabled = locked;
+      sel.setAttribute("aria-label", e.text);
+      var blank = document.createElement("option");
+      blank.value = ""; blank.textContent = "اختاري…";
+      sel.appendChild(blank);
+      it.buckets.forEach(function (b) {
+        var o = document.createElement("option");
+        o.value = b.id; o.textContent = b.label;
+        if (ans[e.id] === b.id) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", function () {
+        ans[e.id] = sel.value; autosave();
+      });
+      li.appendChild(sel);
+      if (locked) {
+        var ok = ans[e.id] === e.bucket;
+        li.classList.add(ok ? "right" : "wrong");
+        if (!ok) li.appendChild(el("span", "fix", "الصواب: " + bucketLabel(it, e.bucket)));
+      }
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  }
+
+  function bucketLabel(it, id) {
+    var b = it.buckets.filter(function (x) { return x.id === id; })[0];
+    return b ? b.label : id;
+  }
+
+  /* ─── مطابقة: لكل طرفٍ أيمن نظيرُه ───
+     it.pairs = [{id,left,right}] — والأيمن يُخلط في القائمة */
+  function buildPair(box, it, locked) {
+    var ans = sub.answers[it.id] || (sub.answers[it.id] = {});
+    var opts = it.pairs.map(function (p) { return { id: p.id, text: p.right }; });
+    opts = shuffleStable(opts, it.id);
+
+    var ul = el("ul", "sortlist");
+    it.pairs.forEach(function (p) {
+      var li = el("li", "sortrow");
+      li.appendChild(el("span", "txt", p.left));
+      var sel = document.createElement("select");
+      sel.disabled = locked;
+      sel.setAttribute("aria-label", p.left);
+      var blank = document.createElement("option");
+      blank.value = ""; blank.textContent = "اختاري…";
+      sel.appendChild(blank);
+      opts.forEach(function (o) {
+        var x = document.createElement("option");
+        x.value = o.id; x.textContent = o.text;
+        if (ans[p.id] === o.id) x.selected = true;
+        sel.appendChild(x);
+      });
+      sel.addEventListener("change", function () { ans[p.id] = sel.value; autosave(); });
+      li.appendChild(sel);
+      if (locked) {
+        var ok = ans[p.id] === p.id;
+        li.classList.add(ok ? "right" : "wrong");
+        if (!ok) li.appendChild(el("span", "fix", "الصواب: " + p.right));
+      }
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  }
+
+  /* خلط ثابت لا يتغيّر بين فتحةٍ وأخرى، وإلا اضطربت إجابة محفوظة */
+  function shuffleStable(list, seed) {
+    var h = 0;
+    for (var i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    var out = list.slice();
+    for (var j = out.length - 1; j > 0; j--) {
+      h = (h * 1103515245 + 12345) >>> 0;
+      var k = h % (j + 1);
+      var t = out[j]; out[j] = out[k]; out[k] = t;
+    }
+    return out;
+  }
+
+  /* ─── ترتيب: رقم لكل عنصر ───
+     it.steps = [{id,text}] بترتيبها الصحيح */
+  function buildOrder(box, it, locked) {
+    var ans = sub.answers[it.id] || (sub.answers[it.id] = {});
+    var shown = shuffleStable(it.steps, it.id);
+    var ul = el("ul", "sortlist");
+    shown.forEach(function (stp) {
+      var li = el("li", "sortrow");
+      var sel = document.createElement("select");
+      sel.className = "rank";
+      sel.disabled = locked;
+      sel.setAttribute("aria-label", stp.text);
+      var blank = document.createElement("option");
+      blank.value = ""; blank.textContent = "—";
+      sel.appendChild(blank);
+      it.steps.forEach(function (_, i) {
+        var o = document.createElement("option");
+        o.value = String(i + 1); o.textContent = ar(i + 1);
+        if (String(ans[stp.id]) === String(i + 1)) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", function () { ans[stp.id] = sel.value; autosave(); });
+      li.appendChild(sel);
+      li.appendChild(el("span", "txt", stp.text));
+      if (locked) {
+        var want = it.steps.indexOf(stp) + 1;
+        var ok = String(ans[stp.id]) === String(want);
+        li.classList.add(ok ? "right" : "wrong");
+        if (!ok) li.appendChild(el("span", "fix", "موضعها " + ar(want)));
+      }
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  }
+
+  /* ─── جدول مقارنة: خلاياه نصّ تكتبه الطالبة ───
+     it.rows = [نص] · it.cols = [نص] — الإجابة { "r|c": نص } */
+  function buildTable(box, it, locked) {
+    var ans = sub.answers[it.id] || (sub.answers[it.id] = {});
+    var wrap = el("div", "wrap");
+    var t = el("table", "grid cmp");
+    var head = el("tr");
+    head.appendChild(el("th", "", it.corner || ""));
+    it.cols.forEach(function (c) { head.appendChild(el("th", "", c)); });
+    t.appendChild(el("thead")).appendChild(head);
+
+    var tb = el("tbody");
+    it.rows.forEach(function (r, ri) {
+      var tr = el("tr");
+      tr.appendChild(el("th", "rowh", r));
+      it.cols.forEach(function (c, ci) {
+        var td = el("td");
+        var key = ri + "|" + ci;
+        var ta = document.createElement("textarea");
+        ta.rows = it.rowsHigh || 2;
+        ta.value = ans[key] || "";
+        ta.disabled = locked;
+        ta.setAttribute("aria-label", r + " — " + c);
+        ta.addEventListener("input", function () { ans[key] = ta.value; autosave(); });
+        td.appendChild(ta);
+        tb.appendChild;
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    wrap.appendChild(t);
+    box.appendChild(wrap);
+  }
+
   function buildFile(box, it, locked) {
     var list = el("ul", "files");
     var current = sub.files[it.id] || [];
@@ -217,6 +379,22 @@
     box.appendChild(input);
   }
 
+  function allFilled(v, list) {
+    if (!v) return false;
+    return (list || []).every(function (x) { return v[x.id]; });
+  }
+
+  function tableFilled(v, it) {
+    if (!v) return false;
+    for (var r = 0; r < it.rows.length; r++) {
+      for (var c = 0; c < it.cols.length; c++) {
+        var cell = v[r + "|" + c];
+        if (!cell || !String(cell).trim()) return false;
+      }
+    }
+    return true;
+  }
+
   /* ─── الحفظ والتسليم ─── */
   function autosave() {
     clearTimeout(saveTimer);
@@ -240,11 +418,16 @@
       if (it.optional) return false;
       if (it.kind === "file") return !(sub.files[it.id] || []).length;
       var v = sub.answers[it.id];
+      if (it.kind === "sort")  return !allFilled(v, it.entries);
+      if (it.kind === "pair")  return !allFilled(v, it.pairs);
+      if (it.kind === "order") return !allFilled(v, it.steps);
+      if (it.kind === "table") return !tableFilled(v, it);
       return v === undefined || v === null || (typeof v === "string" && !v.trim());
     });
     if (missing.length) {
       var idx = W.items.indexOf(missing[0]) + 1;
-      return TPUI.toast("بقي " + ar(missing.length) + " سؤالًا بلا إجابة — أولها السؤال " + ar(idx) + ".", "bad");
+      return TPUI.toast("بقي " + TPUI.questions(missing.length) +
+                        " بلا إجابة — أولها السؤال " + ar(idx) + ".", "bad");
     }
     if (!confirm("بعد التسليم تُقفل الإجابات وتظهر الإجابة الصحيحة. متابعة؟")) return;
 

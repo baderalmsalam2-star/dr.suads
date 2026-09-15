@@ -249,8 +249,11 @@
     schedBox.hidden = !schedBox.hidden;
   });
 
+  /* أيام المحاضرة مختارة سلفًا من خطة المقرر، وتبقى قابلة للتغيير */
+  (COURSE.classDays || []).forEach(function (i) { chosen[i] = true; });
+
   DAYS.forEach(function (d, i) {
-    var pill = el("span", "day-pill", d);
+    var pill = el("span", "day-pill" + (chosen[i] ? " on" : ""), d);
     pill.setAttribute("role", "button");
     pill.tabIndex = 0;
     function toggle() {

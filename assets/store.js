@@ -444,10 +444,17 @@
         att.forEach(function (a) { heldSet[a.session] = true; });
         var held = Object.keys(heldSet).length;
 
-        /* أوراق العمل المطلوبة: ما صدر منها لحصص انعقدت */
-        var sheets = SHEETS.filter(function (w) {
-          return !w.session || heldSet[w.session];
-        });
+        /* الأوراق المطلوبة: ما صدر منها لحصصٍ انعقدت.
+           وبند الدرجة يحصر نفسه بأنواعٍ بعينها عبر it.types — فدرجة
+           «الواجبات الإلكترونية» على الأنشطة الصفّية واللاصفّية، لا
+           على أوراق المراجعة التسع والعشرين. */
+        function due(types) {
+          return SHEETS.filter(function (w) {
+            if (w.session && !heldSet[w.session]) return false;
+            return !types || types.indexOf(w.type) >= 0;
+          });
+        }
+        var sheets = due(null);
 
         /* أعلى نقاط تفاعل في الشعبة — أساس البند النسبي */
         var top = 0;
@@ -492,11 +499,11 @@
               }
 
             } else if (it.source === "worksheets") {
-              var done = 0, mineS = subBy[st.id] || {};
-              sheets.forEach(function (w) { if (mineS[w.id]) done++; });
-              score = sheets.length > 0 ? (done / sheets.length) * max : null;
-              note = sheets.length > 0
-                ? TP.ar(done) + " من " + plural(sheets.length, SHTS)
+              var want = due(it.types), done = 0, mineS = subBy[st.id] || {};
+              want.forEach(function (w) { if (mineS[w.id]) done++; });
+              score = want.length > 0 ? (done / want.length) * max : null;
+              note = want.length > 0
+                ? TP.ar(done) + " من " + plural(want.length, SHTS)
                 : "لم تصدر أوراق بعد";
             } else {
               var g = (manBy[st.id] || {})[it.id];
@@ -564,10 +571,10 @@
             warn: counted > 0 && absRate >= (POL.warnAt || 1)
           };
 
-          /* التقدير يُسقَف، والمجموع يُعرض كما هو ليُرى البونص */
-          var cap = +((COURSE.grading || {}).capAt) || 100;
+          /* capAt = null يعني لا سقف: البونص يرفع فوق المئة ويبقى */
+          var cap = (COURSE.grading || {}).capAt;
           var pct = outOf > 0 ? (total / outOf) * 100 : 0;
-          var capped = Math.min(pct, cap);
+          var capped = cap == null ? pct : Math.min(pct, +cap);
 
           return { student: st, cells: cells, total: total, outOf: outOf,
                    pct: pct, capped: capped,
