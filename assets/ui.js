@@ -12,7 +12,8 @@
     { id: "attendance", label: "الحضور",       href: "attendance.html" },
     { id: "worksheets", label: "أوراق العمل",  href: "worksheets.html" },
     { id: "honors",     label: "لوحة الشرف",   href: "honors.html" },
-    { id: "compose",    label: "مُنشئ الحصص",  href: "compose.html" }
+    { id: "compose",    label: "مُنشئ الحصص",  href: "compose.html" },
+    { id: "login",      label: "الحساب",       href: "login.html" }
   ];
 
   var AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",

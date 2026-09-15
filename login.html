@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<title>الدخول — منصة التدريس</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23002856%27/%3E%3Crect x=%273%27 y=%273%27 width=%2726%27 height=%2726%27 fill=%27none%27 stroke=%27%230DABE2%27 stroke-width=%271.5%27/%3E%3Ctext x=%2716%27 y=%2723%27 font-size=%2718%27 text-anchor=%27middle%27 fill=%27%23F8D81B%27 font-family=%27serif%27%3E%D9%88%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/join.css">
+</head>
+<body>
+
+<div class="join-wrap">
+  <div class="join-card" id="box">
+    <div class="join-kicker" id="kicker"></div>
+    <h2 id="title">الدخول</h2>
+    <div id="state" class="join-note"></div>
+
+    <div id="offline" hidden>
+      <div class="note-box">المنصة تعمل الآن <b>محليًا على هذا الجهاز</b> بلا خادم.
+        لتفعيل الخادم املئي <code>assets/config.js</code> — الخطوات في
+        <code>supabase/الإعداد.md</code>.</div>
+    </div>
+
+    <div id="form" hidden>
+      <label for="email">البريد</label>
+      <input type="email" id="email" autocomplete="username" placeholder="name@example.com">
+      <label for="pass">كلمة السر</label>
+      <input type="password" id="pass" autocomplete="current-password">
+      <button id="go" type="button">دخول</button>
+      <p class="join-note">للطالبات: اتركي كلمة السر فارغة واضغطي «رابط بالبريد».</p>
+      <button id="link" type="button" class="ghost">رابط بالبريد</button>
+    </div>
+
+    <div id="who" hidden>
+      <div class="note-box" id="whoText"></div>
+      <div class="row">
+        <a class="btn" href="index.html">إلى المنصة</a>
+        <button id="out" type="button" class="ghost">خروج</button>
+      </div>
+    </div>
+
+    <div id="migrate" hidden>
+      <div class="note-box">على هذا الجهاز بيانات محلية لم تُرفع بعد.</div>
+      <div class="row">
+        <button id="push" type="button" class="gold">رفع البيانات المحلية إلى الخادم</button>
+      </div>
+      <div class="join-note" id="migState"></div>
+    </div>
+  </div>
+</div>
+
+<footer class="foot">
+  <div id="credit"></div>
+</footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/adapters/supabase.js"></script>
+<script src="data/course.js"></script>
+<script src="data/worksheets.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/login.js"></script>
+</body>
+</html>

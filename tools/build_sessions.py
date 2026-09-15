@@ -293,6 +293,8 @@ PAGE = '''<!DOCTYPE html>
   </div>
 </div>
 
+<script src="../assets/config.js"></script>
+<script src="../assets/adapters/supabase.js"></script>
 <script src="../data/course.js"></script>
 <script src="../assets/store.js"></script>
 <script src="../assets/ui.js"></script>

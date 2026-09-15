@@ -19,13 +19,14 @@
   var pasteBox = document.getElementById("pasteBox");
   var pasteText = document.getElementById("pasteText");
 
+  /* يُملأ من الكشف المعروض فورًا، لا بجلب غير متزامن — وإلا داس
+     الجلبُ المتأخر ما كتبته الدكتورة بعد فتح الصندوق. */
   document.getElementById("paste").addEventListener("click", function () {
     pasteBox.hidden = false;
-    Store.students(section.id).then(function (list) {
-      pasteText.value = list.filter(function (s) { return !s.placeholder; })
-        .map(function (s) { return s.name; }).join("\n");
-      pasteText.focus();
-    });
+    pasteText.value = shown.filter(function (s) { return !s.placeholder; })
+      .map(function (s) { return (s.uid ? s.uid + " " : "") + s.name; })
+      .join("\n");
+    pasteText.focus();
   });
   document.getElementById("pasteCancel").addEventListener("click", function () { pasteBox.hidden = true; });
 
@@ -82,6 +83,7 @@
 
   /* ─── إضافة طالبة ─── */
   var editing = null;            /* معرّف الصف المفتوح للتحرير، أو "new" */
+  var shown = [];                /* الكشف المعروض حاليًا */
 
   document.getElementById("add").addEventListener("click", function () {
     editing = "new";
@@ -254,6 +256,7 @@
       Store.submissions({})
     ]).then(function (r) {
       var list = r[0].slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
+      shown = list;
       var rank = {};
       r[1].forEach(function (row) { rank[row.student.id] = row; });
       var subs = {};
