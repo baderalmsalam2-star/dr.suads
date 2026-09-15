@@ -99,3 +99,9 @@ tr.deny td{color:#e2725b}
 .or{display:flex;align-items:center;gap:.7rem;margin:1.1rem 0 .3rem;
     color:var(--neutral);opacity:.75;font-size:.82rem}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* تفصيل مطوي: الطرق الأقل استعمالًا لا تزاحم الطريق الأول */
+.more{margin-top:1rem;border-top:1px solid var(--line);padding-top:.8rem}
+.more summary{color:var(--neutral);opacity:.8;font-size:.85rem;cursor:pointer}
+.more summary:hover{opacity:1;color:var(--faculty)}
+.more[open] summary{margin-bottom:.4rem}

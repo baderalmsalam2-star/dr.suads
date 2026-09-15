@@ -159,6 +159,13 @@ insert into students(id,section_id,no,name,uid) values ('t-auto2','9',5,'دلا�
 insert into rls_results select 'الدخول أولًا ثم الكشف ⇒ ارتبط',
   (select auth_uid from students where id='t-auto2')='55555555-5555-5555-5555-555555555555';
 
+-- الربط لا يعرف من أي طريق دخلت: رابط البريد يربط كما يربط أزور
+-- (هذا ما يجعل تسجيل التطبيق في أزور اختياريًا لا شرطًا)
+insert into students(id,section_id,no,name,uid) values ('t-mail','9',7,'نوره','2202148888');
+insert into auth.users(id,email) values ('aaaaaaaa-0000-0000-0000-000000000001','s2202148888@ku.edu.kw');
+insert into rls_results select 'رابط البريد يربط أيضًا — بلا أزور',
+  (select auth_uid from students where id='t-mail')='aaaaaaaa-0000-0000-0000-000000000001';
+
 -- بريد الدكتورة مبنيّ على الاسم، فلا يُربط بأي صفّ
 insert into auth.users(id,email) values ('66666666-6666-6666-6666-666666666666','suad.almutawa@ku.edu.kw');
 insert into rls_results select 'بريد الدكتورة لا يُربط بصفّ',
