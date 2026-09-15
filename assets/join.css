@@ -60,3 +60,37 @@
   .qr-kicker{color:#333}
   .qr-url{color:#333}
 }
+
+/* ═══ الحضور والغياب ═══ */
+.att-grid{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.att-row{display:flex;align-items:center;gap:.5em;border:1px solid var(--line);
+         background:var(--navy-2);padding:.45em .6em;min-width:0}
+.att-row .n{color:var(--neutral);font-variant-numeric:tabular-nums;font-size:.8em;flex:none;min-width:1.8em}
+.att-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+             font-size:clamp(.78rem,1.3vw,.92rem)}
+.att-row .states{display:flex;gap:3px;flex:none}
+.att-row .states button{padding:.22em .55em;font-size:.8rem;line-height:1.2;
+                        border-color:var(--line);color:var(--neutral);min-width:2.1em}
+.att-row .states button:hover{border-color:var(--neutral);color:var(--surface)}
+.att-row.present{border-color:rgba(13,171,226,.5)}
+.att-row.present .states button.on{border-color:var(--faculty);color:var(--faculty);
+  background:rgba(13,171,226,.14)}
+.att-row.late .states button.on{border-color:var(--student);color:var(--student);
+  background:rgba(248,216,27,.14)}
+.att-row.late{border-color:rgba(248,216,27,.45)}
+.att-row.excused .states button.on{border-color:var(--neutral);color:var(--surface);
+  background:rgba(219,217,218,.12)}
+.att-row.absent{border-color:rgba(226,114,91,.55)}
+.att-row.absent .states button.on{border-color:#e2725b;color:#e2725b;background:rgba(226,114,91,.14)}
+.att-row.unset{opacity:.75;border-style:dashed}
+
+td .bar{display:block;height:4px;background:var(--line);min-width:60px;position:relative}
+td .bar i{display:block;height:100%;background:var(--faculty)}
+td .bar.warn i{background:var(--student)}
+td .bar.deny i{background:#e2725b}
+tr.deny td{color:#e2725b}
+#schedTable input[type=date]{font:inherit;font-size:.85em;color:var(--faculty);
+  background:var(--navy);border:1px solid var(--line);padding:.3em .5em}
+.day-pill{border:1px solid var(--line);padding:.3em .8em;cursor:pointer;color:var(--neutral);
+          font-size:.85rem;user-select:none}
+.day-pill.on{border-color:var(--faculty);color:var(--faculty);background:rgba(13,171,226,.12)}

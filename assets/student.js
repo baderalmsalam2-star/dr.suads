@@ -31,8 +31,10 @@
       Store.events({ studentId: st.id }),
       Store.submissions({ studentId: st.id }),
       Store.ranking({ sectionId: st.sectionId }),
-      Store.ranking({ sectionId: st.sectionId, month: Store.monthKey(Store.dayKey()) })
-    ]).then(function (r) { paint(st, r[0], r[1], r[2], r[3]); });
+      Store.ranking({ sectionId: st.sectionId, month: Store.monthKey(Store.dayKey()) }),
+      Store.attendance({ studentId: st.id }),
+      Store.attendance({ sectionId: st.sectionId })
+    ]).then(function (r) { paint(st, r[0], r[1], r[2], r[3]); paintAttendance(st, r[4], r[5]); });
   }).catch(function (e) {
     console.error(e);
     bail("تعذّر تحميل الصفحة.", e.message || "");
@@ -166,6 +168,51 @@
       li.appendChild(open);
       uploads.appendChild(li);
     });
+  }
+
+  /* ─── حضور الطالبة ─── */
+  function paintAttendance(st, mine, sectionAll) {
+    var POLICY = (window.COURSE || {}).attendance || {};
+    var STATES = POLICY.states || [];
+    var table = document.getElementById("attTable");
+    var empty = document.getElementById("attEmpty");
+
+    var held = {};
+    sectionAll.forEach(function (a) { held[a.session] = true; });
+    var total = Object.keys(held).length;
+
+    if (!total) {
+      table.hidden = true;
+      empty.appendChild(TPUI.empty("لم يُرصد حضور بعد.",
+        "يُرصد من صفحة «الحضور»."));
+      return;
+    }
+
+    var c = {};
+    mine.forEach(function (a) { c[a.status] = (c[a.status] || 0) + 1; });
+    var excused = c.excused || 0, absent = c.absent || 0;
+    var counted = total - excused;
+    var pct = counted > 0 ? absent / counted : 0;
+
+    document.getElementById("attSub").textContent =
+      "غياب " + ar(Math.round(pct * 100)) + "٪ من " + TPUI.lessons(total) + " رُصدت";
+
+    var head = el("thead"), hr = el("tr");
+    STATES.forEach(function (s) { hr.appendChild(el("th", "", s.label)); });
+    hr.appendChild(el("th", "", "نسبة الغياب"));
+    head.appendChild(hr); table.appendChild(head);
+
+    var body = el("tbody"), tr = el("tr");
+    STATES.forEach(function (s) { tr.appendChild(el("td", "num", c[s.id] ? ar(c[s.id]) : "—")); });
+    tr.appendChild(el("td", "num", ar(Math.round(pct * 100)) + "٪"));
+    if (pct >= (POLICY.absentLimit || 1)) tr.className = "deny";
+    body.appendChild(tr);
+    table.appendChild(body);
+
+    if (pct >= (POLICY.absentLimit || 1)) {
+      empty.appendChild(el("div", "note-box", "تجاوزت حد الغياب المقرَّر (" +
+        ar(Math.round((POLICY.absentLimit || 0) * 100)) + "٪)."));
+    }
   }
 
   function bail(msg, hint) {

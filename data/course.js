@@ -18,6 +18,21 @@ window.COURSE = {
     { id: 3, name: "الشعبة الثالثة", roster: 16 }
   ],
 
+  /* سياسة الحضور. absentLimit = نسبة الغياب التي يترتب عليها
+     الحرمان — عدّليها بحسب لائحة الكلية، فهي تختلف بين الكليات.
+     الحالات الأربع ثابتة، وتُحتسب «متأخرة» حضورًا و«بعذر» لا تُحسب
+     غيابًا في نسبة الحرمان. */
+  attendance: {
+    absentLimit: 0.25,
+    warnAt: 0.15,
+    states: [
+      { id: "present", label: "حاضرة",  short: "ح", counts: true  },
+      { id: "late",    label: "متأخرة", short: "ت", counts: true  },
+      { id: "excused", label: "بعذر",   short: "ع", counts: null  },
+      { id: "absent",  label: "غائبة",  short: "غ", counts: false }
+    ]
+  },
+
   /* أنواع التفاعل ونقاطها — أساس ترتيب لوحة الشرف.
      هذه نقاط تفاعل صفّي فقط، وليست درجات أكاديمية. */
   engagement: {

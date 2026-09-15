@@ -172,6 +172,54 @@
       return Promise.resolve();
     },
 
+    /* الحضور --------------------------------------------------- */
+    attendance: function (f) {
+      f = f || {};
+      var all = read("attendance", []);
+      return Promise.resolve(all.filter(function (a) {
+        if (f.sectionId != null && String(a.sectionId) !== String(f.sectionId)) return false;
+        if (f.session != null && +a.session !== +f.session) return false;
+        if (f.studentId && a.studentId !== f.studentId) return false;
+        if (f.day && a.day !== f.day) return false;
+        return true;
+      }));
+    },
+
+    /* سجل واحد لكل (طالبة، حصة): الوسم الجديد يحل محل القديم */
+    markAttendance: function (rec) {
+      var all = read("attendance", []);
+      var i = -1;
+      for (var k = 0; k < all.length; k++) {
+        if (all[k].studentId === rec.studentId && +all[k].session === +rec.session) { i = k; break; }
+      }
+      rec.id = (i >= 0 ? all[i].id : uid("at"));
+      rec.at = Date.now();
+      if (i >= 0) all[i] = Object.assign({}, all[i], rec); else all.push(rec);
+      write("attendance", all);
+      return Promise.resolve(rec);
+    },
+
+    clearAttendance: function (sectionId, session) {
+      var all = read("attendance", []);
+      write("attendance", all.filter(function (a) {
+        return !(String(a.sectionId) === String(sectionId) && +a.session === +session);
+      }));
+      return Promise.resolve();
+    },
+
+    /* جدول التواريخ: { "<sectionId>": { "<session>": "YYYY-MM-DD" } } */
+    schedule: function (sectionId) {
+      var all = read("schedule", {});
+      return Promise.resolve(sectionId == null ? all : (all[String(sectionId)] || {}));
+    },
+
+    setSchedule: function (sectionId, map) {
+      var all = read("schedule", {});
+      all[String(sectionId)] = map;
+      write("schedule", all);
+      return Promise.resolve(map);
+    },
+
     /* الملفات ------------------------------------------------- */
     putFile: function (rec) {
       rec.id = rec.id || uid("f");
@@ -230,6 +278,12 @@
     setStudents: function (l) { return A.setStudents(l); },
     removeStudent: function (id) { return A.removeStudent(id); },
 
+    attendance: function (f) { return A.attendance(f); },
+    markAttendance: function (r) { return A.markAttendance(r); },
+    clearAttendance: function (sec, ses) { return A.clearAttendance(sec, ses); },
+    schedule: function (sec) { return A.schedule(sec); },
+    setSchedule: function (sec, m) { return A.setSchedule(sec, m); },
+
     events: function (f) { return A.events(f); },
     addEvent: function (e) { return A.addEvent(e); },
     removeEvent: function (id) { return A.removeEvent(id); },
@@ -274,11 +328,13 @@
 
     /* تصدير كل البيانات (بلا الملفات) للنسخ الاحتياطي أو النقل */
     exportAll: function () {
-      return Promise.all([A.students(), A.events({}), A.submissions({})])
+      return Promise.all([A.students(), A.events({}), A.submissions({}),
+                          A.attendance({}), A.schedule()])
         .then(function (r) {
           return {
-            kind: "tp-backup", version: 1, at: new Date().toISOString(),
-            students: r[0], events: r[1], submissions: r[2]
+            kind: "tp-backup", version: 2, at: new Date().toISOString(),
+            students: r[0], events: r[1], submissions: r[2],
+            attendance: r[3], schedule: r[4]
           };
         });
     },
@@ -291,12 +347,23 @@
         write("students", payload.students || []);
         write("events", payload.events || []);
         write("submissions", payload.submissions || []);
+        write("attendance", payload.attendance || []);
+        write("schedule", payload.schedule || {});
         return Promise.resolve({ students: (payload.students || []).length });
       }
+      if (payload.schedule) {                    /* الجدول يُدمج بالمفتاح */
+        var cur = read("schedule", {});
+        Object.keys(payload.schedule).forEach(function (k) {
+          cur[k] = Object.assign({}, cur[k], payload.schedule[k]);
+        });
+        write("schedule", cur);
+      }
       /* دمج: لا يُكرّر ما له نفس المعرّف */
-      return Promise.all([A.students(), A.events({}), A.submissions({})]).then(function (r) {
-        var added = { students: 0, events: 0, submissions: 0 };
-        [["students", r[0]], ["events", r[1]], ["submissions", r[2]]].forEach(function (pair) {
+      return Promise.all([A.students(), A.events({}), A.submissions({}),
+                          A.attendance({})]).then(function (r) {
+        var added = { students: 0, events: 0, submissions: 0, attendance: 0 };
+        [["students", r[0]], ["events", r[1]], ["submissions", r[2]],
+         ["attendance", r[3]]].forEach(function (pair) {
           var key = pair[0], cur = pair[1];
           var seen = {};
           cur.forEach(function (x) { seen[x.id] = true; });

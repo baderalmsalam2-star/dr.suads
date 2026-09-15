@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<title>الحضور والغياب — منصة التدريس</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23002856%27/%3E%3Crect x=%273%27 y=%273%27 width=%2726%27 height=%2726%27 fill=%27none%27 stroke=%27%230DABE2%27 stroke-width=%271.5%27/%3E%3Ctext x=%2716%27 y=%2723%27 font-size=%2718%27 text-anchor=%27middle%27 fill=%27%23F8D81B%27 font-family=%27serif%27%3E%D9%88%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/join.css">
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<div class="control">
+  <label for="section">الشعبة:</label>
+  <select id="section" aria-label="اختيار الشعبة"></select>
+  <label for="session">الحصة:</label>
+  <select id="session" aria-label="اختيار الحصة"></select>
+  <span class="hint" id="dayLabel"></span>
+  <span class="spacer"></span>
+  <button id="schedBtn" type="button" class="ghost">جدول التواريخ</button>
+  <button id="exportBtn" type="button" class="ghost">تصدير</button>
+</div>
+
+<div id="schedBox" hidden>
+  <div class="item">
+    <div class="prompt">جدول تواريخ الحصص</div>
+    <div class="why">حدّدي أول محاضرة وأيامها في الأسبوع، فتُولَّد تواريخ الحصص الثلاثين. ويمكن تعديل أي تاريخ بعدها.</div>
+    <div class="control">
+      <label for="startDate">أول محاضرة:</label>
+      <input type="date" id="startDate">
+      <span class="hint">أيام الأسبوع:</span>
+      <span class="row" id="days"></span>
+      <button id="genSched" type="button">توليد</button>
+    </div>
+    <div class="wrap"><table class="grid" id="schedTable"></table></div>
+  </div>
+</div>
+
+<div class="control" id="quick">
+  <span class="hint">تعليم سريع:</span>
+  <button id="allPresent" type="button" class="ghost sm">الكل حاضرات</button>
+  <button id="allAbsent" type="button" class="ghost sm">الكل غائبات</button>
+  <button id="clearDay" type="button" class="danger sm">مسح حصة اليوم</button>
+  <span class="spacer"></span>
+  <span class="hint" id="tally"></span>
+</div>
+
+<div id="sheet" class="att-grid"></div>
+<div id="sheetEmpty"></div>
+
+<div class="section-title">تقرير الحضور <span class="sub" id="repSub"></span></div>
+<div class="wrap"><table class="grid" id="report"></table></div>
+<div id="repNote"></div>
+
+<footer class="foot">
+  <div>الحضور محفوظ على هذا الجهاز — صدِّري نسخة احتياطية بانتظام.</div>
+  <div id="credit"></div>
+</footer>
+
+<script src="data/course.js"></script>
+<script src="data/worksheets.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/attendance.js"></script>
+</body>
+</html>
