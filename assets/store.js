@@ -483,7 +483,7 @@
 
           scheme.items.forEach(function (it) {
             var max = +it.max || 0, score = null, note = "",
-                auto = it.source !== "manual";
+                auto = it.source !== "manual", computed = null;
             /* البند التعويضي لا يزيد المقسوم عليه — يحلّ محلّ غيره */
             if (!it.makeupFor) outOf += max;
 
@@ -511,7 +511,24 @@
               if (score === null && !it.makeupFor) note = "لم تُرصد";
             }
 
+            /* ─── التعديل اليدوي يعلو على المحسوب ───
+               الدكتورة تزيد وتنقص في أي بند، حتى المحسوب منه. فإن
+               رُصدت قيمة لبندٍ محسوب، حلّت محلّ الحساب وبقي المحسوب
+               معروضًا إلى جانبها — ليُعرف مقدار التعديل ويُرجَع عنه. */
+            if (auto) {
+              var ov = (manBy[st.id] || {})[it.id];
+              if (ov && ov.score != null) {
+                computed = score;
+                score = +ov.score;
+                note = (ov.note ? ov.note + " · " : "") + "عُدِّلت يدويًا" +
+                       (computed != null
+                         ? " (المحسوب " + (Math.round(computed * 10) / 10) + ")"
+                         : "");
+              }
+            }
+
             cells[it.id] = { score: score, max: max, note: note, auto: auto,
+                             computed: computed, overridden: computed != null,
                              bonus: +it.bonus || 0, makeup: !!it.makeupFor };
           });
 

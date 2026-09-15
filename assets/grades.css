@@ -76,3 +76,11 @@ tr.incomplete td.sum::after{content:" ⋯";opacity:.6}
 .chk.bad{border-inline-start-color:var(--danger);background:rgba(var(--danger-rgb),.07)}
 .chk.bad .mark{color:var(--danger)}
 .chk.pending{opacity:.6}
+
+/* خانة محسوبة: تُكتب ولكن يُبان أنها محسوبة */
+td.man input.calc{border-style:dashed;opacity:.9}
+td.man input.over{border-color:var(--student);
+  box-shadow:inset 0 0 0 1px rgba(var(--student-rgb),.35)}
+td.man .note{display:block;font-size:.74em;color:var(--neutral);opacity:.75;
+  white-space:nowrap;margin-top:.15em}
+td.man.over .note{color:var(--student);opacity:.95}

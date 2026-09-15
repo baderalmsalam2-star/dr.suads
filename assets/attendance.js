@@ -59,8 +59,14 @@
 
   function loadSheet() {
     var n = currentSession();
-    document.getElementById("dayLabel").textContent =
-      sched[n] ? TPUI.arDate(sched[n]) : "لا تاريخ لهذه الحصة بعد";
+    var lbl = document.getElementById("dayLabel");
+    /* الرصد على حصةٍ مضت يُحفظ بتاريخها هي لا بتاريخ اليوم — يُقال
+       صراحةً حتى لا تُظنّ الأرقام مبعثرةً على غير مواضعها. */
+    var past = sched[n] && sched[n] < Store.dayKey();
+    lbl.textContent = sched[n]
+      ? TPUI.arDate(sched[n]) + (past ? " · رصد بأثر رجعي" : "")
+      : "لا تاريخ لهذه الحصة بعد";
+    lbl.classList.toggle("retro", !!past);
 
     Store.attendance({ sectionId: section.id, session: n }).then(function (list) {
       marks = {};

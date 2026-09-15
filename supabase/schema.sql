@@ -323,7 +323,7 @@ create policy tpfiles_self on storage.objects for all
 --  (تجدينه في Authentication ← Users):
 --
 --      insert into owners (uid, label, role)
---      values ('<معرّف حسابك>', 'د. سعاد المطوع', 'teacher');
+--      values ('<معرّف حسابك>', 'د. سعاد المطوع', 'admin');
 --
 --  وللمشرف التقني:
 --

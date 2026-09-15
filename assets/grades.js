@@ -9,7 +9,7 @@
   TPUI.chrome("grades", "الدرجات");
   document.getElementById("credit").textContent = COURSE.credit || "";
   document.getElementById("foot-note").textContent =
-    "توزيعة الدرجات من خطة المقرر. الاختبارات تُرصد باليد، وما سواها يُحسب من سجلات المنصة.";
+    "كل بند قابل للتعديل: اكتبي رقمًا فيعلو على الحساب، وأفرغي الخانة فيرجع إلى الحساب.";
 
   section = TPUI.sectionPicker(document.getElementById("section"), function (s) {
     section = s; load();
@@ -98,7 +98,8 @@
 
       scheme.items.forEach(function (it) {
         var c = row.cells[it.id];
-        tr.appendChild(c.auto ? autoCell(c) : manCell(row, it, c));
+        /* كل بند قابل للتعديل — المحسوب منه والمُدخَل */
+        tr.appendChild(manCell(row, it, c));
       });
 
       var sum = el("td", "sum", n1(row.total) + " / " + ar(row.outOf));
@@ -110,19 +111,9 @@
     t.appendChild(tb);
   }
 
-  function autoCell(c) {
-    var td = el("td", "auto");
-    td.appendChild(el("span", "v", n1(c.score)));
-    if (c.note) td.appendChild(el("span", "note", c.note));
-    return td;
-  }
 
   function manCell(row, it, c) {
     var td = el("td", "man");
-    var inp = document.createElement("input");
-    inp.type = "number"; inp.min = "0"; inp.step = "0.5";
-    inp.max = String((+it.cap || +it.max || 0) + (+it.bonus || 0));
-    inp.setAttribute("aria-label", row.student.name + " — " + it.label);
     /* الخلية المعوَّضة تعرض ما حلّ فيها ولا تُكتب */
     if (c.viaMakeup) {
       td.className = "auto";
@@ -130,9 +121,17 @@
       td.appendChild(el("span", "note", c.note));
       return td;
     }
-    var g = null;
-    inp.value = c.score == null ? "" : c.score;
-    if (c.score != null) inp.className = "filled";
+
+    var inp = document.createElement("input");
+    inp.type = "number"; inp.min = "0"; inp.step = "0.5";
+    inp.max = String((+it.cap || +it.max || 0) + (+it.bonus || 0));
+    inp.setAttribute("aria-label", row.student.name + " — " + it.label);
+
+    inp.value = c.score == null ? "" : Math.round(c.score * 100) / 100;
+    if (c.overridden) { td.classList.add("over"); inp.className = "filled over"; }
+    else if (c.auto) { td.classList.add("calc"); inp.className = "calc"; }
+    else if (c.score != null) inp.className = "filled";
+
     inp.addEventListener("change", function () {
       var v = inp.value === "" ? null : +inp.value;
       if (v != null && (isNaN(v) || v < 0 || v > +inp.max)) {
@@ -140,9 +139,13 @@
         inp.value = c.score == null ? "" : c.score;
         return;
       }
+      /* إفراغ خانةٍ محسوبة يعني الرجوع إلى الحساب لا التصفير */
       Store.saveGrade({ studentId: row.student.id, sectionId: section.id,
                         itemId: it.id, score: v })
-        .then(function () { load(); })
+        .then(function () {
+          if (v == null && c.auto) TPUI.toast("رجع البند إلى الحساب التلقائي.", "good");
+          load();
+        })
         .catch(fail);
     });
     /* Enter ينتقل للخانة التالية في العمود نفسه */
@@ -156,7 +159,7 @@
     });
     if (c.note) inp.title = c.note;
     td.appendChild(inp);
-    if (g) td.appendChild(g);
+    if (c.note && (c.auto || c.overridden)) td.appendChild(el("span", "note", c.note));
     return td;
   }
 
