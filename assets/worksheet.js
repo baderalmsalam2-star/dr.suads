@@ -481,7 +481,7 @@
   /* ملف التسليم — تستورده الدكتورة من صفحة أوراق العمل */
   document.getElementById("send").addEventListener("click", function () {
     var payload = {
-      kind: "tp-submission", version: 2,
+      kind: "tp-submission", version: 3,
       studentId: student.id, studentName: student.name,
       studentUid: student.uid || "",      /* تُطابَق به عند الاستلام */
       sectionId: student.sectionId,
@@ -490,8 +490,41 @@
     };
     var name = "tasleem-sec" + student.sectionId + "-no" + student.no +
                "-" + W.id + "-" + Store.dayKey() + ".json";
-    TPUI.download(name, JSON.stringify(payload));
-    TPUI.toast("نُزّل ملف التسليم باسم " + name + " — أرسليه للدكتورة.", "good");
+
+    /* ─── المرفقات تسافر مع الملف ───
+       كان يُنزَّل بمراجع fileId فقط، والملفات باقية في IndexedDB على
+       جهاز الطالبة — فتستورده الدكتورة وتضغط «فتح» فيقال لها «غير
+       موجود على هذا الجهاز». تُضمَّن البايتات هنا، وتُرفض الحزمة إن
+       تجاوزت الحدّ بدل أن تُنزَّل ناقصةً بلا علم. */
+    var refs = [];
+    Object.keys(sub.files || {}).forEach(function (k) {
+      (sub.files[k] || []).forEach(function (f) { refs.push(f); });
+    });
+
+    var LIMIT = 15 * 1024 * 1024;
+    Promise.all(refs.map(function (f) {
+      return Store.getFile(f.fileId).then(function (rec) {
+        return rec ? { fileId: f.fileId, name: f.name, type: f.type,
+                       size: f.size, data: rec.data } : null;
+      }).catch(function () { return null; });
+    })).then(function (blobs) {
+      var kept = blobs.filter(Boolean);
+      payload.attachments = kept;
+      var text = JSON.stringify(payload);
+
+      if (text.length > LIMIT) {
+        return TPUI.toast("المرفقات أكبر من " + TPUI.bytes(LIMIT) +
+          ". احذفي مرفقًا أو أرسليه للدكتورة بوسيلة أخرى.", "bad");
+      }
+      if (kept.length < refs.length) {
+        TPUI.toast("تعذّر ضمّ " + TP.ar(refs.length - kept.length) +
+                   " من المرفقات — سلّميها بوسيلة أخرى.", "bad");
+      }
+      TPUI.download(name, text);
+      TPUI.toast("نُزّل ملف التسليم باسم " + name +
+                 (kept.length ? " ومعه " + TP.ar(kept.length) + " مرفقًا" : "") +
+                 " — أرسليه للدكتورة.", "good");
+    });
   });
 
   function fail(e) {

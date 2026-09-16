@@ -63,7 +63,21 @@
       var sub = Object.assign({}, payload.submission, {
         studentId: st.id, status: "submitted"
       });
-      return Store.submissions({ studentId: st.id, worksheetId: sub.worksheetId })
+
+      /* المرفقات تُكتب على جهاز الدكتورة بمعرّفاتها نفسها، فتفتح
+         من صفحة الطالبة كما لو رُفعت هنا */
+      var att = (payload.attachments || []).filter(function (f) { return f && f.data; });
+      var saveAtt = att.reduce(function (p, f) {
+        return p.then(function () {
+          return Store.putFile({ id: f.fileId, name: f.name, type: f.type,
+                                 size: f.size, data: f.data,
+                                 studentId: st.id });
+        });
+      }, Promise.resolve());
+      return saveAtt
+        .then(function () {
+          return Store.submissions({ studentId: st.id, worksheetId: sub.worksheetId });
+        })
         .then(function (existing) {
           /* الدوس على تسليمٍ مقفل لا يقع صامتًا */
           if (existing.length && existing[0].status === "submitted") {

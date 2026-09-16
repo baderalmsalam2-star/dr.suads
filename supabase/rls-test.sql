@@ -387,6 +387,22 @@ commit;
 insert into rls_results select 'لا تحذف ملف تسليمها المقفل',
   exists (select 1 from storage.objects where name='t-sara/f-locked');
 
+-- ── حسابٌ مصادَق غير مرتبط بصفٍّ لا يرى شيئًا ──
+insert into auth.users(id,email) values
+ ('ffffffff-0000-0000-0000-000000000001','stranger@gmail.com') on conflict do nothing;
+insert into schedule(section_id,session,day) values ('9',1,'2026-09-17') on conflict do nothing;
+
+begin; set local role authenticated;
+set local request.jwt.claim.sub = 'ffffffff-0000-0000-0000-000000000001';
+insert into rls_results select 'غريبٌ بحساب لا يرى التوزيعة',  (select count(*) from scheme)=0;
+insert into rls_results select 'ولا يرى جدول الحصص',           (select count(*) from schedule)=0;
+insert into rls_results select 'ولا يرى الطالبات',             (select count(*) from students)=0;
+commit;
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into rls_results select 'وطالبة الشعبة ترى جدول شعبتها', (select count(*) from schedule)=1;
+commit;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

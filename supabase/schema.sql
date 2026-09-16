@@ -247,8 +247,13 @@ create policy grades_self on grades for select
 
 -- ─── scheme: الجميع يقرأ التوزيعة (الطالبة ترى على أي أساس تُقيَّم)،
 --             والمالكة وحدها تكتبها ───
+--  «أي حساب» ليس قيدًا: إنشاء الحساب مجاني وعلني (sendLink بـ
+--  create_user وبمفتاح anon المنشور). فالقراءة مقصورة على شعبة
+--  الطالبة نفسها — وحسابٌ غير مرتبط بصفٍّ لا يرى شيئًا.
 drop policy if exists scheme_read on scheme;
-create policy scheme_read on scheme for select using (auth.uid() is not null);
+create policy scheme_read on scheme for select
+  using (is_owner() or section_id = (
+    select section_id from students where id = my_student_id()));
 
 drop policy if exists scheme_write on scheme;
 create policy scheme_write on scheme for all
@@ -256,7 +261,9 @@ create policy scheme_write on scheme for all
 
 -- ─── schedule: الجميع يقرأ، والمالكة وحدها تكتب ───
 drop policy if exists schedule_read on schedule;
-create policy schedule_read on schedule for select using (auth.uid() is not null);
+create policy schedule_read on schedule for select
+  using (is_owner() or section_id = (
+    select section_id from students where id = my_student_id()));
 
 drop policy if exists schedule_write on schedule;
 create policy schedule_write on schedule for all

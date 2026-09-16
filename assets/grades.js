@@ -25,12 +25,15 @@
   /* ─── تحميل ─── */
   function load() {
     Store.gradebook(section.id).then(function (gb) {
-      scheme = gb.scheme; book = gb;
+      book = gb;
+      /* تعديلٌ لم يُحفظ في محرّر التوزيعة لا يُمحى بإعادة التحميل:
+         كانت الدكتورة تغيّر وزن بندٍ ثم ترصد درجة، فتُستدعى load
+         فيرجع المحرّر إلى المخزَّن ويذهب تعديلها بلا سؤال. */
+      if (!dirty) { scheme = gb.scheme; renderScheme(); }
       renderBanner();
       renderBasis(gb);
       renderBook();
       renderDist();
-      renderScheme();
     }).catch(fail);
   }
 
@@ -48,9 +51,12 @@
   }
 
   /* ─── الكشف ─── */
+  var colInputs = {};
+
   function renderBook() {
     var t = document.getElementById("book");
     t.textContent = "";
+    colInputs = {};                    /* تُبنى مع الجدول وتموت معه */
     if (!book.rows.length) {
       t.hidden = true;
       TPUI.empty(document.getElementById("bookEmpty"),
@@ -188,12 +194,15 @@
         })
         .catch(fail);
     });
-    /* Enter ينتقل للخانة التالية في العمود نفسه */
+    /* Enter ينتقل للخانة التالية في العمود نفسه.
+       كان البحث بمحدِّد يُدمج فيه اسم البند — واسمٌ تكتبه الدكتورة
+       فيه علامة تنصيص يُنتج محدِّدًا غير صالح فترمي querySelectorAll
+       ويتوقّف التنقل في الكشف كلّه. المراجع تُجمَع عند البناء. */
+    (colInputs[it.id] = colInputs[it.id] || []).push(inp);
     inp.addEventListener("keydown", function (e) {
       if (e.key !== "Enter") return;
       e.preventDefault(); inp.blur();
-      var all = [].slice.call(document.querySelectorAll(
-        'td.man input[aria-label$="— ' + it.label + '"]'));
+      var all = colInputs[it.id] || [];
       var k = all.indexOf(inp);
       if (k >= 0 && all[k + 1]) all[k + 1].focus();
     });
