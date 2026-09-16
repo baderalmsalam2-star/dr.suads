@@ -153,8 +153,8 @@ commit;
 
 -- ── الربط التلقائي بحساب الجامعة ──
 -- ترتيب أ: الكشف أولًا ثم دخول الطالبة
-insert into students(id,section_id,no,name,uid) values ('t-auto1','9',4,'منيرة','2202142639');
-insert into auth.users(id,email) values ('44444444-4444-4444-4444-444444444444','S2202142639@KU.EDU.KW');
+insert into students(id,section_id,no,name,uid) values ('t-auto1','9',4,'منيرة','2200000001');
+insert into auth.users(id,email) values ('44444444-4444-4444-4444-444444444444','S2200000001@KU.EDU.KW');
 insert into rls_results select 'الكشف أولًا ثم الدخول ⇒ ارتبط',
   (select auth_uid from students where id='t-auto1')='44444444-4444-4444-4444-444444444444';
 
@@ -172,7 +172,7 @@ insert into rls_results select 'رابط البريد يربط أيضًا — ب
   (select auth_uid from students where id='t-mail')='aaaaaaaa-0000-0000-0000-000000000001';
 
 -- بريد الدكتورة مبنيّ على الاسم، فلا يُربط بأي صفّ
-insert into auth.users(id,email) values ('66666666-6666-6666-6666-666666666666','suad.almutawa@ku.edu.kw');
+insert into auth.users(id,email) values ('66666666-6666-6666-6666-666666666666','name.family@ku.edu.kw');
 insert into rls_results select 'بريد الدكتورة لا يُربط بصفّ',
   not exists (select 1 from students where auth_uid='66666666-6666-6666-6666-666666666666');
 
@@ -182,7 +182,7 @@ insert into rls_results select 'رقم خارج الكشف يمرّ بلا رب�
   not exists (select 1 from students where auth_uid='77777777-7777-7777-7777-777777777777');
 
 -- حساب ثانٍ بالرقم نفسه لا ينتزع صفًّا مربوطًا
-insert into auth.users(id,email) values ('88888888-8888-8888-8888-888888888888','s2202142639@ku.edu.kw');
+insert into auth.users(id,email) values ('88888888-8888-8888-8888-888888888888','s2200000001@ku.edu.kw');
 insert into rls_results select 'حساب ثانٍ لا ينتزع صفًّا مربوطًا',
   (select auth_uid from students where id='t-auto1')='44444444-4444-4444-4444-444444444444';
 
