@@ -350,6 +350,24 @@
     },
 
     /* الملفات -------------------------------------------------- */
+    /* التسجيل بالباركود — يمرّ من دالة في الخادم لا من كتابة مباشرة */
+    joinClass: function (sectionId, name, uid) {
+      return fetch(REST + "rpc/join_class", {
+        method: "POST",
+        headers: { apikey: CFG.anonKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ p_section: String(sectionId), p_name: name, p_uid: uid })
+      }).catch(function () {
+        throw new Error("تعذّر الوصول إلى الخادم — تحقّقي من الإنترنت.");
+      }).then(function (r) {
+        return r.text().then(function (t) {
+          var d = null;
+          try { d = t ? JSON.parse(t) : null; } catch (e) { d = t; }
+          if (!r.ok) throw new Error((d && (d.message || d.hint)) || "تعذّر التسجيل.");
+          return d;                       /* معرّف الصفّ */
+        });
+      });
+    },
+
     /* الدرجات اليدوية ----------------------------------------- */
     grades: function (f) {
       f = f || {};

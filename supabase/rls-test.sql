@@ -403,6 +403,95 @@ begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
 insert into rls_results select 'وطالبة الشعبة ترى جدول شعبتها', (select count(*) from schedule)=1;
 commit;
 
+-- ── التسجيل بالباركود ──
+grant execute on function join_class(text,text,text) to anon;
+insert into students(id,section_id,no,name,uid,placeholder) values
+ ('j-ph','7',1,'طالبة ١ · نموذج','0000000001',true) on conflict do nothing;
+
+begin; set local role anon;
+insert into rls_results select 'بلا حساب تسجّل نفسها بالباركود',
+  join_class('7','نوره فهد عبدالهادي تركي','2202147001') = 'j-ph';
+commit;
+
+insert into rls_results select 'تملأ صفًّا نموذجيًّا لا تُنشئ صفًّا جديدًا',
+  (select count(*) from students where section_id='7')=1;
+insert into rls_results select 'والصفّ لم يعد نموذجيًّا',
+  (select not placeholder from students where id='j-ph');
+
+begin; set local role anon;
+insert into rls_results select 'إعادة التسجيل تُحدّث ولا تُكرّر',
+  join_class('7','نوره فهد تركي','2202147001') = 'j-ph';
+commit;
+insert into rls_results select 'ولا يزال صفًّا واحدًا',
+  (select count(*) from students where section_id='7')=1;
+
+-- ولا تقرأ الكشف. على Supabase يملك anon صلاحية الجدول وحارسه RLS،
+-- فالصواب أن يرى صفرًا من الصفوف لا أن يُرفض الاستعلام.
+begin; set local role anon;
+insert into rls_results select 'التسجيل لا يفتح قراءة الكشف',
+  (select count(*) from students)=0;
+commit;
+
+-- ولا تكتب في الجدول مباشرةً
+do $$
+begin
+  begin
+    perform set_config('role','anon',true);
+    insert into students(id,section_id,no,name,uid) values ('j-hack','7',9,'دخيلة','9999999999');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تكتب في الجدول مباشرةً', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تكتب في الجدول مباشرةً', true);
+  end;
+end $$;
+
+-- رقمٌ مربوط بحساب لا يُنتحَل
+insert into auth.users(id,email) values
+ ('aaaaaaaa-7777-0000-0000-000000000001','s2202147001@ku.edu.kw') on conflict do nothing;
+update students set auth_uid='aaaaaaaa-7777-0000-0000-000000000001' where id='j-ph';
+do $$
+begin
+  begin
+    perform set_config('role','anon',true);
+    perform join_class('7','اسم مسروق','2202147001');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('رقمٌ مربوط بحساب لا يُنتحَل', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('رقمٌ مربوط بحساب لا يُنتحَل', true);
+  end;
+end $$;
+insert into rls_results select 'ولم يُنشَأ له صفٌّ ثانٍ',
+  (select count(*) from students where uid='2202147001')=1;
+
+-- مدخلات غير صالحة تُرفض
+do $$
+begin
+  begin
+    perform set_config('role','anon',true);
+    perform join_class('7','اسم صحيح','abc');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('رقم غير رقميّ يُرفض', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('رقم غير رقميّ يُرفض', true);
+  end;
+end $$;
+
+do $$
+begin
+  begin
+    perform set_config('role','anon',true);
+    perform join_class('7','أ','2202147999');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('اسم أقصر من ثلاثة أحرف يُرفض', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('اسم أقصر من ثلاثة أحرف يُرفض', true);
+  end;
+end $$;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

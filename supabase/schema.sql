@@ -175,6 +175,88 @@ create policy students_self on students for select
 --  اسمها ورقمها الجامعي. أُزيلت.)
 drop policy if exists students_claim on students;
 
+-- ═══════════════════════════════════════════════════════════════
+--  التسجيل بالباركود — بلا حساب ولا كلمة سر
+--
+--  الطالبة تمسح الرمز، فتكتب اسمها ورقمها الجامعي، فيُضاف صفّها.
+--  ولا تملك الكتابة في جدول students مباشرةً — هذا الباب مغلق وسيبقى
+--  مغلقًا. الكتابة كلها تمرّ من هذه الدالة وحدها، فهي تحدّد بالضبط
+--  ما يُكتب وما لا يُكتب:
+--
+--    • تُدخل صفًّا جديدًا أو تُحدّث صفّ صاحب الرقم نفسه — ولا تمسّ
+--      صفّ غيره.
+--    • لا تُعدّل صفًّا مربوطًا بحساب (auth_uid ليس فارغًا): فلو
+--      ارتبطت طالبة بحسابها الجامعي لاحقًا، لم يعد أحد يغيّر اسمها
+--      بمسح الباركود.
+--    • لا تقرأ ولا تُرجع شيئًا عن بقية الكشف — فلا يُستخرج منها
+--      أسماء الطالبات ولا أرقامهنّ.
+--    • تتحقق من الشعبة والاسم والرقم قبل الكتابة.
+--
+--  والمقابل الذي تقبله الدكتورة: من وصل إلى الرمز أو رابطه استطاع
+--  إضافة صفّ. فالضبط بالحذف من كشف الطالبات، لا بالمنع.
+-- ═══════════════════════════════════════════════════════════════
+create or replace function join_class(p_section text, p_name text, p_uid text)
+returns text
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_name text := btrim(regexp_replace(coalesce(p_name, ''), '\s+', ' ', 'g'));
+  v_uid  text := btrim(coalesce(p_uid, ''));
+  v_id   text;
+  v_no   int;
+begin
+  if length(v_name) < 3 or length(v_name) > 80 then
+    raise exception 'الاسم غير صالح';
+  end if;
+  if v_uid !~ '^[0-9]{6,12}$' then
+    raise exception 'الرقم الجامعي أرقام فقط (٦ إلى ١٢ خانة)';
+  end if;
+  if p_section is null or p_section = '' then
+    raise exception 'لم تُحدَّد الشعبة';
+  end if;
+
+  -- الرقم مربوطٌ بحسابٍ في هذه الشعبة؟ يُرفض التسجيل رأسًا.
+  -- بلا هذا الشرط كان الرقم المربوط يُتخطّى ثم يُنشَأ له صفٌّ ثانٍ،
+  -- فيصير الرقم نفسه في صفّين — وهو ما يُفسد الحضور والدرجات معًا.
+  if exists (select 1 from students
+              where section_id = p_section and uid = v_uid
+                and auth_uid is not null) then
+    raise exception 'هذا الرقم الجامعي مسجَّل ومربوط بحساب. راجعي الدكتورة.';
+  end if;
+
+  -- صاحبة الرقم نفسه في الشعبة نفسها: يُحدَّث صفّها لا يُكرَّر
+  select id into v_id from students
+   where section_id = p_section and uid = v_uid and auth_uid is null
+   limit 1;
+
+  if v_id is not null then
+    update students set name = v_name, active = true, updated_at = now()
+     where id = v_id;
+    return v_id;
+  end if;
+
+  -- أو صفٌّ نموذجيّ شاغر يُملأ بها بدل إضافة صفٍّ جديد
+  select id, no into v_id, v_no from students
+   where section_id = p_section and placeholder and auth_uid is null
+   order by no limit 1;
+
+  if v_id is not null then
+    update students
+       set name = v_name, uid = v_uid, placeholder = false,
+           active = true, updated_at = now()
+     where id = v_id;
+    return v_id;
+  end if;
+
+  select coalesce(max(no), 0) + 1 into v_no from students where section_id = p_section;
+  v_id := 'st-' || replace(gen_random_uuid()::text, '-', '');
+  insert into students (id, section_id, no, name, uid, placeholder, active)
+  values (v_id, p_section, v_no, v_name, v_uid, false, true);
+  return v_id;
+end $$;
+
+revoke all on function join_class(text, text, text) from public;
+grant execute on function join_class(text, text, text) to anon, authenticated;
+
 -- ─── events ───
 drop policy if exists events_owner on events;
 create policy events_owner on events for all

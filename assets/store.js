@@ -417,6 +417,27 @@
     saveSubmission: function (s) { return A.saveSubmission(s); },
     removeSubmission: function (id) { return A.removeSubmission(id); },
 
+    /* التسجيل الذاتي بالباركود. محليًّا يكتب مباشرةً، وعلى الخادم
+       يمرّ من دالة محدودة — انظر join_class في supabase/schema.sql. */
+    joinClass: function (sectionId, name, uid) {
+      if (A.joinClass) return A.joinClass(sectionId, name, uid);
+      return Local.students(sectionId).then(function (list) {
+        var dup = list.filter(function (s) {
+          return s.uid === uid && !s.placeholder;
+        })[0];
+        if (dup) return Local.saveStudent({ id: dup.id, name: name, uid: uid })
+                              .then(function () { return dup.id; });
+        var slot = list.filter(function (s) { return s.placeholder; })
+                       .sort(function (a, b) { return a.no - b.no; })[0];
+        if (slot) return Local.saveStudent({ id: slot.id, name: name, uid: uid,
+                                             placeholder: false, active: true })
+                               .then(function () { return slot.id; });
+        return Local.saveStudent({ no: list.length + 1, sectionId: sectionId,
+                                   name: name, uid: uid, active: true, self: true })
+                    .then(function (s) { return s.id; });
+      });
+    },
+
     grades: function (f) { return A.grades(f); },
     saveGrade: function (r) { return A.saveGrade(r); },
     scheme: function (sec) {
