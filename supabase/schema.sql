@@ -289,11 +289,22 @@ begin
   sid := substring(lower(coalesce(new.email,'')) from '^s([0-9]{6,12})@ku\.edu\.kw$');
   if sid is null then return new; end if;
 
-  update students
-     set auth_uid = new.id, updated_at = now()
-   where uid = sid
-     and auth_uid is null
-     and not exists (select 1 from students s2 where s2.auth_uid = new.id);
+  --  صفٌّ واحد لا كل الصفوف ذات الرقم نفسه: auth_uid فريد، فتحديث
+  --  صفّين بالمعرّف نفسه يرفع unique_violation فيُسقط إنشاء الحساب
+  --  كلّه — والطالبة لا تستطيع الدخول إطلاقًا. ويُلفّ الجسم فلا
+  --  يمنع خللٌ في الكشف طالبةً من إنشاء حسابها.
+  begin
+    update students
+       set auth_uid = new.id, updated_at = now()
+     where id = (
+       select id from students
+        where uid = sid and auth_uid is null
+        order by updated_at
+        limit 1)
+       and not exists (select 1 from students s2 where s2.auth_uid = new.id);
+  exception when others then
+    null;                       /* الحساب يُنشأ، والربط يُعالَج يدويًا */
+  end;
   return new;
 end $$;
 
@@ -334,6 +345,18 @@ create trigger on_student_row_saved
   before insert or update of uid on students
   for each row execute function link_student_row();
 
+alter table storage.objects enable row level security;
+
+-- هل يشير تسليمٌ مقفل إلى هذا الملف؟
+create or replace function locked_file(p text) returns boolean
+language sql stable security definer set search_path = public, pg_temp as $$
+  select exists (
+    select 1 from submissions s
+     where s.status = 'submitted'
+       and s.files::text like '%' || p || '%'
+  );
+$$;
+
 -- ═══ تخزين ملفات الطالبات ═══
 insert into storage.buckets (id, name, public)
 values ('tp-files', 'tp-files', false)
@@ -345,10 +368,31 @@ create policy tpfiles_owner on storage.objects for all
   using (bucket_id = 'tp-files' and is_owner())
   with check (bucket_id = 'tp-files' and is_owner());
 
+--  القراءة والكتابة مفصولتان: كانت for all فتُبطل قفل التسليم —
+--  يُقفل الصفّ في submissions ولا يُقفل الملف في التخزين، فتستبدل
+--  الطالبة ملف ورقتها المسلَّمة بعد انتهاء الموعد.
 drop policy if exists tpfiles_self on storage.objects;
-create policy tpfiles_self on storage.objects for all
-  using (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id())
+drop policy if exists tpfiles_self_read on storage.objects;
+create policy tpfiles_self_read on storage.objects for select
+  using (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+
+drop policy if exists tpfiles_self_write on storage.objects;
+create policy tpfiles_self_write on storage.objects for insert
   with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+
+--  التعديل والحذف ممنوعان على ملفٍ يشير إليه تسليمٌ مقفل
+drop policy if exists tpfiles_self_edit on storage.objects;
+create policy tpfiles_self_edit on storage.objects for update
+  using (bucket_id = 'tp-files'
+         and (storage.foldername(name))[1] = my_student_id()
+         and not locked_file(name))
+  with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+
+drop policy if exists tpfiles_self_del on storage.objects;
+create policy tpfiles_self_del on storage.objects for delete
+  using (bucket_id = 'tp-files'
+         and (storage.foldername(name))[1] = my_student_id()
+         and not locked_file(name));
 
 -- ═══════════════════════════════════════════════════════════════
 --  بعد التشغيل: سجّلي دخولك مرة، ثم نفّذي هذا السطر بمعرّفك

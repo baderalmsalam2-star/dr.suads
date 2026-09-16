@@ -83,7 +83,7 @@
       var tr = el("tr");
       tr.dataset.student = row.student.id;
       if (!row.complete) tr.className = "incomplete";
-      tr.appendChild(el("td", "num", ar(i + 1)));
+      tr.appendChild(el("td", "num", ar(row.student.no || i + 1)));
 
       var nm = el("td", "nm");
       var a = el("a", "", row.student.name);
@@ -162,14 +162,6 @@
 
   function manCell(row, it, c) {
     var td = el("td", "man");
-    /* الخلية المعوَّضة تعرض ما حلّ فيها ولا تُكتب */
-    if (c.viaMakeup) {
-      td.className = "auto";
-      td.appendChild(el("span", "v", n1(c.score)));
-      td.appendChild(el("span", "note", c.note));
-      return td;
-    }
-
     var inp = document.createElement("input");
     inp.type = "number"; inp.min = "0"; inp.step = "0.5";
     inp.max = String((+it.cap || +it.max || 0) + (+it.bonus || 0));
@@ -206,8 +198,11 @@
       if (k >= 0 && all[k + 1]) all[k + 1].focus();
     });
     if (c.note) inp.title = c.note;
+    if (c.effective != null) { td.classList.add("over"); inp.className = "filled"; }
     td.appendChild(inp);
-    if (c.note && (c.auto || c.overridden)) td.appendChild(el("span", "note", c.note));
+    if (c.note && (c.auto || c.overridden || c.effective != null)) {
+      td.appendChild(el("span", "note", c.note));
+    }
     return td;
   }
 
@@ -362,17 +357,19 @@
         (it.makeupFor ? "تعويضي/" + (it.cap || 0)
                       : it.max + (it.bonus ? "+" + it.bonus : "")) + ")");
     });
-    head.push("المجموع", "من", "النسبة %", "التقدير", "الغياب");
+    head.push("المجموع", "من", "النسبة %", "التقدير", "مكتملة", "الغياب");
 
     var lines = [head];
     book.rows.forEach(function (r, i) {
-      var line = [i + 1, r.student.name, r.student.uid || ""];
+      var line = [r.student.no || (i + 1), r.student.name, r.student.uid || ""];
       scheme.items.forEach(function (it) {
         var c = r.cells[it.id];
-        line.push(c.score == null ? "" : Math.round(c.score * 100) / 100);
+        var v = c.effective != null ? c.effective : c.score;
+        line.push(v == null ? "" : Math.round(v * 100) / 100);
       });
       line.push(Math.round(r.total * 100) / 100, r.outOf,
                 Math.round(r.pct * 10) / 10, r.grade,
+                r.complete ? "نعم" : "لا",
                 r.att.counted ? r.att.missed + "/" + r.att.counted : "");
       lines.push(line);
     });

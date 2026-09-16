@@ -15,6 +15,10 @@ end $$;
 grant usage on schema public to anon, authenticated;
 grant all on all tables in schema public to anon, authenticated;
 grant execute on all functions in schema public to anon, authenticated;
+/* Supabase يمنح authenticated وصولًا إلى storage وحارسه RLS —
+   يُحاكى هنا ليُختبر قفل ملفات التسليم */
+grant usage on schema storage to anon, authenticated;
+grant all on all tables in schema storage to anon, authenticated;
 
 drop table if exists rls_results;
 create table rls_results (label text, ok boolean);
@@ -358,6 +362,30 @@ insert into rls_results select 'ارتبط بالرقم الخطأ أولًا',
 update students set uid='2202140002' where id='t-mix';
 insert into rls_results select 'تصحيح الرقم يفكّ الربط الخاطئ',
   (select auth_uid from students where id='t-mix') is null;
+
+-- ── صفّان بالرقم نفسه لا يمنعان إنشاء الحساب ──
+insert into students(id,section_id,no,name,uid) values
+ ('t-dup1','9',20,'منيرة','2202149111'),
+ ('t-dup2','9',21,'منيرة','2202149111');
+insert into auth.users(id,email) values
+ ('eeeeeeee-0000-0000-0000-000000000001','s2202149111@ku.edu.kw');
+insert into rls_results select 'رقم مكرّر لا يمنع إنشاء الحساب',
+  exists (select 1 from auth.users where id='eeeeeeee-0000-0000-0000-000000000001');
+insert into rls_results select 'ويُربط صفٌّ واحد لا صفّان',
+  (select count(*) from students where auth_uid='eeeeeeee-0000-0000-0000-000000000001')=1;
+
+-- ── الملف المشار إليه من تسليمٍ مقفل لا يُحذف ولا يُستبدل ──
+insert into storage.objects(bucket_id,name) values ('tp-files','t-sara/f-locked');
+update submissions set files = '{"i1":[{"fileId":"t-sara/f-locked"}]}'::jsonb
+ where id='t-sub1';
+insert into rls_results select 'الملف المقفل معروفٌ بأنه مقفل', locked_file('t-sara/f-locked');
+insert into rls_results select 'وملفٌ حرّ ليس مقفلًا', not locked_file('t-sara/f-free');
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+delete from storage.objects where name='t-sara/f-locked';
+commit;
+insert into rls_results select 'لا تحذف ملف تسليمها المقفل',
+  exists (select 1 from storage.objects where name='t-sara/f-locked');
 
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;

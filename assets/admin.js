@@ -25,6 +25,18 @@
   document.getElementById("credit").textContent = COURSE.credit || "";
 
   TPRole.get().then(function (r) {
+    if (r === "unknown") {
+      var box = document.getElementById("denied");
+      box.hidden = false;
+      box.textContent = "";
+      var w = el("div", "warn-box",
+        "تعذّر التحقق من الدور — قد تكون الشبكة انقطعت. ");
+      var again = el("button", "sm", "أعيدي المحاولة");
+      again.addEventListener("click", function () { location.reload(); });
+      w.appendChild(again);
+      box.appendChild(w);
+      return;
+    }
     if (r !== "admin") { document.getElementById("denied").hidden = false; return; }
     document.getElementById("panel").hidden = false;
     document.getElementById("who").textContent =

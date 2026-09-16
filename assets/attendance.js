@@ -123,6 +123,19 @@
     }).catch(fail);
   }
 
+  /* تعطيل الورقة أثناء دفعةٍ جارية */
+  function busy(on) {
+    var sheet = document.getElementById("sheet");
+    var quick = document.getElementById("quick");
+    [sheet, quick].forEach(function (box) {
+      if (!box) return;
+      box.classList.toggle("busy", !!on);
+      [].slice.call(box.querySelectorAll("button")).forEach(function (b) {
+        b.disabled = !!on;
+      });
+    });
+  }
+
   function tally() {
     var c = {};
     students.forEach(function (st) { var m = marks[st.id]; if (m) c[m] = (c[m] || 0) + 1; });
@@ -136,6 +149,11 @@
   /* ─── تعليم سريع ─── */
   function markAll(status) {
     var n = currentSession();
+    /* السلسلة تستغرق ثوانيَ على الخادم (طلب لكل طالبة). وكانت
+       الأزرار تبقى حيّة والتنبيه يظهر فورًا، فتعلّم الدكتورة «غ»
+       لطالبة ثم تصل السلسلة إليها فتكتب «حاضرة» فوقها — والشاشة
+       تعرض الصحيح والمحفوظ خطأ. تُقفل الورقة حتى تنتهي. */
+    busy(true);
     var chain = Promise.resolve();
     students.forEach(function (st) {
       chain = chain.then(function () {
@@ -145,12 +163,17 @@
         });
       });
     });
-    chain.then(loadSheet).catch(fail);
+    chain.then(function () {
+      busy(false);
+      TPUI.toast(status === "present"
+        ? "عُلّمت الكل حاضرات — علّمي الغائبات الآن."
+        : "عُلّمت الكل غائبات.", "good");
+      loadSheet();
+    }).catch(function (e) { busy(false); fail(e); });
   }
 
   document.getElementById("allPresent").addEventListener("click", function () {
     markAll("present");
-    TPUI.toast("عُلّمت الكل حاضرات — علّمي الغائبات الآن.", "good");
   });
   document.getElementById("allAbsent").addEventListener("click", function () { markAll("absent"); });
   document.getElementById("clearDay").addEventListener("click", function () {

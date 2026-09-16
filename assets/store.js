@@ -355,6 +355,13 @@
     };
   }
 
+  /* هل بقي في بنود التعويض ما لم يُرصد بعد؟ */
+  function missingOf(it, cells) {
+    return it.makeupFor.some(function (tid) {
+      return cells[tid] && cells[tid].score == null;
+    });
+  }
+
   function labelOf(scheme, id) {
     var hit = (scheme.items || []).filter(function (i) { return i.id === id; })[0];
     return hit ? hit.label : id;
@@ -424,9 +431,32 @@
       var pts = {};
       kinds.forEach(function (k) { pts[k.id] = k.points; });
 
-      return Promise.all([A.students(filter && filter.sectionId), A.events(filter)])
+      return Promise.all([A.students(filter && filter.sectionId), A.events(filter),
+                          A.submissions({})])
         .then(function (r) {
           var students = r[0], events = r[1];
+
+          /* نقطة التسليم تُشتقّ من التسليمات ولا تُكتب حدثًا: الطالبة
+             لا تملك الكتابة في events — وهذا مقصود. ولأنها مشتقّة
+             فهي لا تُرصد مرتين ولا تتخلّف عن حذف تسليم. */
+          var pSub = pts.submit != null ? pts.submit : 3;
+          (r[2] || []).forEach(function (x) {
+            if (x.status !== "submitted" && x.status !== "locked") return;
+            if (!(Object.keys(x.answers || {}).length ||
+                  Object.keys(x.files || {}).length)) return;
+            var day = String(x.submittedAt || "").slice(0, 10);
+            /* المشتقّ يخضع لترشيح المدى نفسه الذي يخضع له المرصود،
+               وإلا حُسب في لوحة شرف اليوم تسليمٌ سلّم أمس. */
+            var f = filter || {};
+            if (f.day && day !== f.day) return;
+            if (f.month && monthKey(day) !== f.month) return;
+            if (f.from && day < f.from) return;
+            if (f.to && day > f.to) return;
+            events = events.concat([{
+              studentId: x.studentId, kind: "submit", points: pSub,
+              ref: x.worksheetId, day: day
+            }]);
+          });
           var byId = {};
           students.forEach(function (s) {
             byId[s.id] = { student: s, points: 0, total: 0, counts: {} };
@@ -519,7 +549,13 @@
         /* سياسة الغياب: نسبة الغياب وحدّ الحرمان — لا درجة لها */
         var POL = COURSE.attendance || {};
 
-        var rows = rank.map(function (x) {
+        /* الكشف يُرتَّب برقم الطالبة لا بنقاط تفاعلها: كان مرتّبًا
+           بالترتيب التنازلي للنقاط، فتظهر الأعلى تفاعلًا في الصف
+           الأول ويكتب العمود «#» موضع الصف لا رقمها في الكشف. */
+        var rows = rank.slice().sort(function (a, b) {
+          return (a.student.no || 0) - (b.student.no || 0) ||
+                 String(a.student.name).localeCompare(String(b.student.name), "ar");
+        }).map(function (x) {
           var st = x.student, cells = {}, total = 0, outOf = 0, complete;
 
           scheme.items.forEach(function (it) {
@@ -534,9 +570,12 @@
                 score = Math.min(1, x.points / t) * max;
                 note = TP.ar(x.points) + " من " + plural(t, PTS);
               } else {
-                score = top > 0 ? (x.points / top) * max : 0;
-                note = plural(x.points, PTS) +
-                       (top > 0 ? " · الأعلى " + TP.ar(top) : "");
+                /* لا أساس للنسبة قبل أن يُرصد تفاعلٌ في الشعبة، فالبند
+                   «لم يُرصد» لا «صفر» — كما هو حال أوراق العمل. */
+                score = top > 0 ? (x.points / top) * max : null;
+                note = top > 0
+                  ? plural(x.points, PTS) + " · الأعلى " + TP.ar(top)
+                  : "لم يُرصد تفاعل بعد";
               }
 
             } else if (it.source === "worksheets") {
@@ -582,24 +621,32 @@
             var mk = cells[it.id];
             if (!mk || mk.score == null) return;
 
+            /* «فاتها» تُرصد صراحةً بصفرٍ في خانة الاختبار، لا تُستنتج
+               من فراغ الخانة. كان الفراغ يعني «غابت» فيسدّ التعويضي
+               محلّ اختبارٍ لم تُرصد ورقته بعد، ثم يُقفل الخانة فلا
+               تُصحَّح إلا بمسح الدرجة من قاعدة البيانات. */
             var gap = it.makeupFor.filter(function (tid) {
-              return cells[tid] && cells[tid].score == null;
+              return cells[tid] && cells[tid].score === 0;
             });
             if (!gap.length) {
-              mk.note = "لم تحتجه — جلست الاختبارين";
-              mk.score = null;                    /* لا يُحتسب لمن حضرتهما */
+              /* يُعرض ما رُصد ولا يُجمع — وكان يُفرَّغ فيختفي من
+                 الخانة ومن التصدير معًا. */
+              mk.note = missingOf(it, cells)
+                ? "يُحتسب حين تُرصد صفرٌ في الاختبار الذي فاتها"
+                : "لم تحتجه — جلست الاختبارين";
               return;
             }
             var target = cells[gap[0]];
             var val = Math.min(+mk.score, +it.cap || target.max);
-            target.score = val;
-            target.note = "تعويضي";
-            target.viaMakeup = true;
+            /* المرصود يبقى في score فتبقى الخانة مكتوبةً قابلةً
+               للتصحيح، والمحتسَب يذهب إلى effective. كان المرصود
+               يُستبدَل فتُقفل الخانة ولا سبيل إلى تصحيحها إلا بمسح
+               الدرجة من قاعدة البيانات. */
+            target.effective = val;
+            target.note = "عُوِّض بـ " + (Math.round(val * 10) / 10) +
+                          " من «" + it.label + "»";
             mk.note = "عوّض «" + labelOf(scheme, gap[0]) + "»";
-            if (gap.length > 1) {
-              cells[gap[1]].score = 0;
-              cells[gap[1]].note = "فات ولا تعويض ثانٍ";
-            }
+            if (gap.length > 1) cells[gap[1]].note = "فات ولا تعويض ثانٍ";
           });
 
           /* الاكتمال يُقرَّر بعد التعويض لا قبله، وإلا حُسبت المعوَّضة
@@ -608,10 +655,18 @@
             return it.makeupFor || cells[it.id].score != null;
           });
 
-          /* المجموع بعد استقرار التعويض */
+          /* المجموع، والمقسوم عليه المرصود وحده.
+             كان outOf يضمّ كل البنود وtotal يعدّ غير المرصود صفرًا،
+             فطالبة لم يُرصد لها شيء بعدُ تظهر ٠/١٠٠ وتقديرها F في
+             أول أسبوع. النسبة الآن على ما رُصد، والمجموع يبقى من
+             المئة ليُرى ما بقي. */
+          var ofRated = 0;
           scheme.items.forEach(function (it) {
             if (it.makeupFor) return;
-            total += cells[it.id].score || 0;
+            var c = cells[it.id];
+            if (c.score == null) return;
+            total += (c.effective != null ? c.effective : c.score);
+            ofRated += c.max;
           });
 
           /* الغياب: إنذار لا درجة — بالقاعدة المشتركة */
@@ -619,12 +674,15 @@
 
           /* capAt = null يعني لا سقف: البونص يرفع فوق المئة ويبقى */
           var cap = (COURSE.grading || {}).capAt;
-          var pct = outOf > 0 ? (total / outOf) * 100 : 0;
+          var pct = ofRated > 0 ? (total / ofRated) * 100 : 0;
           var capped = cap == null ? pct : Math.min(pct, +cap);
 
+          /* التقدير لا يُعلَن قبل اكتمال الدرجات — كان يُعلَن F على
+             كشفٍ نصفه لم يُرصد بعد. */
           return { student: st, cells: cells, total: total, outOf: outOf,
-                   pct: pct, capped: capped,
-                   grade: att_.barred ? "محرومة" : gradeLabel(capped),
+                   ofRated: ofRated, pct: pct, capped: capped,
+                   grade: att_.barred ? "محرومة"
+                        : (complete ? gradeLabel(capped) : "—"),
                    complete: complete, att: att_ };
         });
 

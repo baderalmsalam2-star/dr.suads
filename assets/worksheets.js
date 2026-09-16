@@ -44,43 +44,53 @@
     }
     return Store.students().then(function (all) {
       var st = all.filter(function (s) { return s.id === payload.studentId; })[0];
-      if (!st && payload.studentName) {
+
+      /* ─── المطابقة بالاسم وحده أُسقطت ───
+         الملف يكتبه المتصفّح على جهاز الطالبة، فحقلا studentName
+         وsectionId فيه نصّان تملكهما هي. وكانت المطابقة بالاسم
+         تكفي لأن تضع طالبةٌ اسم زميلتها فيدوس ملفُها تسليمَ
+         زميلتها المقفل. الآن يُطابَق بالمعرّف، أو بالاسم والرقم
+         الجامعي معًا — والرقم مطبوع في الكشف لا يُخمَّن. */
+      if (!st && payload.studentName && payload.studentUid) {
         st = all.filter(function (s) {
           return s.name === payload.studentName &&
+                 String(s.uid || "") === String(payload.studentUid) &&
                  String(s.sectionId) === String(payload.sectionId);
         })[0];
       }
-      if (!st) return { ok: false };
+      if (!st) return { ok: false, reason: "no-match" };
 
       var sub = Object.assign({}, payload.submission, {
         studentId: st.id, status: "submitted"
       });
       return Store.submissions({ studentId: st.id, worksheetId: sub.worksheetId })
         .then(function (existing) {
+          /* الدوس على تسليمٍ مقفل لا يقع صامتًا */
+          if (existing.length && existing[0].status === "submitted") {
+            var w = (window.WORKSHEETS || []).filter(function (x) {
+              return x.id === sub.worksheetId;
+            })[0];
+            if (!confirm("لـ«" + st.name + "» تسليمٌ مقفل في «" +
+                         ((w && w.title) || sub.worksheetId) +
+                         "». هل تستبدلينه بالملف الجديد؟")) {
+              return Promise.reject(new Error("skip"));
+            }
+          }
           if (existing.length) sub.id = existing[0].id;   /* يُحدَّث لا يُكرَّر */
           return Store.saveSubmission(sub);
         })
-        .then(function () { return creditSubmission(st, sub); })
-        .then(function () { return { ok: true }; });
+        .then(function () { return { ok: true }; })
+        .catch(function (e) {
+          if (e && e.message === "skip") return { ok: false, reason: "skipped" };
+          throw e;
+        });
     });
   }
 
-  /* تسليم ورقة يُرصد نقطة تفاعل مرة واحدة لكل ورقة */
-  function creditSubmission(student, sub) {
-    return Store.events({ studentId: student.id }).then(function (evs) {
-      var already = evs.some(function (e) {
-        return e.kind === "submit" && e.ref === sub.worksheetId;
-      });
-      if (already) return;
-      var kind = (((window.COURSE || {}).engagement || {}).kinds || [])
-        .filter(function (k) { return k.id === "submit"; })[0];
-      return Store.addEvent({
-        studentId: student.id, sectionId: student.sectionId,
-        kind: "submit", points: kind ? kind.points : 3,
-        ref: sub.worksheetId, day: (sub.submittedAt || "").slice(0, 10) || Store.dayKey()
-      });
-    });
-  }
+  /* نقطة التسليم تُشتقّ في Store.ranking من التسليمات نفسها،
+     فلم تعد تُكتب حدثًا هنا ولا في worksheet.js. */
+
+
 
   /* ─── العرض ─── */
   function render() {

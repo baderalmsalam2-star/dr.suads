@@ -30,9 +30,13 @@
         return Promise.resolve(cached);
       }
       return TPAuth.role().then(function (r) {
-        cached = r || "student";
+        cached = r || "student";              /* نتيجة مؤكَّدة: تُخزَّن */
         return cached;
-      }).catch(function () { return "student"; });
+      }).catch(function () {
+        /* تعذّر التحقق ≠ ليست مالكة. لا يُخزَّن شيء، فتُعاد المحاولة
+           عند أول سؤالٍ تالٍ بدل تثبيت «طالبة» إلى آخر عمر الصفحة. */
+        return "unknown";
+      });
     },
 
     isAdmin: function () {
@@ -49,7 +53,8 @@
     enforced: function () { return !!window.TPAuth; },
 
     label: function (r) {
-      return { admin: "مشرف تقني", teacher: "الدكتورة", student: "طالبة" }[r] || "زائرة";
+      return { admin: "مشرف تقني", teacher: "الدكتورة", student: "طالبة",
+               unknown: "تعذّر التحقق" }[r] || "زائرة";
     }
   };
 })();

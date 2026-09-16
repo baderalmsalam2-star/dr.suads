@@ -51,6 +51,8 @@
   picker.addEventListener("change", pick);
 
   function pick() {
+    /* يُفرَّغ المؤجَّل على صاحبه قبل أن يتبدّل sub */
+    flush();
     student = students.filter(function (s) { return s.id === picker.value; })[0];
     Store.submissions({ studentId: student.id, worksheetId: W.id }).then(function (list) {
       sub = list[0] || {
@@ -401,13 +403,25 @@
   /* ─── الحفظ والتسليم ─── */
   function autosave() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () { save(true); }, 700);
+    var target = sub;                  /* الكائن وقت الجدولة لا وقت التنفيذ */
+    saveTimer = setTimeout(function () { save(true, target); }, 700);
   }
 
-  function save(quiet) {
-    if (sub.status === "submitted") return Promise.resolve();
-    return Store.saveSubmission(sub).then(function (s) {
-      sub = s;
+  /* يُنادى قبل تبديل الطالبة: يُلغي المؤجَّل ويحفظه فورًا على صاحبه.
+     بلا هذا كان المؤقّت يستيقظ بعد التبديل فيقرأ sub الجديد، فيحفظ
+     تسليم الطالبة الثانية (مسودة فارغة غالبًا) وتضيع إجابة الأولى. */
+  function flush() {
+    if (!saveTimer) return Promise.resolve();
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    return save(true, sub);
+  }
+
+  function save(quiet, target) {
+    var rec = target || sub;
+    if (rec.status === "submitted") return Promise.resolve();
+    return Store.saveSubmission(rec).then(function (s) {
+      if (rec === sub) sub = s;        /* لا تُصِب تسليمًا صار سابقًا */
       stateEl.textContent = "مسودة محفوظة";
       if (!quiet) TPUI.toast("حُفظت المسودة.", "good");
     }).catch(fail);
@@ -446,17 +460,16 @@
   });
 
   /* رصد نقطة تفاعل للتسليم — مرة واحدة لكل ورقة */
-  function credit() {
-    return Store.events({ studentId: student.id }).then(function (evs) {
-      if (evs.some(function (e) { return e.kind === "submit" && e.ref === W.id; })) return;
-      var k = (((window.COURSE || {}).engagement || {}).kinds || [])
-        .filter(function (x) { return x.id === "submit"; })[0];
-      return Store.addEvent({
-        studentId: student.id, sectionId: student.sectionId,
-        kind: "submit", points: k ? k.points : 3, ref: W.id
-      });
-    });
-  }
+  /* ─── نقطة التسليم ───
+     كانت تُكتب حدثًا في جدول events. والطالبة لا تملك الكتابة فيه —
+     وهذا مقصود ومُختبَر («لا ترصد نقاطًا لنفسها» في rls-test.sql).
+     فكان كل تسليم على الخادم يردّ ٤٠٣ فتُقفل السلسلة وتُعرض للطالبة
+     رسالةٌ تخصّ الدكتورة: «تأكدي أن حسابك مضاف في جدول owners».
+
+     النقطة الآن تُشتقّ في Store.ranking من التسليمات نفسها — كما
+     تُشتقّ بقية البنود المحسوبة — فلا تحتاج الطالبة صلاحية كتابة
+     أصلًا، ولا يمكن رصدها مرتين. */
+  function credit() { return Promise.resolve(); }
 
   document.getElementById("reopen").addEventListener("click", function () {
     if (!confirm("فتح الورقة للتعديل؟ ستعود مسودة وتُخفى الإجابات الصحيحة.")) return;
@@ -468,8 +481,10 @@
   /* ملف التسليم — تستورده الدكتورة من صفحة أوراق العمل */
   document.getElementById("send").addEventListener("click", function () {
     var payload = {
-      kind: "tp-submission", version: 1,
-      studentId: student.id, studentName: student.name, sectionId: student.sectionId,
+      kind: "tp-submission", version: 2,
+      studentId: student.id, studentName: student.name,
+      studentUid: student.uid || "",      /* تُطابَق به عند الاستلام */
+      sectionId: student.sectionId,
       worksheetId: W.id, worksheetTitle: W.title,
       submission: sub
     };

@@ -29,6 +29,19 @@
     if (!uid) return TPUI.toast("اكتبي رقمك الجامعي.", "bad");
 
     var sectionId = sel.value;
+
+    /* ─── على الخادم لا تُكتب الطالبة، ولا حاجة ───
+       جدول students لا يُكتب إلا من المالكة (وهذا مقصود: لولاه
+       استولت طالبة على صفّ غيرها). وكانت الصفحة تحاول الكتابة
+       فيردّ الخادم ٤٠٣، وتُعرض للطالبة — أمام الباركود في أول
+       حصة — رسالةٌ تخصّ الدكتورة: «تأكدي أن حسابك في جدول owners».
+       والحقيقة أن الصفحة لا تحتاج الكتابة إطلاقًا: الباركود نفسه
+       هو ما يحمل الاسم والرقم إلى الدكتورة فتمسحه. */
+    if (window.TPAuth) {
+      me = { sectionId: sectionId, name: name, uid: uid, self: true };
+      return show();
+    }
+
     Store.students(sectionId).then(function (list) {
       var dup = list.filter(function (s) { return s.uid === uid && !s.placeholder; })[0];
       if (dup) { me = dup; return Store.saveStudent({ id: dup.id, name: name, uid: uid }); }
@@ -39,8 +52,9 @@
     }).then(function (saved) {
       me = me && me.id ? Object.assign({}, me, { name: name, uid: uid }) : saved;
       show();
-    }).catch(function (e) {
-      TPUI.toast(e.message || "تعذّر الحفظ على هذا الجهاز.", "bad");
+    }).catch(function () {
+      TPUI.toast("تعذّر الحفظ على هذا الجهاز. جرّبي من متصفّح آخر، " +
+                 "أو أعطي الدكتورة اسمك ورقمك مباشرةً.", "bad");
     });
   });
 

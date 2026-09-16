@@ -469,6 +469,72 @@
     });
   }
 
+  /* العودة من رابط البريد أو من صفحة الجامعة. تعيد وعدًا دائمًا:
+     الجلسة إن وُجدت، أو null إن لم يكن في العنوان شيء، أو خطأً إن
+     ردّت جهة الهوية بالرفض. */
+  function capture() {
+    var q0 = new URLSearchParams(location.search);
+
+    /* عودة PKCE: رمز في الاستعلام يُبدَّل بجلسة */
+    if (q0.get("code")) {
+      var code = q0.get("code"), verifier = "";
+      try { verifier = sessionStorage.getItem(PKCE_KEY) || ""; } catch (e) { /**/ }
+      try { sessionStorage.removeItem(PKCE_KEY); } catch (e) { /**/ }
+      history.replaceState(null, "", location.pathname);
+      return fetch(AUTH + "token?grant_type=pkce", {
+        method: "POST",
+        headers: { apikey: CFG.anonKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ auth_code: code, code_verifier: verifier })
+      }).then(function (r) {
+        return r.json().then(function (d) {
+          if (!r.ok) throw new Error(d.error_description || d.msg || "تعذّر إتمام الدخول.");
+          setSession(stamp(d));
+          return d;
+        });
+      });
+    }
+
+    /* رفض من جهة الجامعة يصل في الاستعلام أو في الجزء */
+    var err = q0.get("error_description") || q0.get("error");
+    if (!err && location.hash) {
+      var qh = new URLSearchParams(location.hash.slice(1));
+      err = qh.get("error_description") || qh.get("error");
+    }
+    if (err) {
+      history.replaceState(null, "", location.pathname);
+      /* URLSearchParams يفكّ الترميز أصلًا ويحوّل + إلى فراغ.
+         والفكّ ثانيةً يرمي URIError على أي % مفردة في رسالة
+         AADSTS — رميًا متزامنًا خارج الوعد، فيُميت صفحة الدخول. */
+      return Promise.reject(new Error(String(err)));
+    }
+
+    if (!location.hash || location.hash.indexOf("access_token") < 0) return Promise.resolve(null);
+    var q = new URLSearchParams(location.hash.slice(1));
+
+    /* ─── لا تُقبَل جلسة من العنوان إلا إن كنّا نحن من بدأ التدفّق ───
+       كان أيّ رمزٍ في جزء العنوان يُقبل ويُحفظ. فيكفي المهاجم أن
+       ينشئ حسابًا لنفسه ويرسل للدكتورة رابطًا فيه رمزه، فتكتب هي
+       في حسابه وهو يقرأ كل ما كتبت. الآن يُطلب state أصدرناه قبل
+       التحويل وحفظناه في هذه الجلسة وحدها. */
+    var want = "";
+    try { want = sessionStorage.getItem(STATE_KEY) || ""; } catch (e) { /**/ }
+    try { sessionStorage.removeItem(STATE_KEY); } catch (e) { /**/ }
+
+    history.replaceState(null, "", location.pathname + location.search);
+
+    if (!want || q.get("state") !== want) {
+      return Promise.reject(new Error(
+        "رابط دخولٍ لم يصدر من هذا المتصفّح، فلم يُقبل. " +
+        "افتحي صفحة الحساب وسجّلي الدخول من هنا."));
+    }
+
+    return Promise.resolve(setSession(stamp({
+      access_token: q.get("access_token"),
+      refresh_token: q.get("refresh_token"),
+      expires_in: +q.get("expires_in") || 3600
+    })));
+  }
+
   /* ─── الدخول والخروج ─── */
   window.TPAuth = {
     session: session,
@@ -536,67 +602,9 @@
         .catch(function () { location.href = base; });
     },
 
-    /* العودة من رابط البريد أو من صفحة الجامعة. تعيد وعدًا دائمًا:
-       الجلسة إن وُجدت، أو null إن لم يكن في العنوان شيء، أو خطأً إن
-       ردّت جهة الهوية بالرفض. */
     captureFromUrl: function () {
-      var q0 = new URLSearchParams(location.search);
-
-      /* عودة PKCE: رمز في الاستعلام يُبدَّل بجلسة */
-      if (q0.get("code")) {
-        var code = q0.get("code"), verifier = "";
-        try { verifier = sessionStorage.getItem(PKCE_KEY) || ""; } catch (e) { /**/ }
-        try { sessionStorage.removeItem(PKCE_KEY); } catch (e) { /**/ }
-        history.replaceState(null, "", location.pathname);
-        return fetch(AUTH + "token?grant_type=pkce", {
-          method: "POST",
-          headers: { apikey: CFG.anonKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ auth_code: code, code_verifier: verifier })
-        }).then(function (r) {
-          return r.json().then(function (d) {
-            if (!r.ok) throw new Error(d.error_description || d.msg || "تعذّر إتمام الدخول.");
-            setSession(stamp(d));
-            return d;
-          });
-        });
-      }
-
-      /* رفض من جهة الجامعة يصل في الاستعلام أو في الجزء */
-      var err = q0.get("error_description") || q0.get("error");
-      if (!err && location.hash) {
-        var qh = new URLSearchParams(location.hash.slice(1));
-        err = qh.get("error_description") || qh.get("error");
-      }
-      if (err) {
-        history.replaceState(null, "", location.pathname);
-        return Promise.reject(new Error(decodeURIComponent(String(err).replace(/\+/g, " "))));
-      }
-
-      if (!location.hash || location.hash.indexOf("access_token") < 0) return Promise.resolve(null);
-      var q = new URLSearchParams(location.hash.slice(1));
-
-      /* ─── لا تُقبَل جلسة من العنوان إلا إن كنّا نحن من بدأ التدفّق ───
-         كان أيّ رمزٍ في جزء العنوان يُقبل ويُحفظ. فيكفي المهاجم أن
-         ينشئ حسابًا لنفسه ويرسل للدكتورة رابطًا فيه رمزه، فتكتب هي
-         في حسابه وهو يقرأ كل ما كتبت. الآن يُطلب state أصدرناه قبل
-         التحويل وحفظناه في هذه الجلسة وحدها. */
-      var want = "";
-      try { want = sessionStorage.getItem(STATE_KEY) || ""; } catch (e) { /**/ }
-      try { sessionStorage.removeItem(STATE_KEY); } catch (e) { /**/ }
-
-      history.replaceState(null, "", location.pathname + location.search);
-
-      if (!want || q.get("state") !== want) {
-        return Promise.reject(new Error(
-          "رابط دخولٍ لم يصدر من هذا المتصفّح، فلم يُقبل. " +
-          "افتحي صفحة الحساب وسجّلي الدخول من هنا."));
-      }
-
-      return Promise.resolve(setSession(stamp({
-        access_token: q.get("access_token"),
-        refresh_token: q.get("refresh_token"),
-        expires_in: +q.get("expires_in") || 3600
-      })));
+      try { return capture(); }
+      catch (e) { return Promise.reject(e); }   /* لا رمي متزامن أبدًا */
     },
 
     me: function () {
@@ -618,13 +626,16 @@
        يقرؤه، فأخذُ أوّلها كان يعطي الدكتورة دور المشرف أو العكس. */
     role: function () {
       if (!session()) return Promise.resolve(null);
+      /* لا تُبتلع أخطاء الشبكة هنا: null تعني «ليس في owners»،
+         فابتلاعُ انقطاعٍ عابرٍ كان يثبّت الدور على «طالبة» لبقية
+         عمر الصفحة ويعرض للمشرف لوحة الرفض. الخطأ يُرفع ليُفرَّق. */
       return TPAuth.me().then(function (me) {
         if (!me || !me.id) return null;
         return req("owners?select=role&uid=eq." + enc(me.id))
           .then(function (rows) {
             return (rows && rows.length) ? (rows[0].role || "teacher") : null;
           });
-      }).catch(function () { return null; });
+      });
     },
 
     /* الخروج يُبطل رمز التجديد في الخادم أيضًا — وإلا بقي صالحًا
