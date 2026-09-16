@@ -1,4 +1,4 @@
-/* ═══ الحضور والغياب وجدول الحصص ═══ */
+/* ═══ الحضور والغياب وجدول المحاضرات ═══ */
 (function () {
   "use strict";
 
@@ -24,7 +24,7 @@
   sessions.forEach(function (s) {
     var o = document.createElement("option");
     o.value = s.n;
-    o.textContent = "الحصة " + ar(s.n) + (s.title ? " — " + s.title : "");
+    o.textContent = "المحاضرة " + ar(s.n) + (s.title ? " — " + s.title : "");
     sessionSel.appendChild(o);
   });
   sessionSel.addEventListener("change", loadSheet);
@@ -43,7 +43,7 @@
       }).catch(fail);
   }
 
-  /* الحصة المفتوحة افتراضًا: حصة اليوم إن وُجدت، وإلا آخر حصة مضت */
+  /* المحاضرة المفتوحة افتراضًا: محاضرة اليوم إن وُجدت، وإلا آخر محاضرة مضت */
   function pickDefaultSession() {
     var today = Store.dayKey(), best = null;
     Object.keys(sched).forEach(function (n) {
@@ -60,12 +60,12 @@
   function loadSheet() {
     var n = currentSession();
     var lbl = document.getElementById("dayLabel");
-    /* الرصد على حصةٍ مضت يُحفظ بتاريخها هي لا بتاريخ اليوم — يُقال
+    /* الرصد على محاضرةٍ مضت يُحفظ بتاريخها هي لا بتاريخ اليوم — يُقال
        صراحةً حتى لا تُظنّ الأرقام مبعثرةً على غير مواضعها. */
     var past = sched[n] && sched[n] < Store.dayKey();
     lbl.textContent = sched[n]
       ? TPUI.arDate(sched[n]) + (past ? " · رصد بأثر رجعي" : "")
-      : "لا تاريخ لهذه الحصة بعد";
+      : "لا تاريخ لهذه المحاضرة بعد";
     lbl.classList.toggle("retro", !!past);
 
     Store.attendance({ sectionId: section.id, session: n }).then(function (list) {
@@ -76,7 +76,7 @@
     }).catch(fail);
   }
 
-  /* ─── كشف الحصة ─── */
+  /* ─── كشف المحاضرة ─── */
   function renderSheet() {
     sheet.textContent = "";
     var empty = document.getElementById("sheetEmpty");
@@ -177,7 +177,7 @@
   });
   document.getElementById("allAbsent").addEventListener("click", function () { markAll("absent"); });
   document.getElementById("clearDay").addEventListener("click", function () {
-    if (!confirm("مسح تعليم الحضور لهذه الحصة كاملةً؟")) return;
+    if (!confirm("مسح تعليم الحضور لهذه المحاضرة كاملةً؟")) return;
     Store.clearAttendance(section.id, currentSession()).then(loadSheet).catch(fail);
   });
 
@@ -193,12 +193,12 @@
       var total = Object.keys(held).length;
 
       document.getElementById("repSub").textContent =
-        total ? "رُصد حضور " + TPUI.lessons(total) : "لم تُرصد أي حصة بعد";
+        total ? "رُصد حضور " + TPUI.lessons(total) : "لم تُرصد أي محاضرة بعد";
 
       if (!total || !students.length) {
         table.hidden = true;
         note.appendChild(TPUI.empty("لا يوجد حضور مرصود بعد.",
-          "علّمي حضور الحصة أعلاه، فيظهر التقرير هنا."));
+          "علّمي حضور المحاضرة أعلاه، فيظهر التقرير هنا."));
         return;
       }
       table.hidden = false;
@@ -220,7 +220,7 @@
         recs.forEach(function (r) { c[r.status] = (c[r.status] || 0) + 1; });
 
         /* القاعدة من Store.absence — لا تُعاد كتابتها هنا، فقد كان
-           هذا الموضع يقسم على حصص الشعبة كلها والكشف يقسم على سجلات
+           هذا الموضع يقسم على محاضرات الشعبة كلها والكشف يقسم على سجلات
            الطالبة، فيختلف الرقمان عن الطالبة نفسها. */
         var ab = Store.absence(recs);
         var counted = ab.counted, absent = ab.missed, pct = ab.rate;
@@ -364,8 +364,8 @@
     warn.hidden = false;
     warn.textContent = "تجاوزت " + TPUI.lessons(over.length) +
       " آخر يوم في الدراسة (" + TPUI.arDate(T.lastClass) + ") — " +
-      (over.length === 1 ? "هي الحصة " : "أولاها الحصة ") + ar(over[0]) +
-      ". قدّمي التواريخ أو ادمجي حصصًا.";
+      (over.length === 1 ? "هي المحاضرة " : "أولاها المحاضرة ") + ar(over[0]) +
+      ". قدّمي التواريخ أو ادمجي محاضراتٍ.";
   }
 
   function renderSchedule() {
@@ -374,12 +374,12 @@
     renderTerm();
     checkTerm();
     var head = el("thead"), hr = el("tr");
-    ["الحصة", "العنوان", "التاريخ"].forEach(function (h) { hr.appendChild(el("th", "", h)); });
+    ["المحاضرة", "العنوان", "التاريخ"].forEach(function (h) { hr.appendChild(el("th", "", h)); });
     head.appendChild(hr); t.appendChild(head);
 
     var body = el("tbody");
     sessions.forEach(function (s) {
-      /* الاختبار الواقع بين حصتين يظهر صفًّا في موضعه من التسلسل */
+      /* الاختبار الواقع بين محاضرتين يظهر صفًّا في موضعه من التسلسل */
       (COURSE.examDays || []).forEach(function (e) {
         var prev = sched[s.n - 1];
         if (!prev || !sched[s.n]) return;
@@ -403,7 +403,7 @@
       tr.appendChild(td);
       body.appendChild(tr);
     });
-    /* وما وقع بعد آخر حصة يُذيَّل به الجدول */
+    /* وما وقع بعد آخر محاضرة يُذيَّل به الجدول */
     var last = sched[sessions[sessions.length - 1].n];
     (COURSE.examDays || []).forEach(function (e) {
       if (last && e.date > last) body.appendChild(examRow(e));
@@ -433,7 +433,7 @@
       STATES.forEach(function (s) { label[s.id] = s.label; });
 
       var rows = [["الرقم الجامعي", "الاسم"].concat(
-        cols.map(function (n) { return "حصة " + n + (sched[n] ? " " + sched[n] : ""); }))
+        cols.map(function (n) { return "محاضرة " + n + (sched[n] ? " " + sched[n] : ""); }))
         .concat(["أيام الغياب", "نسبة الغياب"])];
 
       students.forEach(function (st) {

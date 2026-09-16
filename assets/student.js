@@ -134,7 +134,7 @@
       a.href = "worksheet.html?w=" + encodeURIComponent(w.id) +
                "&section=" + encodeURIComponent(st.sectionId) +
                "&student=" + encodeURIComponent(st.id);
-      a.appendChild(el("span", "no", "الحصة " + ar(w.session) + " · " +
+      a.appendChild(el("span", "no", "المحاضرة " + ar(w.session) + " · " +
                         (w.type === "homework" ? "واجب" : "ورقة عمل")));
       a.appendChild(el("h2", "", w.title));
 
@@ -157,10 +157,10 @@
     if (!events.length) {
       table.hidden = true;
       evEmpty.appendChild(TPUI.empty("لا يوجد تفاعل مرصود بعد.",
-        "يُرصد أثناء الحصة من لوحة الرصد (مفتاح م داخل العرض)."));
+        "يُرصد أثناء المحاضرة من لوحة الرصد (مفتاح م داخل العرض)."));
     } else {
       var head = el("thead"), hr = el("tr");
-      ["اليوم", "الحصة", "النوع", "النقاط", ""].forEach(function (h) { hr.appendChild(el("th", "", h)); });
+      ["اليوم", "المحاضرة", "النوع", "النقاط", ""].forEach(function (h) { hr.appendChild(el("th", "", h)); });
       head.appendChild(hr);
       table.appendChild(head);
 

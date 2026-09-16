@@ -1,5 +1,5 @@
-/* ═══ مُنشئ الحصص ═══
-   يبني ملف حصة كاملًا من نصٍّ يلصقه المستخدم. لا يولّد محتوى:
+/* ═══ مُنشئ المحاضرات ═══
+   يبني ملف محاضرة كاملًا من نصٍّ يلصقه المستخدم. لا يولّد محتوى:
    كل كلمة في الخرج جاءت من نص المذكرة الذي أُدخل هنا. */
 (function () {
   "use strict";
@@ -11,16 +11,16 @@
     { id: "reader",  label: "قراءة — تُسنَد لطالبة", tab: "" },
     { id: "faculty", label: "تقرؤها الدكتورة",       tab: "تقرؤها الدكتورة" },
     { id: "question",label: "سؤال بمؤقت",            tab: "سؤال للجميع" },
-    { id: "closing", label: "ختام الحصة",            tab: "ختام الحصة" }
+    { id: "closing", label: "ختام المحاضرة",            tab: "ختام المحاضرة" }
   ];
 
   var blocks = [];
   var built = null;
 
-  TPUI.chrome("compose", "مُنشئ الحصص", "يبني ملف الحصة من نص المذكرة");
+  TPUI.chrome("compose", "مُنشئ المحاضرات", "يبني ملف المحاضرة من نص المذكرة");
   TPUI.credit("credit");
 
-  /* أول رقم حصة غير مجهَّز */
+  /* أول رقم محاضرة غير مجهَّز */
   var pending = (COURSE.sessions || []).filter(function (s) {
     return !(s.status === "ready" && s.file);
   })[0];
@@ -31,7 +31,7 @@
     var raw = document.getElementById("raw").value;
     var paras = raw.split(/\n\s*\n/).map(function (t) { return t.trim(); })
                    .filter(function (t) { return t.length; });
-    if (!paras.length) return TPUI.toast("الصق نص الحصة أولًا.", "bad");
+    if (!paras.length) return TPUI.toast("الصق نص المحاضرة أولًا.", "bad");
 
     paras.forEach(function (t) {
       blocks.push({ kind: "reader", rubric: "", src: "", text: t });
@@ -50,7 +50,7 @@
   });
 
   document.getElementById("addClose").addEventListener("click", function () {
-    blocks.push({ kind: "closing", rubric: "خلاصة اليوم", src: "الحصة القادمة",
+    blocks.push({ kind: "closing", rubric: "خلاصة اليوم", src: "المحاضرة القادمة",
                   text: "", nextTitle: "", nextPages: "" });
     render();
   });
@@ -72,7 +72,7 @@
 
     if (!blocks.length) {
       emptyBox.appendChild(TPUI.empty("لا توجد شرائح بعد.",
-        "الصق نص الحصة أعلاه واضغط «قسّم إلى شرائح»."));
+        "الصق نص المحاضرة أعلاه واضغط «قسّم إلى شرائح»."));
       return;
     }
 
@@ -199,14 +199,14 @@
 
   function buildClosing(body, b) {
     var ta = document.createElement("textarea");
-    ta.rows = 2; ta.value = b.text; ta.placeholder = "الفكرة التي تُحفظ من الحصة.";
+    ta.rows = 2; ta.value = b.text; ta.placeholder = "الفكرة التي تُحفظ من المحاضرة.";
     ta.addEventListener("input", function () { b.text = ta.value; });
     body.appendChild(el("label", "", "خلاصة اليوم"));
     body.appendChild(ta);
-    body.appendChild(el("label", "", "عنوان الحصة القادمة"));
+    body.appendChild(el("label", "", "عنوان المحاضرة القادمة"));
     body.appendChild(field("الولاية العامة — مقاصدها ومراتبها", b.nextTitle, "",
       function (v) { b.nextTitle = v; }));
-    body.appendChild(el("label", "", "صفحات الحصة القادمة"));
+    body.appendChild(el("label", "", "صفحات المحاضرة القادمة"));
     body.appendChild(field("ص ٥–٦", b.nextPages, "", function (v) { b.nextPages = v; }));
   }
 
@@ -235,7 +235,7 @@
 
   function slidesMarkup(meta) {
     var out = [];
-    out.push('      <section class="slide on" data-tab="الحصة ' + ar(meta.n) +
+    out.push('      <section class="slide on" data-tab="المحاضرة ' + ar(meta.n) +
              '" data-src="' + esc(meta.pages) + '">\n' +
              '        <h1>' + esc(meta.title) + '</h1>\n' +
              (meta.subtitle ? '        <div class="sub">' + esc(meta.subtitle) + '</div>\n' : '') +
@@ -260,11 +260,11 @@
           '      </section>');
 
       } else if (b.kind === "closing") {
-        out.push('      <section class="slide" data-tab="ختام الحصة" data-src="الحصة القادمة">\n' +
+        out.push('      <section class="slide" data-tab="ختام المحاضرة" data-src="المحاضرة القادمة">\n' +
           rub +
           '        <div class="matn">' + (b.text ? '<p>' + inline(b.text) + '</p>' : '') + '</div>\n' +
           '        <div class="note">\n' +
-          (b.nextTitle ? '          <b>الحصة القادمة:</b> ' + esc(b.nextTitle) +
+          (b.nextTitle ? '          <b>المحاضرة القادمة:</b> ' + esc(b.nextTitle) +
                          (b.nextPages ? ' · ' + esc(b.nextPages) : '') + '<br>\n' : '') +
           '          القارئات: <span id="next"></span> — النص متاح للتحضير من الآن.\n' +
           '        </div>\n' +
@@ -284,7 +284,7 @@
   function page(meta, assetPrefix) {
     return '<!DOCTYPE html>\n<html lang="ar" dir="rtl">\n<head>\n' +
 '<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
-'<title>الحصة ' + ar(meta.n) + ' — ' + esc(meta.title) + '</title>\n' +
+'<title>المحاضرة ' + ar(meta.n) + ' — ' + esc(meta.title) + '</title>\n' +
 '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
 '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
 '<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">\n' +
@@ -325,7 +325,7 @@
 
   document.getElementById("build").addEventListener("click", function () {
     var m = meta();
-    if (!m.n || !m.title) return TPUI.toast("اكتب رقم الحصة وعنوانها.", "bad");
+    if (!m.n || !m.title) return TPUI.toast("اكتب رقم المحاضرة وعنوانها.", "bad");
     if (!blocks.length) return TPUI.toast("لا توجد شرائح.", "bad");
 
     var badQ = blocks.filter(function (b) {
@@ -375,7 +375,7 @@
     var qs = blocks.filter(function (b) { return b.kind === "question"; });
     if (!qs.length) {
       document.getElementById("snipSheet").value =
-        "// لا توجد أسئلة في هذه الحصة — لا ورقة عمل تُولَّد.";
+        "// لا توجد أسئلة في هذه المحاضرة — لا ورقة عمل تُولَّد.";
       return;
     }
     var items = qs.map(function (b, i) {
@@ -393,7 +393,7 @@
 '    session: ' + m.n + ',\n' +
 '    title: "ورقة عمل: ' + m.title + '",\n' +
 '    pages: ' + JSON.stringify(m.pages) + ',\n' +
-'    intro: "تُحل داخل الحصة. لا توجد درجات.",\n' +
+'    intro: "تُحل داخل المحاضرة. لا توجد درجات.",\n' +
 '    items: [\n' + items + '\n' +
 '    ]\n' +
 '  }';

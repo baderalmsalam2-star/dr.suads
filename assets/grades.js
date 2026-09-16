@@ -98,7 +98,7 @@
       if (row.att.barred || row.att.warn) {
         var w = el("span", "warn-dot", row.att.barred ? " ⛔" : " ⚠");
         w.title = "غياب " + ar(row.att.missed) + " من " + ar(row.att.counted) +
-                  " حصة" + (row.att.barred ? " — تجاوزت حدّ الحرمان" : "");
+                  " محاضرة" + (row.att.barred ? " — تجاوزت حدّ الحرمان" : "");
         nm.appendChild(w);
       }
       tr.appendChild(nm);

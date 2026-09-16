@@ -4,7 +4,7 @@
   var COURSE = window.COURSE || {};
   var KEY = "tp.baseUrl";
 
-  TPUI.chrome("register", "باركود التسجيل", "يُعرض على الطالبات في أول حصة");
+  TPUI.chrome("register", "باركود التسجيل", "يُعرض على الطالبات في أول محاضرة");
   TPUI.credit("credit");
 
   var section = TPUI.sectionPicker(document.getElementById("section"), function (s) {

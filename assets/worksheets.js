@@ -150,7 +150,7 @@
       var a = el("a", "open");
       a.href = "worksheet.html?w=" + encodeURIComponent(w.id) +
                "&section=" + encodeURIComponent(section.id);
-      a.appendChild(el("span", "no", "الحصة " + ar(w.session) + " · " + KIND[w.type || "worksheet"]));
+      a.appendChild(el("span", "no", "المحاضرة " + ar(w.session) + " · " + KIND[w.type || "worksheet"]));
       a.appendChild(el("h2", "", w.title));
       if (w.subtitle) a.appendChild(el("div", "sub", w.subtitle));
 

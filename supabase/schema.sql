@@ -79,7 +79,7 @@ create table if not exists events (
 create index if not exists events_student on events (student_id);
 create index if not exists events_scope   on events (section_id, day);
 
--- ─── الحضور: سجل واحد لكل (طالبة، حصة) ───
+-- ─── الحضور: سجل واحد لكل (طالبة، محاضرة) ───
 create table if not exists attendance (
   id         text primary key,
   student_id text not null references students(id) on delete cascade,
@@ -107,7 +107,7 @@ create table if not exists submissions (
 );
 create index if not exists submissions_student on submissions (student_id);
 
--- ─── جدول تواريخ الحصص ───
+-- ─── جدول تواريخ المحاضرات ───
 create table if not exists schedule (
   section_id text not null,
   session    int  not null,

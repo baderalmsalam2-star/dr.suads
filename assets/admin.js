@@ -129,7 +129,7 @@
         });
     });
 
-    add("تواريخ الحصص داخل الفصل", function () {
+    add("تواريخ المحاضرات داخل الفصل", function () {
       var T = COURSE.term || {};
       return Store.schedule(TP.resolveSection(new URLSearchParams("")).id)
         .then(function (m) {
@@ -138,7 +138,7 @@
           var over = Object.keys(m).filter(function (k) {
             return T.lastClass && m[k] > T.lastClass;
           });
-          return over.length ? { note: ar(over.length) + " حصة بعد آخر يوم دراسة" }
+          return over.length ? { note: ar(over.length) + " محاضرة بعد آخر يوم دراسة" }
                              : { ok: true, note: TPUI.lessons(n) + " مجدولة" };
         });
     });
@@ -202,7 +202,7 @@
       ["اللغة والمنطقة", navigator.language + " · " +
         Intl.DateTimeFormat().resolvedOptions().timeZone],
       ["اليوم عند الجهاز", Store.dayKey()],
-      ["الحصص", ar((COURSE.sessions || []).length)],
+      ["المحاضرات", ar((COURSE.sessions || []).length)],
       ["الأنشطة وأوراق العمل", ar((window.WORKSHEETS || []).length)]
     ];
     table("env", ["", ""], rows);
@@ -225,7 +225,7 @@
 
     if (navigator.storage && navigator.storage.estimate) {
       navigator.storage.estimate().then(function (e) {
-        rows.push(["حصة الموقع من القرص",
+        rows.push(["محاضرة الموقع من القرص",
                    TPUI.bytes(e.usage || 0) + " من " + TPUI.bytes(e.quota || 0), ""]);
         table("sizes", ["المفتاح", "العدد", "الحجم"], rows);
       });

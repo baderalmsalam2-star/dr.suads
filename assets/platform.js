@@ -1,4 +1,4 @@
-/* ═══ الصفحة الرئيسية: لوحة شرف اليوم + بطاقات الحصص ═══ */
+/* ═══ الصفحة الرئيسية: لوحة شرف اليوم + بطاقات المحاضرات ═══ */
 (function () {
   "use strict";
 
@@ -47,7 +47,7 @@
       if (!scored.length) {
         today.appendChild(TPUI.empty(
           "لم يُرصد تفاعل اليوم بعد.",
-          "افتحي عرض الحصة واضغطي مفتاح «م» لفتح لوحة الرصد أثناء الشرح."));
+          "افتحي عرض المحاضرة واضغطي مفتاح «م» لفتح لوحة الرصد أثناء الشرح."));
         return;
       }
       scored.slice(0, 3).forEach(function (row, i) {
@@ -63,7 +63,7 @@
     }).catch(function (e) { console.error(e); });
   }
 
-  /* ─── بطاقات الحصص ─── */
+  /* ─── بطاقات المحاضرات ─── */
   var showAll = false;
   var toggle = document.getElementById("toggleAll");
   if (toggle) {
@@ -81,8 +81,8 @@
 
     if (toggle) {
       toggle.textContent = showAll
-        ? "إخفاء الحصص التي لم تُجهَّز"
-        : "عرض كل حصص الفصل (" + ar(all.length) + ")";
+        ? "إخفاء المحاضرات التي لم تُجهَّز"
+        : "عرض كل محاضرات الفصل (" + ar(all.length) + ")";
     }
     document.getElementById("sessionsSub").textContent =
       ar(ready.length) + " جاهزة من " + ar(all.length);
@@ -97,7 +97,7 @@
       body.className = isReady ? "open" : "body";
       if (isReady) body.href = s.file + "?section=" + encodeURIComponent(section.id);
 
-      body.appendChild(el("span", "no", "الحصة " + ar(s.n)));
+      body.appendChild(el("span", "no", "المحاضرة " + ar(s.n)));
       body.appendChild(el("h2", "", s.title || "لم يصل محتواها بعد"));
       if (s.subtitle) body.appendChild(el("div", "sub", s.subtitle));
 

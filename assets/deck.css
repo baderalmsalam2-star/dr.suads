@@ -1,5 +1,5 @@
-/* ═══ أنماط عرض الحصة — مشتركة بين كل الحصص ═══
-   محتوى الحصة يعيش في ملف الحصة وحده؛ لا تُنسخ هذه الأنماط. */
+/* ═══ أنماط عرض المحاضرة — مشتركة بين كل المحاضرات ═══
+   محتوى المحاضرة يعيش في ملف المحاضرة وحده؛ لا تُنسخ هذه الأنماط. */
 html,body{height:100%}
 body{background:var(--navy);color:var(--surface);font-family:var(--ui);overflow:hidden}
 
@@ -15,7 +15,7 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);overflow:
 
 /* الجدول: إطار المخطوط */
 /* الجدول سطحٌ مرفوع عن الأرضية لا حقلٌ مسطّح معها: بلا هذا تصير
-   شاشة الحصة لونًا واحدًا يملأ العرض فتُقرأ سوادًا، بخلاف الرئيسية
+   شاشة المحاضرة لونًا واحدًا يملأ العرض فتُقرأ سوادًا، بخلاف الرئيسية
    المملوءة ببطاقات وحدود. */
 .folio{flex:1;margin:clamp(10px,1.6vw,22px) 0;position:relative;
        background:var(--navy-2);
@@ -152,7 +152,7 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 
 @media print{.rec,.rec-fab,.rec-flash{display:none!important}}
 
-/* نص المذكرة أكثف من نص الحصة الأولى المكتوب يدويًا، فله مقياس
+/* نص المذكرة أكثف من نص المحاضرة الأولى المكتوب يدويًا، فله مقياس
    أصغر وسطر أعرض حتى تسع الشريحةُ الفقرةَ بلا تمرير. */
 .matn.flow{font-size:clamp(.98rem,1.85vw,1.42rem);line-height:1.9;max-width:62ch}
 .matn.flow p+p{margin-top:.7em}

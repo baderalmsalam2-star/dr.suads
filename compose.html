@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<title>مُنشئ الحصص — منصة التدريس</title>
+<title>مُنشئ المحاضرات — منصة التدريس</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +18,7 @@
 <div id="chrome"></div>
 
 <div class="control">
-  <label for="n">رقم الحصة:</label>
+  <label for="n">رقم المحاضرة:</label>
   <input type="text" id="n" size="3" value="3">
   <label for="title">العنوان:</label>
   <input type="text" id="title" placeholder="مثلًا: الولاية العامة">
@@ -28,7 +28,7 @@
   <input type="text" id="pages" size="8" placeholder="ص ٣–٤">
 </div>
 
-<div class="section-title">١ · الصق نص الحصة من المذكرة</div>
+<div class="section-title">١ · الصق نص المحاضرة من المذكرة</div>
 <div class="item">
   <div class="prompt">افصل كل فقرة عن التي بعدها بسطر فارغ. كل فقرة تصير شريحة، وتقدر تغيّر نوعها بعدين.</div>
   <textarea id="raw" rows="8" placeholder="الفقرة الأولى...&#10;&#10;الفقرة الثانية...&#10;&#10;الفقرة الثالثة..."></textarea>
@@ -46,11 +46,11 @@
 
 <div class="section-title">٣ · المعاينة والحفظ</div>
 <div class="control">
-  <button id="build" type="button">ابنِ الحصة</button>
-  <button id="download" type="button" class="gold" disabled>نزّل ملف الحصة</button>
+  <button id="build" type="button">ابنِ المحاضرة</button>
+  <button id="download" type="button" class="gold" disabled>نزّل ملف المحاضرة</button>
   <span class="hint" id="buildState"></span>
 </div>
-<iframe id="preview" title="معاينة الحصة"></iframe>
+<iframe id="preview" title="معاينة المحاضرة"></iframe>
 
 <div id="snippets" hidden>
   <div class="section-title">٤ · أضف هذين السطرين</div>
@@ -60,18 +60,18 @@
     <button id="copyCourse" type="button" class="ghost sm">نسخ</button>
   </div>
   <div class="item">
-    <div class="qno">في <b>data/worksheets.js</b> — ورقة عمل من أسئلة الحصة (اختياري)</div>
+    <div class="qno">في <b>data/worksheets.js</b> — ورقة عمل من أسئلة المحاضرة (اختياري)</div>
     <textarea id="snipSheet" rows="10" readonly></textarea>
     <button id="copySheet" type="button" class="ghost sm">نسخ</button>
   </div>
   <div class="note-box">
     احفظ الملف المنزَّل داخل مجلد <b>sessions/</b>، ثم الصق السطر الأول في
-    <b>data/course.js</b>. حدِّث الصفحة الرئيسية فتظهر الحصة «متاحة».
+    <b>data/course.js</b>. حدِّث الصفحة الرئيسية فتظهر المحاضرة «متاحة».
   </div>
 </div>
 
 <footer class="foot">
-  <div>الأداة تبني ملف الحصة من نصك أنت — لا تُنشئ محتوى من عندها.</div>
+  <div>الأداة تبني ملف المحاضرة من نصك أنت — لا تُنشئ محتوى من عندها.</div>
   <div id="credit"></div>
 </footer>
 

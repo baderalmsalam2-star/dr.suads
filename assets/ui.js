@@ -13,7 +13,7 @@
     { id: "worksheets", label: "أوراق العمل",  href: "worksheets.html" },
     { id: "grades",     label: "الدرجات",      href: "grades.html" },
     { id: "honors",     label: "لوحة الشرف",   href: "honors.html" },
-    { id: "compose",    label: "مُنشئ الحصص",  href: "compose.html" },
+    { id: "compose",    label: "مُنشئ المحاضرات",  href: "compose.html" },
     { id: "login",      label: "الحساب",       href: "login.html" },
     /* لا يظهر إلا للمشرف — يُضاف في chrome() بعد سؤال TPRole */
     { id: "admin",      label: "الفحص",        href: "admin.html", admin: true }
@@ -246,7 +246,7 @@
   var QS       = ["سؤال واحد", "سؤالان", "أسئلة", "سؤالًا"];
   var SLIDES   = ["شريحة واحدة", "شريحتان", "شرائح", "شريحة"];
   var CODES    = ["رمز واحد", "رمزان", "رموز", "رمزًا"];
-  var LESSONS  = ["حصة واحدة", "حصتان", "حصص", "حصة"];
+  var LESSONS  = ["محاضرة واحدة", "محاضرتان", "محاضرات", "محاضرة"];
   var READS    = ["شريحة قراءة", "شريحتا قراءة", "شرائح قراءة", "شريحة قراءة"];
   var SHEETS   = ["ورقة عمل واحدة", "ورقتا عمل", "أوراق عمل", "ورقة عمل"];
 

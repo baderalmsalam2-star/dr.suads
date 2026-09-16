@@ -102,7 +102,7 @@ html[data-theme="paper"] select:focus-visible{outline-color:var(--faculty)}
 /* رابط نصّي داخل الفقرات. بلا هذا يرثه المتصفّح أزرقَ افتراضيًّا
    (‎#0000EE‎) فلا يُقرأ على أرضيةٍ داكنة — وهو ما وقع فعلًا لرابط
    «الدرجات» في لوحة الشرف. والأنماط الأخصّ (شريط التنقل، الجداول،
-   بطاقات الحصص) في app.css وهو يُحمَّل بعده فيعلو عليه. */
+   بطاقات المحاضرات) في app.css وهو يُحمَّل بعده فيعلو عليه. */
 a:not(.btn){color:var(--faculty);text-decoration-thickness:1px;
   text-underline-offset:.22em}
 a:not(.btn):hover{color:var(--student)}

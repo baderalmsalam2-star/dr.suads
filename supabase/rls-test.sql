@@ -395,7 +395,7 @@ insert into schedule(section_id,session,day) values ('9',1,'2026-09-17') on conf
 begin; set local role authenticated;
 set local request.jwt.claim.sub = 'ffffffff-0000-0000-0000-000000000001';
 insert into rls_results select 'غريبٌ بحساب لا يرى التوزيعة',  (select count(*) from scheme)=0;
-insert into rls_results select 'ولا يرى جدول الحصص',           (select count(*) from schedule)=0;
+insert into rls_results select 'ولا يرى جدول المحاضرات',           (select count(*) from schedule)=0;
 insert into rls_results select 'ولا يرى الطالبات',             (select count(*) from students)=0;
 commit;
 

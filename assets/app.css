@@ -219,7 +219,7 @@ table.cmp textarea{font:inherit;font-family:var(--matn);width:100%;min-width:11e
 table.cmp textarea:focus{outline:none;border-color:var(--faculty)}
 table.cmp textarea:disabled{opacity:.8}
 
-/* يوم اختبار في جدول التواريخ — ليس حصة */
+/* يوم اختبار في جدول التواريخ — ليس محاضرة */
 tr.exam-row td{background:rgba(var(--student-rgb),.09);color:var(--student);font-weight:600}
 
 /* شريط التقويم الجامعي في لوحة جدول التواريخ */
@@ -232,5 +232,5 @@ tr.exam-row td{background:rgba(var(--student-rgb),.09);color:var(--student);font
   background:rgba(var(--danger-rgb),.09);color:var(--surface);
   padding:.7em 1em;margin:.8em 0;font-size:.86rem;line-height:1.7}
 
-/* رصد حضورٍ على حصةٍ مضت */
+/* رصد حضورٍ على محاضرةٍ مضت */
 .hint.retro{color:var(--student);opacity:1}

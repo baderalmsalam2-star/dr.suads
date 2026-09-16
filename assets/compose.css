@@ -1,4 +1,4 @@
-/* ═══ مُنشئ الحصص ═══ */
+/* ═══ مُنشئ المحاضرات ═══ */
 .control input[type=text]{font:inherit;color:var(--surface);background:var(--navy-2);
   border:1px solid var(--line);padding:.4em .8em;min-width:6em}
 .control input[type=text]:focus{outline:none;border-color:var(--faculty)}

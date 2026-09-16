@@ -1,9 +1,9 @@
 <!-- ═══════════════════════════════════════════════════════════
-     قالب حصة جديدة.
-     ١) انسخ هذا الملف باسم مثل sessions/03-اسم-الحصة.html
-     ٢) غيّر <title> و data-session إلى رقم الحصة
-     ٣) استبدل الشرائح أدناه بمحتوى الحصة
-     ٤) أضف الحصة إلى data/course.js واجعل status: "ready"
+     قالب محاضرة جديدة.
+     ١) انسخ هذا الملف باسم مثل sessions/03-اسم-المحاضرة.html
+     ٢) غيّر <title> و data-session إلى رقم المحاضرة
+     ٣) استبدل الشرائح أدناه بمحتوى المحاضرة
+     ٤) أضف المحاضرة إلى data/course.js واجعل status: "ready"
      التفاصيل في «دليل التشغيل.md»
      ═══════════════════════════════════════════════════════════ -->
 <!DOCTYPE html>
@@ -11,7 +11,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>عنوان الحصة</title>
+<title>عنوان المحاضرة</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
@@ -37,8 +37,8 @@
     <div class="inner">
 
       <!-- ══ شريحة العنوان ══ -->
-      <section class="slide on" data-tab="الحصة كذا" data-src="مذكرة كذا">
-        <h1>عنوان الحصة</h1>
+      <section class="slide on" data-tab="المحاضرة كذا" data-src="مذكرة كذا">
+        <h1>عنوان المحاضرة</h1>
         <div class="sub">سطر تعريفي تحت العنوان</div>
       </section>
 
@@ -71,12 +71,12 @@
         <div class="note">ملاحظة جانبية رمادية بخط أصغر.</div>
       </section>
 
-      <!-- ══ شريحة الختام: تعرض قارئات الحصة القادمة ══ -->
-      <section class="slide" data-tab="ختام الحصة" data-src="الحصة القادمة">
+      <!-- ══ شريحة الختام: تعرض قارئات المحاضرة القادمة ══ -->
+      <section class="slide" data-tab="ختام المحاضرة" data-src="المحاضرة القادمة">
         <div class="rubric">خلاصة اليوم</div>
-        <div class="matn"><p>الفكرة التي تُحفظ من الحصة.</p></div>
+        <div class="matn"><p>الفكرة التي تُحفظ من المحاضرة.</p></div>
         <div class="note">
-          <b>الحصة القادمة:</b> العنوان · الصفحات<br>
+          <b>المحاضرة القادمة:</b> العنوان · الصفحات<br>
           القارئات: <span id="next"></span> — النص متاح للتحضير من الآن.
         </div>
       </section>

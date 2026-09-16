@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""يبني ملفات الحصص من نص المذكرة وخطة التقسيم.
+"""يبني ملفات المحاضرات من نص المذكرة وخطة التقسيم.
 
 كل كلمة في الخرج مأخوذة من المذكرة حرفيًا؛ الخطة تحدد التقسيم
 والعناوين والأسئلة فقط. شغّله من جذر المشروع:
@@ -58,7 +58,7 @@ def esc(t):
 
 
 def highlight(t):
-    """يلوّن الآيات بالأزرق كما في الحصة الأولى."""
+    """يلوّن الآيات بالأزرق كما في المحاضرة الأولى."""
     t = esc(t)
     t = re.sub(r'﴿([^﴾]{1,400})﴾', r'<span class="q">﴿\1﴾</span>', t)
     t = re.sub(r'\{([^{}]{1,400})\}', r'<span class="q">﴿\1﴾</span>', t)
@@ -217,7 +217,7 @@ def build_session(sp, paras, nxt):
     step = max(1, len(body_slides) // (len(qs) + 1))
     at = {min((k + 1) * step, len(body_slides)): q for k, q in enumerate(qs)}
 
-    parts = ['      <section class="slide on" data-tab="الحصة %s" data-src="%s">\n'
+    parts = ['      <section class="slide on" data-tab="المحاضرة %s" data-src="%s">\n'
              '        <h1>%s</h1>\n        <div class="sub">%s</div>\n      </section>'
              % (ar(sp['n']), esc(sp['src']), esc(sp['title']), esc(sp['subtitle']))]
 
@@ -237,10 +237,10 @@ def build_session(sp, paras, nxt):
         qi += 1
         parts.append(question_slide(qs[qi - 1], qi))
 
-    nxt_line = ('          <b>الحصة القادمة:</b> %s — %s<br>\n' % (esc(nxt['title']), esc(nxt['subtitle']))
+    nxt_line = ('          <b>المحاضرة القادمة:</b> %s — %s<br>\n' % (esc(nxt['title']), esc(nxt['subtitle']))
                 ) if nxt else ''
-    parts.append('      <section class="slide" data-tab="ختام الحصة" data-src="الحصة القادمة">\n'
-                 '        <div class="rubric">ختام الحصة</div>\n'
+    parts.append('      <section class="slide" data-tab="ختام المحاضرة" data-src="المحاضرة القادمة">\n'
+                 '        <div class="rubric">ختام المحاضرة</div>\n'
                  '        <div class="matn flow"><p>%s</p></div>\n'
                  '        <div class="note">\n%s'
                  '          القارئات: <span id="next"></span> — النص متاح للتحضير من الآن.\n'
@@ -253,7 +253,7 @@ PAGE = '''<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>الحصة {nar} — {title}</title>
+<title>المحاضرة {nar} — {title}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
@@ -354,7 +354,7 @@ def main(docx):
         sheets.append(
             '  {\n    id: "w%d",\n    type: "worksheet",\n    session: %d,\n'
             '    title: %s,\n    subtitle: %s,\n    pages: %s,\n'
-            '    intro: "تُحل بعد الحصة. لا توجد درجات — الغرض أن تتبيّن مواضع اللبس.",\n'
+            '    intro: "تُحل بعد المحاضرة. لا توجد درجات — الغرض أن تتبيّن مواضع اللبس.",\n'
             '    items: [\n%s\n    ]\n  }'
             % (sp['n'], sp['n'],
                json.dumps('ورقة عمل: ' + sp['title'], ensure_ascii=False),
@@ -369,7 +369,7 @@ def main(docx):
                 '/* GENERATED:SHEETS:START */', '/* GENERATED:SHEETS:END */',
                 ',\n' + ',\n'.join(sheets) + '\n')
 
-    print('بُنيت %d حصة' % len(plan))
+    print('بُنيت %d محاضرة' % len(plan))
     print('شرائح القراءة: %d' % sum(int(re.search(r'readers: (\d+)', e).group(1)) for e in entries))
 
 
