@@ -12,6 +12,9 @@
    الخطوات كاملة في: supabase/الإعداد.md
    ═══════════════════════════════════════════════════════════════ */
 window.TP_CONFIG = {
-  url: "",        // مثال: https://abcdefgh.supabase.co
-  anonKey: ""     // مفتاح anon public من Project Settings ← API
+  url: "https://kmebjzwcqvevycpreebp.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
+           "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttZWJqendjcXZldnljcHJlZWJwIiwi" +
+           "cm9sZSI6ImFub24iLCJpYXQiOjE3ODk1NzE4NjEsImV4cCI6MjEwNTE0Nzg2MX0." +
+           "-XheRxv983OYVKarXtFyO77DWdwKC0QTIVjW2iAkwMQ"
 };

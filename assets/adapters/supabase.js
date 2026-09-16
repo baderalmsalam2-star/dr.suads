@@ -111,6 +111,10 @@
       method: opts.method || "GET",
       headers: headers(opts.headers),
       body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).catch(function () {
+      /* انقطاع الشبكة يرمي TypeError نصّه "Failed to fetch" — إنجليزيّ
+         خام لا يقول للطالبة شيئًا. يُترجَم هنا مرة واحدة لكل الطلبات. */
+      throw new Error("تعذّر الوصول إلى الخادم — تحقّقي من اتصال الإنترنت ثم أعيدي المحاولة.");
     }).then(function (r) {
       if (r.status === 204) return null;
       return r.text().then(function (t) {
@@ -118,8 +122,14 @@
         try { data = t ? JSON.parse(t) : null; } catch (e) { data = t; }
         if (!r.ok) {
           var msg = (data && (data.message || data.hint || data.error)) || ("خطأ " + r.status);
-          if (r.status === 401 || r.status === 403) {
-            msg = "لا صلاحية — سجّلي الدخول، وتأكدي أن حسابك مضاف في جدول owners.";
+          /* ٤٠١ تعني «لا جلسة»، و٤٠٣ تعني «جلسة بلا صلاحية» — وخلطهما
+             كان يقول لطالبةٍ لم تسجّل دخولها أن تضيف نفسها في owners. */
+          if (r.status === 401) {
+            msg = session()
+              ? "انتهت الجلسة — سجّلي الدخول من جديد."
+              : "سجّلي الدخول أولًا من صفحة «الحساب».";
+          } else if (r.status === 403) {
+            msg = "لا صلاحية لهذا الإجراء بحسابك.";
           }
           throw new Error(msg);
         }
