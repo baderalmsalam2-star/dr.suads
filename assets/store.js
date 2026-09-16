@@ -322,6 +322,39 @@
     return TP.ar(n) + " " + forms[3];
   }
 
+  /* ─── قاعدة الغياب ───
+     تُكتب هنا مرةً واحدة وتُنادى من كشف الدرجات ومن تقرير الحضور
+     معًا. كانت مكتوبةً في الموضعين بمقامين مختلفين: الكشف يقسم على
+     سجلات الطالبة وحدها فيحرمها، والتقرير يقسم على كل حصص الشعبة
+     فيقول «قاربت الحد». فالرقمان عن الطالبة نفسها كانا يختلفان.
+
+     القاعدة المعتمدة:
+       • «بعذر» خارج البسط والمقام معًا.
+       • حصةٌ انعقدت ولم تُعلَّم فيها الطالبة = ثغرةٌ في السجل لا
+         غياب، فتخرج من المقام. (ولو عُدَّت غيابًا لحُرمت طالبةٌ
+         بسبب سهو الدكتورة عن التعليم لا بسبب تخلّفها.) */
+  function absence(records) {
+    var POL = (window.COURSE || {}).attendance || {};
+    var ATT = POL.states || [];
+    var counts = {};
+    ATT.forEach(function (st) { counts[st.id] = st.counts; });
+
+    var counted = 0, missed = 0;
+    (records || []).forEach(function (r) {
+      var c = counts[r.status];
+      if (c === null || c === undefined) return;   /* بعذر أو وسم مجهول */
+      counted++;
+      if (c === false) missed++;
+    });
+
+    var rate = counted > 0 ? missed / counted : 0;
+    return {
+      counted: counted, missed: missed, rate: rate,
+      barred: counted > 0 && rate >= (POL.absentLimit || 1),
+      warn:   counted > 0 && rate >= (POL.warnAt || 1)
+    };
+  }
+
   function labelOf(scheme, id) {
     var hit = (scheme.items || []).filter(function (i) { return i.id === id; })[0];
     return hit ? hit.label : id;
@@ -344,6 +377,8 @@
     uid: uid,
     dayKey: dayKey,
     monthKey: monthKey,
+
+    absence: absence,
 
     students: function (sectionId) { return A.students(sectionId); },
     student: function (id) {
@@ -573,20 +608,8 @@
             total += cells[it.id].score || 0;
           });
 
-          /* الغياب: إنذار لا درجة */
-          var mine = attBy[st.id] || [], counted = 0, missed = 0;
-          mine.forEach(function (a) {
-            var c = countsBy[a.status];
-            if (c === null) return;              /* بعذر: خارج الحساب */
-            counted++;
-            if (c === false) missed++;
-          });
-          var absRate = counted > 0 ? missed / counted : 0;
-          var att_ = {
-            counted: counted, missed: missed, rate: absRate,
-            barred: counted > 0 && absRate >= (POL.absentLimit || 1),
-            warn: counted > 0 && absRate >= (POL.warnAt || 1)
-          };
+          /* الغياب: إنذار لا درجة — بالقاعدة المشتركة */
+          var att_ = absence(attBy[st.id] || []);
 
           /* capAt = null يعني لا سقف: البونص يرفع فوق المئة ويبقى */
           var cap = (COURSE.grading || {}).capAt;
@@ -605,13 +628,16 @@
 
     /* تصدير كل البيانات (بلا الملفات) للنسخ الاحتياطي أو النقل */
     exportAll: function () {
+      /* الدرجات والتوزيعة كانتا خارج النسخة، فكان «نسخة احتياطية»
+         ثم «محو» ثم «استعادة» يُفقد كل درجة اختبار رُصدت باليد —
+         ويُعاد بناء الكشف صامتًا فتصير التقديرات F بلا إنذار. */
       return Promise.all([A.students(), A.events({}), A.submissions({}),
-                          A.attendance({}), A.schedule()])
+                          A.attendance({}), A.schedule(), A.grades({}), A.scheme()])
         .then(function (r) {
           return {
-            kind: "tp-backup", version: 2, at: new Date().toISOString(),
+            kind: "tp-backup", version: 3, at: new Date().toISOString(),
             students: r[0], events: r[1], submissions: r[2],
-            attendance: r[3], schedule: r[4]
+            attendance: r[3], schedule: r[4], grades: r[5], scheme: r[6]
           };
         });
     },
@@ -620,13 +646,24 @@
       if (!payload || payload.kind !== "tp-backup") {
         return Promise.reject(new Error("الملف ليس نسخة احتياطية صالحة."));
       }
+      /* الاستيراد يكتب في التخزين المحلي مباشرةً لا عبر المحوّل، فهو
+         في وضع الخادم يكتب في مفاتيح لا يقرؤها أحد ثم يقول «تمّت
+         الاستعادة». يُرفض صراحةً بدل إيهام النجاح. */
+      if (A !== Local) {
+        return Promise.reject(new Error(
+          "الاستعادة تعمل في الوضع المحلي وحده. لرفع نسخةٍ إلى الخادم " +
+          "استعمِلي «رفع البيانات المحلية» في صفحة الحساب."));
+      }
       if (mode === "replace") {
         write("students", payload.students || []);
         write("events", payload.events || []);
         write("submissions", payload.submissions || []);
         write("attendance", payload.attendance || []);
         write("schedule", payload.schedule || {});
-        return Promise.resolve({ students: (payload.students || []).length });
+        write("grades", payload.grades || []);
+        if (payload.scheme) write("scheme", payload.scheme);
+        return Promise.resolve({ students: (payload.students || []).length,
+                                 grades: (payload.grades || []).length });
       }
       if (payload.schedule) {                    /* الجدول يُدمج بالمفتاح */
         var cur = read("schedule", {});
@@ -635,10 +672,23 @@
         });
         write("schedule", cur);
       }
-      /* دمج: لا يُكرّر ما له نفس المعرّف */
+      if (payload.scheme && !read("scheme", null)) write("scheme", payload.scheme);
+
+      /* دمج: لا يُكرّر ما له نفس المعرّف.
+         والدرجات تُدمج بمفتاحها الحقيقي (طالبة، بند) لا بالمعرّف —
+         فمعرّفٌ مولَّد جديدًا كان يُنشئ درجةً ثانية للبند نفسه. */
       return Promise.all([A.students(), A.events({}), A.submissions({}),
-                          A.attendance({})]).then(function (r) {
-        var added = { students: 0, events: 0, submissions: 0, attendance: 0 };
+                          A.attendance({}), A.grades({})]).then(function (r) {
+        var added = { students: 0, events: 0, submissions: 0, attendance: 0, grades: 0 };
+
+        var curG = r[4], keyed = {};
+        curG.forEach(function (g) { keyed[g.studentId + "|" + g.itemId] = true; });
+        (payload.grades || []).forEach(function (g) {
+          if (keyed[g.studentId + "|" + g.itemId]) return;
+          curG.push(g); added.grades++;
+        });
+        write("grades", curG);
+
         [["students", r[0]], ["events", r[1]], ["submissions", r[2]],
          ["attendance", r[3]]].forEach(function (pair) {
           var key = pair[0], cur = pair[1];

@@ -22,6 +22,7 @@
   var STORAGE = CFG.url.replace(/\/$/, "") + "/storage/v1/";
   var SESSION_KEY = "tp.sb.session";
   var PKCE_KEY = "tp.sb.pkce";
+  var STATE_KEY = "tp.sb.state";
 
   /* base64url بلا حشو — ما يقبله معيار PKCE */
   function b64url(bytes) {
@@ -40,10 +41,52 @@
       if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
       else localStorage.removeItem(SESSION_KEY);
     } catch (e) { /* تصفح خاص */ }
+    return s;
   }
   function token() {
     var s = session();
     return (s && s.access_token) || CFG.anonKey;
+  }
+
+  /* ─── تجديد الرمز ───
+     كان expires_at يُحسب ويُحفظ ولا يُقرأ، وrefresh_token يُخزَّن
+     ولا يُستعمل. فبعد ساعةٍ من الدخول يبدأ الخادم يردّ 401 في وسط
+     الحصة، وتُترجَم الرسالة خطأً إلى «تأكدي أن حسابك في owners».
+     يُجدَّد هنا قبل انتهائه بدقيقة، ويُنتظر تجديدٌ واحد لا أكثر
+     مهما تزاحمت الطلبات. */
+  var SKEW = 60 * 1000;
+  var refreshing = null;
+
+  function fresh() {
+    var s = session();
+    if (!s || !s.access_token) return Promise.resolve(null);
+    if (!s.expires_at || Date.now() < s.expires_at - SKEW) return Promise.resolve(s);
+    if (!s.refresh_token) { setSession(null); return Promise.resolve(null); }
+    if (refreshing) return refreshing;
+
+    refreshing = fetch(AUTH + "token?grant_type=refresh_token", {
+      method: "POST",
+      headers: { apikey: CFG.anonKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: s.refresh_token })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("انتهت الجلسة");
+      return r.json();
+    }).then(function (d) {
+      d.expires_at = Date.now() + (d.expires_in || 3600) * 1000;
+      setSession(d);
+      return d;
+    }).catch(function () {
+      setSession(null);
+      return null;
+    }).then(function (d) { refreshing = null; return d; });
+
+    return refreshing;
+  }
+
+  /* تُحسب مرةً واحدة عند الحفظ، فلا يبقى فرعٌ ينسى حسابها */
+  function stamp(d) {
+    if (d && !d.expires_at) d.expires_at = Date.now() + ((d.expires_in || 3600) * 1000);
+    return d;
   }
 
   function headers(extra) {
@@ -58,6 +101,12 @@
 
   function req(path, opts) {
     opts = opts || {};
+    /* كل طلبٍ يمرّ على التجديد أولًا — لا شيء يُرسَل برمزٍ منتهٍ */
+    if (session()) return fresh().then(function () { return send(path, opts); });
+    return send(path, opts);
+  }
+
+  function send(path, opts) {
     return fetch(REST + path, {
       method: opts.method || "GET",
       headers: headers(opts.headers),
@@ -426,7 +475,7 @@
       }).then(function (r) {
         return r.json().then(function (d) {
           if (!r.ok) throw new Error(d.error_description || d.msg || "تعذّر الدخول.");
-          setSession(d);
+          setSession(stamp(d));
           return d;
         });
       });
@@ -434,11 +483,14 @@
 
     /* رابط الدخول بالبريد — لا كلمة سر للطالبات */
     sendLink: function (email, redirect) {
-      return fetch(AUTH + "otp", {
+      /* GoTrue يقرأ عنوان العودة من معامل الاستعلام redirect_to.
+         كان يُرسَل في الجسم بصيغة مكتبة supabase-js فيُتجاهَل، فيعود
+         الرابط إلى SITE_URL لا إلى صفحة الحساب، ولا تكتمل الجلسة —
+         والرسالة تقول للطالبة إنه أُرسل بنجاح. */
+      return fetch(AUTH + "otp?redirect_to=" + encodeURIComponent(redirect || location.href), {
         method: "POST",
         headers: { apikey: CFG.anonKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email, create_user: true,
-                               options: { email_redirect_to: redirect } })
+        body: JSON.stringify({ email: email, create_user: true })
       }).then(function (r) {
         if (!r.ok) return r.json().then(function (d) {
           throw new Error(d.msg || d.error_description || "تعذّر إرسال الرابط.");
@@ -455,8 +507,13 @@
        نستعمل PKCE حين يتوفّر crypto.subtle — وهو يتوفّر على كل
        عنوان https — ونرجع إلى التدفّق الضمني على http المحلي. */
     signInWithUniversity: function (redirect) {
+      /* state يُصدَر هنا ويُطلب عند العودة — فلا تُقبل جلسةٌ لم نطلبها */
+      var st = b64url(window.crypto.getRandomValues(new Uint8Array(16)));
+      try { sessionStorage.setItem(STATE_KEY, st); } catch (e) { /**/ }
+
       var base = AUTH + "authorize?provider=azure" +
                  "&scopes=" + encodeURIComponent("openid email profile") +
+                 "&state=" + encodeURIComponent(st) +
                  "&redirect_to=" + encodeURIComponent(redirect || location.href.split("#")[0]);
 
       var sub = window.crypto && window.crypto.subtle;
@@ -492,8 +549,7 @@
         }).then(function (r) {
           return r.json().then(function (d) {
             if (!r.ok) throw new Error(d.error_description || d.msg || "تعذّر إتمام الدخول.");
-            d.expires_at = Date.now() + (d.expires_in || 3600) * 1000;
-            setSession(d);
+            setSession(stamp(d));
             return d;
           });
         });
@@ -512,14 +568,29 @@
 
       if (!location.hash || location.hash.indexOf("access_token") < 0) return Promise.resolve(null);
       var q = new URLSearchParams(location.hash.slice(1));
-      var s = {
+
+      /* ─── لا تُقبَل جلسة من العنوان إلا إن كنّا نحن من بدأ التدفّق ───
+         كان أيّ رمزٍ في جزء العنوان يُقبل ويُحفظ. فيكفي المهاجم أن
+         ينشئ حسابًا لنفسه ويرسل للدكتورة رابطًا فيه رمزه، فتكتب هي
+         في حسابه وهو يقرأ كل ما كتبت. الآن يُطلب state أصدرناه قبل
+         التحويل وحفظناه في هذه الجلسة وحدها. */
+      var want = "";
+      try { want = sessionStorage.getItem(STATE_KEY) || ""; } catch (e) { /**/ }
+      try { sessionStorage.removeItem(STATE_KEY); } catch (e) { /**/ }
+
+      history.replaceState(null, "", location.pathname + location.search);
+
+      if (!want || q.get("state") !== want) {
+        return Promise.reject(new Error(
+          "رابط دخولٍ لم يصدر من هذا المتصفّح، فلم يُقبل. " +
+          "افتحي صفحة الحساب وسجّلي الدخول من هنا."));
+      }
+
+      return Promise.resolve(setSession(stamp({
         access_token: q.get("access_token"),
         refresh_token: q.get("refresh_token"),
-        expires_at: Date.now() + (+q.get("expires_in") || 3600) * 1000
-      };
-      setSession(s);
-      history.replaceState(null, "", location.pathname + location.search);
-      return Promise.resolve(s);
+        expires_in: +q.get("expires_in") || 3600
+      })));
     },
 
     me: function () {
@@ -550,7 +621,16 @@
       }).catch(function () { return null; });
     },
 
-    signOut: function () { setSession(null); return Promise.resolve(); }
+    /* الخروج يُبطل رمز التجديد في الخادم أيضًا — وإلا بقي صالحًا
+       بعد «الخروج» ومُحيت الجلسة من المتصفّح وحده */
+    signOut: function () {
+      var s = session();
+      var done = s ? fetch(AUTH + "logout", {
+        method: "POST", headers: headers()
+      }).catch(function () { /* الشبكة قد تسقط — المحلي يُمحى دائمًا */ })
+        : Promise.resolve();
+      return done.then(function () { setSession(null); });
+    }
   };
 
   window.TP_ADAPTER = Adapter;

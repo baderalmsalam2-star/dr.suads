@@ -136,14 +136,43 @@
   }
 
   /* تنزيل نص كملف — التسليم والنسخ الاحتياطي */
-  function download(filename, text, mime) {
+  /* dataUrl بديلٌ عن text حين يكون المنزَّل ملفًا مرفوعًا لا نصًّا */
+  function download(filename, text, mime, dataUrl) {
     filename = safeName(filename);
-    var blob = new Blob([text], { type: (mime || "application/json") + ";charset=utf-8" });
+    var blob = dataUrl ? dataUrlToBlob(dataUrl)
+                       : new Blob([text], { type: (mime || "application/json") + ";charset=utf-8" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  /* ─── بناء CSV ───
+     أسماء الطالبات تأتي من صفحة التسجيل التي تملؤها الطالبة نفسها،
+     فاسمٌ يبدأ بـ = أو + أو - أو @ يُنفَّذ صيغةً في Excel لا يُعرض
+     نصًّا. تُسبَق هذه بفاصلة عليا فتبقى مقروءة ولا تُنفَّذ.
+     والاقتباس المزدوج والفاصلة والسطر الجديد تُقتبس كالمعتاد.
+     وعلامة ترتيب البايتات في الصدر ليفتحه Excel بالعربية سليمة. */
+  function csv(rows) {
+    return "\ufeff" + rows.map(function (r) {
+      return r.map(cell).join(",");
+    }).join("\r\n");
+
+    function cell(v) {
+      var s = String(v == null ? "" : v);
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+      return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+  }
+
+  function dataUrlToBlob(d) {
+    var parts = String(d || "").split(",");
+    var mime = (parts[0].match(/:(.*?);/) || [, "application/octet-stream"])[1];
+    var bin = atob(parts[1] || "");
+    var arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
   }
 
   /* قراءة ملف اختاره المستخدم كنص */
@@ -195,7 +224,7 @@
     el: el, chrome: chrome, sectionPicker: sectionPicker, toast: toast,
     empty: empty, download: download, readAsText: readAsText,
     readAsDataURL: readAsDataURL, arDate: arDate, arMonth: arMonth, bytes: bytes,
-    count: count, safeName: safeName,
+    count: count, safeName: safeName, csv: csv,
     points:   function (n) { return count(n, POINTS); },
     students: function (n) { return count(n, STUDENTS); },
     shares:   function (n) { return count(n, SHARES); },

@@ -212,20 +212,44 @@
       open.addEventListener("click", function () {
         Store.getFile(r.f.fileId).then(function (rec) {
           if (!rec) return TPUI.toast("الملف غير موجود على هذا الجهاز.", "bad");
-          var w = window.open();
-          if (!w) return TPUI.toast("المتصفح منع فتح نافذة جديدة.", "bad");
-          w.document.write('<title>' + rec.name + '</title>' +
-            '<body style="margin:0;background:#111">' +
-            (/^image\//.test(rec.type)
-              ? '<img src="' + rec.data + '" style="max-width:100%;display:block;margin:auto">'
-              : '<iframe src="' + rec.data + '" style="border:0;width:100%;height:100vh"></iframe>') +
-            '</body>');
-          w.document.close();
+          openFile(rec);
         }).catch(function () { TPUI.toast("تعذّر فتح الملف.", "bad"); });
       });
       li.appendChild(open);
       uploads.appendChild(li);
     });
+  }
+
+  /* ─── فتح ملف مرفوع ───
+     اسم الملف ونوعه يأتيان من الطالبة: الاسم من worksheet.js عند
+     الرفع، وعلى الخادم من عمود submissions.files الذي تكتبه هي.
+     فبناء النافذة بسلسلة نصية كان حقنًا مباشرًا: نافذة window.open()
+     بلا عنوان ترث أصل المنصة، فسكربتٌ في اسم الملف يقرأ رمز جلسة
+     الدكتورة من localStorage. تُبنى هنا بـ DOM، فلا يُفسَّر شيء.
+
+     والملف نفسه لا يُعرض في مستندٍ يرث الأصل: الصورة تُعرض في وسم
+     img وهو لا ينفّذ، وما عداها يُنزَّل ولا يُفتح — فملف HTML
+     مرفوعٌ باسم .pdf كان سينفَّذ داخل الأصل لو فُتح في إطار. */
+  var SAFE_VIEW = /^image\/(png|jpe?g|gif|webp|bmp|avif)$/i;
+
+  function openFile(rec) {
+    if (!SAFE_VIEW.test(rec.type || "")) {
+      TPUI.download(TPUI.safeName(rec.name || "file"), null, null, rec.data);
+      TPUI.toast("نُزِّل الملف — يُفتح بالبرنامج المناسب له.", "good");
+      return;
+    }
+    var w = window.open();
+    if (!w) return TPUI.toast("المتصفح منع فتح نافذة جديدة.", "bad");
+    var d = w.document;
+    d.title = rec.name || "ملف";            /* نصّ لا يُفسَّر */
+    d.documentElement.setAttribute("dir", "rtl");
+    d.body.style.margin = "0";
+    d.body.style.background = "#111";
+    var img = d.createElement("img");
+    img.setAttribute("src", rec.data);
+    img.setAttribute("alt", rec.name || "");
+    img.style.cssText = "max-width:100%;display:block;margin:auto";
+    d.body.appendChild(img);
   }
 
   /* ─── حضور الطالبة ─── */

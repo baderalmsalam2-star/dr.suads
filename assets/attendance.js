@@ -196,11 +196,11 @@
         var c = {};
         recs.forEach(function (r) { c[r.status] = (c[r.status] || 0) + 1; });
 
-        /* «بعذر» لا تُحتسب في المقام ولا في البسط */
-        var excused = c.excused || 0;
-        var counted = total - excused;
-        var absent = c.absent || 0;
-        var pct = counted > 0 ? absent / counted : 0;
+        /* القاعدة من Store.absence — لا تُعاد كتابتها هنا، فقد كان
+           هذا الموضع يقسم على حصص الشعبة كلها والكشف يقسم على سجلات
+           الطالبة، فيختلف الرقمان عن الطالبة نفسها. */
+        var ab = Store.absence(recs);
+        var counted = ab.counted, absent = ab.missed, pct = ab.rate;
 
         var tr = el("tr");
         tr.appendChild(el("td", "num", ar(st.no)));
@@ -414,29 +414,21 @@
         .concat(["أيام الغياب", "نسبة الغياب"])];
 
       students.forEach(function (st) {
-        var absent = 0, excused = 0;
+        var recs = [];
         var line = [st.uid || "", st.name].concat(cols.map(function (n) {
           var s = by[st.id + "|" + n];
-          if (s === "absent") absent++;
-          if (s === "excused") excused++;
+          if (s) recs.push({ status: s });
           return s ? label[s] : "";
         }));
-        var counted = cols.length - excused;
-        line.push(absent);
-        line.push(counted > 0 ? Math.round(absent / counted * 100) + "%" : "");
+        /* القاعدة نفسها التي في الكشف والتقرير — كانت هنا نسخة ثالثة */
+        var ab = Store.absence(recs);
+        line.push(ab.missed);
+        line.push(ab.counted > 0 ? Math.round(ab.rate * 100) + "%" : "");
         rows.push(line);
       });
 
-      var csv = rows.map(function (r) {
-        return r.map(function (c) {
-          c = String(c == null ? "" : c);
-          return /[",\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
-        }).join(",");
-      }).join("\r\n");
-
-      /* BOM حتى يفتح Excel العربية صحيحة */
       TPUI.download("attendance-sec" + section.id + "-" + Store.dayKey() + ".csv",
-                    "﻿" + csv, "text/csv");
+                    TPUI.csv(rows), "text/csv");
       TPUI.toast("نُزّل ملف الحضور — يُفتح في Excel.", "good");
     }).catch(fail);
   });

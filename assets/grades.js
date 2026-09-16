@@ -329,19 +329,9 @@
       lines.push(line);
     });
 
-    var csv = "﻿" + lines.map(function (row) {
-      return row.map(cell).join(",");
-    }).join("\r\n");
-
     TPUI.download("darajat-sec" + section.id + "-" + Store.dayKey() + ".csv",
-                  csv, "text/csv");
+                  TPUI.csv(lines), "text/csv");
     TPUI.toast("نُزِّل الملف — افتحيه بـ Excel.", "good");
-
-    /* الفاصلة والاقتباس وسطر جديد داخل الخلية كلها تُقتبس */
-    function cell(v) {
-      var s = String(v == null ? "" : v);
-      return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-    }
   });
 
   document.getElementById("printBtn").addEventListener("click", function () {
