@@ -90,10 +90,73 @@ html[data-theme="paper"]{
   --surface-rgb:26,23,18;    --danger-rgb:176,58,36;
   --line:rgba(var(--neutral-rgb),.34);
 }
-/* على الورقية تُقلب حدود التركيز لتُرى على الفاتح */
+/* ═══ اللوحات الفاتحة الناصعة ═══
+   أرضيةٌ بيضاء أو تكاد، وحبرٌ داكن، ولونان مشبعان داكنان: تُقرأ في
+   قاعةٍ مضيئة وعلى شاشة الجوال في النهار، وتُطبع كما تُرى.
+   وقياسُ كلٍّ منها مُثبَت: نصّ المتن فوق ١٥:١، ولونا الدكتورة
+   والطالبة فوق ٥.٥:١ على الأرضية وعلى السطح المرتفع معًا، وبينهما
+   فرقٌ لونيّ (ΔE) فوق ٦٠ فلا يلتبس أحدهما بالآخر. */
+
+/* ٦) ثلجية — أبيض خالص وأزرقٌ سماويّ داكن */
+html[data-theme="snow"]{
+  --navy:#FFFFFF;  --navy-2:#EFF3F8;
+  --faculty:#0B5FA5;  --student:#8A5300;  --neutral:#49545F;
+  --surface:#0D1520;  --danger:#B02418;   --ink:#0D1520;
+  --navy-rgb:255,255,255;   --faculty-rgb:11,95,165;
+  --student-rgb:138,83,0;    --neutral-rgb:73,84,95;
+  --surface-rgb:13,21,32;    --danger-rgb:176,36,24;
+  --line:rgba(var(--neutral-rgb),.30);
+}
+
+/* ٧) ورديّة — ورديّ فاتح وعنّابٌ داكن */
+html[data-theme="rose"]{
+  --navy:#FFF2F5;  --navy-2:#FFFFFF;
+  --faculty:#A62A56;  --student:#7C5300;  --neutral:#57474D;
+  --surface:#1E0F14;  --danger:#B02418;   --ink:#1E0F14;
+  --navy-rgb:255,242,245;   --faculty-rgb:166,42,86;
+  --student-rgb:124,83,0;    --neutral-rgb:87,71,77;
+  --surface-rgb:30,15,20;    --danger-rgb:176,36,24;
+  --line:rgba(var(--neutral-rgb),.30);
+}
+
+/* ٨) فيروزية — أزرقٌ مائيّ فاتح وفيروزٌ داكن */
+html[data-theme="aqua"]{
+  --navy:#EAF7F8;  --navy-2:#FFFFFF;
+  --faculty:#08636F;  --student:#8A5300;  --neutral:#44565A;
+  --surface:#08201F;  --danger:#A83224;   --ink:#08201F;
+  --navy-rgb:234,247,248;   --faculty-rgb:8,99,111;
+  --student-rgb:138,83,0;    --neutral-rgb:68,86,90;
+  --surface-rgb:8,32,31;     --danger-rgb:168,50,36;
+  --line:rgba(var(--neutral-rgb),.30);
+}
+
+/* ٩) ليلكية — بنفسجٌ فاتح وأرجوانٌ داكن */
+html[data-theme="lilac"]{
+  --navy:#F4F0FE;  --navy-2:#FFFFFF;
+  --faculty:#5A3CA8;  --student:#8A5300;  --neutral:#4E4A5E;
+  --surface:#171232;  --danger:#AC2B34;   --ink:#171232;
+  --navy-rgb:244,240,254;   --faculty-rgb:90,60,168;
+  --student-rgb:138,83,0;    --neutral-rgb:78,74,94;
+  --surface-rgb:23,18,50;    --danger-rgb:172,43,52;
+  --line:rgba(var(--neutral-rgb),.30);
+}
+
+/* على اللوحات الفاتحة تُقلب حدود التركيز لتُرى على الفاتح */
 html[data-theme="paper"] button:focus-visible,
 html[data-theme="paper"] a:focus-visible,
-html[data-theme="paper"] select:focus-visible{outline-color:var(--faculty)}
+html[data-theme="paper"] select:focus-visible,
+html[data-theme="snow"] button:focus-visible,
+html[data-theme="snow"] a:focus-visible,
+html[data-theme="snow"] select:focus-visible,
+html[data-theme="rose"] button:focus-visible,
+html[data-theme="rose"] a:focus-visible,
+html[data-theme="rose"] select:focus-visible,
+html[data-theme="aqua"] button:focus-visible,
+html[data-theme="aqua"] a:focus-visible,
+html[data-theme="aqua"] select:focus-visible,
+html[data-theme="lilac"] button:focus-visible,
+html[data-theme="lilac"] a:focus-visible,
+html[data-theme="lilac"] select:focus-visible{outline-color:var(--faculty)}
 
 *{box-sizing:border-box;margin:0;padding:0}
 /* وسم hidden لا يصمد أمام display:flex المعلَن على الصنف، فيُثبَّت هنا
@@ -114,11 +177,13 @@ button:focus-visible,a:focus-visible,li:focus-visible,select:focus-visible{
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 /* ═══ مبدّل اللوحات ═══ */
-.theme-picker{display:flex;gap:.4em;align-items:center}
+.theme-picker{display:flex;gap:.4em;align-items:center;flex-wrap:wrap}
 .theme-dot{width:1.15em;height:1.15em;padding:0;border-radius:50%;
   border:1px solid var(--line);background:var(--dot);cursor:pointer;
   transition:transform .12s ease,box-shadow .12s ease}
 .theme-dot:hover{transform:scale(1.18)}
+/* اللوحة الفاتحة: أرضيتها في الوسط ولونها حلقةً حولها */
+.theme-dot.light{background:var(--dot-bg);border-color:var(--dot);border-width:3px}
 .theme-dot.on{border-color:var(--surface);
   box-shadow:0 0 0 2px rgba(var(--surface-rgb),.55)}
 @media print{.theme-picker{display:none}}

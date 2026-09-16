@@ -13,7 +13,12 @@
     { id: "wine",   label: "عنّابية",  dot: "#E9A8A0" },
     { id: "indigo", label: "بنفسجية",  dot: "#A99BF5" },
     { id: "slate",  label: "فحمية",    dot: "#79B8E8" },
-    { id: "paper",  label: "ورقية",    dot: "#166149" },
+    /* الفاتحة الناصعة */
+    { id: "paper",  label: "ورقية",    dot: "#166149", bg: "#F6F1E6" },
+    { id: "snow",   label: "ثلجية",    dot: "#0B5FA5", bg: "#FFFFFF" },
+    { id: "rose",   label: "ورديّة",   dot: "#A62A56", bg: "#FFF2F5" },
+    { id: "aqua",   label: "فيروزية",  dot: "#08636F", bg: "#EAF7F8" },
+    { id: "lilac",  label: "ليلكية",   dot: "#5A3CA8", bg: "#F4F0FE" },
     { id: "mix",    label: "مزاجي",    dot: "", mix: true }
   ];
 
@@ -145,9 +150,12 @@
       THEMES.forEach(function (t) {
         var b = document.createElement("button");
         b.type = "button";
-        b.className = "theme-dot" + (t.mix ? " mix" : "");
+        /*  اللوحة الفاتحة نقطتُها حلقة: أرضيتُها في الوسط ولونها
+            حولها — فتُعرف الفاتحة من الداكنة بالنظرة الواحدة. */
+        b.className = "theme-dot" + (t.mix ? " mix" : "") + (t.bg ? " light" : "");
         b.style.setProperty("--dot", t.mix ? (readMix() || DEFAULT_MIX).bg : t.dot);
-        b.title = t.mix ? "لون على مزاجك" : t.label;
+        if (t.bg) b.style.setProperty("--dot-bg", t.bg);
+        b.title = t.mix ? "لون على مزاجك" : t.label + (t.bg ? " — فاتحة" : "");
         b.setAttribute("aria-label", t.mix ? "لوحة على مزاجك" : "اللوحة " + t.label);
 
         b.addEventListener("click", function () {

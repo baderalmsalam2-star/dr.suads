@@ -87,6 +87,25 @@
     }).catch(function () { /* يبقى الترقيم كما هو */ });
   }
 
+  /* ─── علامة التتمّة ───
+     الشريحة الطويلة تُمرَّر داخل الإطار. وبلا علامةٍ ظاهرة تبدو
+     كأنها انتهت عند حافّته، فيمضي الدرس والخيار الرابع لم يُقرأ.
+     فتظهر علامةٌ عند الحافّة ما دام تحتها شيء، وتختفي متى بُلغ
+     آخرُه. (والأقرب من ذلك: تصغير الخط بمفتاح − حتى تسع الشريحة.) */
+  var innerEl = document.querySelector(".inner");
+  var folioEl = document.querySelector(".folio");
+
+  function markMore() {
+    if (!innerEl || !folioEl) return;
+    var more = innerEl.scrollHeight - innerEl.scrollTop - innerEl.clientHeight > 4;
+    folioEl.classList.toggle("more", more);
+  }
+
+  if (innerEl) {
+    innerEl.addEventListener("scroll", markMore, { passive: true });
+    addEventListener("resize", markMore);
+  }
+
   /* ─── حجم خط الشريحة ───
      القاعات تختلف: ما يُقرأ من آخر قاعةٍ لا يُقرأ من آخر غيرها.
      فالمقاس بيد الدكتورة، ويُحفظ لجهازها فلا تعيده كل محاضرة. */
@@ -107,6 +126,7 @@
     document.documentElement.style.setProperty("--z", String(STEPS[zi]));
     if (zLabel) zLabel.textContent = ar(Math.round(STEPS[zi] * 100)) + "٪";
     try { localStorage.setItem(ZOOM_KEY, String(STEPS[zi])); } catch (e) { /* تصفّح خاص */ }
+    markMore();
   }
 
   function zoom(d) {
@@ -154,6 +174,8 @@
     src.textContent = s.dataset.src || "";
     s.classList.remove("reveal");
     if (s.dataset.timer) startTimer(+s.dataset.timer); else stopTimer();
+    if (innerEl) innerEl.scrollTop = 0;
+    markMore();
     dispatchEvent(new CustomEvent("tp:slide", { detail: { index: i, slide: s } }));
   }
 
@@ -162,6 +184,7 @@
     if (!s.hasAttribute("data-q")) return;
     s.classList.add("reveal");
     stopTimer();
+    markMore();
   }
 
   addEventListener("keydown", function (e) {

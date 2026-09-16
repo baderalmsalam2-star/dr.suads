@@ -29,8 +29,20 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);overflow:
        box-shadow:0 2px 28px rgba(var(--shadow-rgb),.28);
        border:1px solid var(--faculty);padding:clamp(10px,1.4vw,18px);min-height:0}
 .folio::before{content:"";position:absolute;inset:5px;border:1px solid var(--line-faculty);pointer-events:none}
+/* علامة التتمّة — تظهر ما دام تحت الحافّة نصّ لم يُعرض بعد */
+.folio::after{content:"تتمّة الشريحة ↓";position:absolute;bottom:-1px;
+  left:50%;transform:translate(-50%,50%);background:var(--navy);
+  border:1px solid var(--faculty);color:var(--faculty);padding:.2em 1em;
+  font-family:var(--ui);font-size:clamp(.62rem,1vw,.76rem);white-space:nowrap;
+  opacity:0;transition:opacity .15s ease;pointer-events:none}
+.folio.more::after{opacity:1}
+@media print{.folio::after{display:none}}
+/*  safe center لا center: التوسيط العادي يدفع المحتوى الفائض فوق
+    نقطة صفر التمرير، فيصير أوّل الفقرة غير قابلٍ للبلوغ مهما مرّرتِ
+    — وهو ما وقع في ٩٣ شريحة عند تكبير الخط إلى ١٥٠٪. و safe يتخلّى
+    عن التوسيط متى فاض المحتوى، فيبدأ من أعلى ويُمرَّر إلى آخره. */
 .inner{height:100%;overflow-y:auto;padding:clamp(16px,3vw,46px) clamp(14px,3.4vw,56px);
-       display:flex;flex-direction:column;justify-content:center;scrollbar-width:thin}
+       display:flex;flex-direction:column;justify-content:safe center;scrollbar-width:thin}
 
 /* لسان القارئة على حافة الإطار */
 .tab{position:absolute;top:-1px;right:clamp(24px,5vw,64px);transform:translateY(-50%);
@@ -96,8 +108,15 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 @media print{.zoom{display:none}}
 .credit{white-space:nowrap}
 
-.slide{display:none;height:100%}
-.slide.on{display:flex;flex-direction:column;justify-content:center}
+/*  الشريحة تملأ الإطار وتزيد عليه عند الحاجة.
+    كانت height:100% بالضبط، فإن طال محتواها فاض عن الإطار وقُصّ في
+    صمت — يضيع الخيار الرابع من السؤال وفيه الجواب أحيانًا. وبما أن
+    ارتفاعها كان مساويًا للإطار تمامًا لم يجد .inner ما يمرّره.
+    و min-height تُبقي التوسيط للشريحة القصيرة وتُطلق الطويلة. */
+/*  الشريحة تملأ الإطار وتزيد عليه عند الحاجة — min-height لا height،
+    وإلا بقي المحتوى الطويل خارج صندوقها فلم يجد الإطارُ ما يمرّره. */
+.slide{display:none}
+.slide.on{display:flex;flex-direction:column;justify-content:safe center;min-height:100%}
 
 /* تنقل باللمس — يظهر على الشاشات الصغيرة فقط */
 .nav{display:none;gap:.5em}
