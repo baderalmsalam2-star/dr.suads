@@ -58,11 +58,20 @@ create table if not exists students (
   uid         text,
   placeholder boolean not null default false,
   active      boolean not null default true,
-  auth_uid    uuid unique references auth.users(id) on delete set null,
+  auth_uid    uuid references auth.users(id) on delete set null,
   updated_at  timestamptz not null default now()
 );
 create index if not exists students_section on students (section_id, no);
 create index if not exists students_uid     on students (uid);
+
+--  الطالبة الواحدة تدرس أكثر من مقرر، فلها صفٌّ في كشف كل مقرر
+--  وحسابها واحد. فالتفرّد ليس على الحساب وحده — كان auth_uid unique
+--  فلا يرتبط الحساب إلا بصفٍّ واحد في المنصة كلها، وتبقى بقية
+--  المقررات لا ترى صاحبتها — بل على (الحساب، الشعبة): صفٌّ واحد
+--  لكل حساب في كل شعبة، ولا أكثر.
+alter table students drop constraint if exists students_auth_uid_key;
+create unique index if not exists students_auth_section
+  on students (auth_uid, section_id);
 
 -- ─── أحداث التفاعل ───
 create table if not exists events (
@@ -147,10 +156,18 @@ alter table attendance  enable row level security;
 alter table submissions enable row level security;
 alter table schedule    enable row level security;
 
--- صفّ الطالبة الحالية
-create or replace function my_student_id() returns text
+--  صفوف الطالبة الحالية — صفٌّ في كل مقرر تدرسه، لا صفٌّ واحد.
+--  (كانت my_student_id() تُرجع صفًّا واحدًا مهما كثرت المقررات،
+--   فتحجب عن الطالبة درجاتها وحضورها في بقية مقرراتها.)
+create or replace function my_student_ids() returns setof text
 language sql stable security definer set search_path = public, pg_temp as $$
-  select id from students where auth_uid = auth.uid() limit 1;
+  select id from students where auth_uid = auth.uid();
+$$;
+
+--  شعب الطالبة الحالية — لقراءة التوزيعة وجدول المحاضرات
+create or replace function my_section_ids() returns setof text
+language sql stable security definer set search_path = public, pg_temp as $$
+  select section_id from students where auth_uid = auth.uid();
 $$;
 
 -- ─── owners: لا يقرؤه إلا المالكات، ولا يُكتب إلا من لوحة Supabase ───
@@ -264,7 +281,7 @@ create policy events_owner on events for all
 
 drop policy if exists events_self on events;
 create policy events_self on events for select
-  using (student_id = my_student_id());
+  using (student_id in (select my_student_ids()));
 
 -- ─── attendance ───
 drop policy if exists attendance_owner on attendance;
@@ -273,7 +290,7 @@ create policy attendance_owner on attendance for all
 
 drop policy if exists attendance_self on attendance;
 create policy attendance_self on attendance for select
-  using (student_id = my_student_id());
+  using (student_id in (select my_student_ids()));
 
 -- ─── submissions: الطالبة تكتب تسليمها وحدها ───
 drop policy if exists submissions_owner on submissions;
@@ -282,20 +299,20 @@ create policy submissions_owner on submissions for all
 
 drop policy if exists submissions_self on submissions;
 create policy submissions_self on submissions for select
-  using (student_id = my_student_id());
+  using (student_id in (select my_student_ids()));
 
 --  الطالبة تولد مسودةً لا تسليمًا مقفلًا. بلا قيد status كانت تستطيع
 --  إرسال صفٍّ status='submitted' لكل ورقة بطلب واحد، بإجابات فارغة،
 --  فتنال درجة الواجبات الإلكترونية كاملةً بلا أن تحلّ شيئًا.
 drop policy if exists submissions_self_write on submissions;
 create policy submissions_self_write on submissions for insert
-  with check (student_id = my_student_id() and status = 'draft');
+  with check (student_id in (select my_student_ids()) and status = 'draft');
 
 -- التسليم المقفل لا يُعدَّل من الطالبة
 drop policy if exists submissions_self_update on submissions;
 create policy submissions_self_update on submissions for update
-  using (student_id = my_student_id() and status <> 'submitted')
-  with check (student_id = my_student_id());
+  using (student_id in (select my_student_ids()) and status <> 'submitted')
+  with check (student_id in (select my_student_ids()));
 
 --  ووقت التسليم يُختم في الخادم لا يُرسَل من المتصفّح، ولا يُرجَع
 --  تسليمٌ مقفل إلى مسودة.
@@ -325,7 +342,7 @@ create policy grades_owner on grades for all
 
 drop policy if exists grades_self on grades;
 create policy grades_self on grades for select
-  using (student_id = my_student_id());
+  using (student_id in (select my_student_ids()));
 
 -- ─── scheme: الجميع يقرأ التوزيعة (الطالبة ترى على أي أساس تُقيَّم)،
 --             والمالكة وحدها تكتبها ───
@@ -334,8 +351,7 @@ create policy grades_self on grades for select
 --  الطالبة نفسها — وحسابٌ غير مرتبط بصفٍّ لا يرى شيئًا.
 drop policy if exists scheme_read on scheme;
 create policy scheme_read on scheme for select
-  using (is_owner() or section_id = (
-    select section_id from students where id = my_student_id()));
+  using (is_owner() or section_id in (select my_section_ids()));
 
 drop policy if exists scheme_write on scheme;
 create policy scheme_write on scheme for all
@@ -344,8 +360,7 @@ create policy scheme_write on scheme for all
 -- ─── schedule: الجميع يقرأ، والمالكة وحدها تكتب ───
 drop policy if exists schedule_read on schedule;
 create policy schedule_read on schedule for select
-  using (is_owner() or section_id = (
-    select section_id from students where id = my_student_id()));
+  using (is_owner() or section_id in (select my_section_ids()));
 
 drop policy if exists schedule_write on schedule;
 create policy schedule_write on schedule for all
@@ -378,19 +393,26 @@ begin
   sid := substring(lower(coalesce(new.email,'')) from '^s([0-9]{6,12})@ku\.edu\.kw$');
   if sid is null then return new; end if;
 
-  --  صفٌّ واحد لا كل الصفوف ذات الرقم نفسه: auth_uid فريد، فتحديث
-  --  صفّين بالمعرّف نفسه يرفع unique_violation فيُسقط إنشاء الحساب
-  --  كلّه — والطالبة لا تستطيع الدخول إطلاقًا. ويُلفّ الجسم فلا
-  --  يمنع خللٌ في الكشف طالبةً من إنشاء حسابها.
+  --  صفٌّ واحد في كل شعبة لا كل الصفوف ذات الرقم نفسه: التفرّد صار
+  --  على (الحساب، الشعبة)، فتحديث صفّين في شعبةٍ واحدة بالحساب نفسه
+  --  يرفع unique_violation فيُسقط إنشاء الحساب كلّه — والطالبة لا
+  --  تستطيع الدخول إطلاقًا.
+  --
+  --  وتُربط صفوفها في كل مقرر لا في مقرر واحد: الطالبة تدرس أكثر من
+  --  مقرر وحسابها واحد، فلو رُبط صفٌّ واحد بقيت في بقية مقرراتها
+  --  بلا حساب — لا ترى حضورها ولا درجاتها فيها.
+  --
+  --  ويُلفّ الجسم فلا يمنع خللٌ في الكشف طالبةً من إنشاء حسابها.
   begin
-    update students
+    update students st
        set auth_uid = new.id, updated_at = now()
-     where id = (
-       select id from students
+     where st.id in (
+       select distinct on (section_id) id from students
         where uid = sid and auth_uid is null
-        order by updated_at
-        limit 1)
-       and not exists (select 1 from students s2 where s2.auth_uid = new.id);
+        order by section_id, updated_at)
+       and not exists (select 1 from students s2
+                        where s2.auth_uid = new.id
+                          and s2.section_id = st.section_id);
   exception when others then
     null;                       /* الحساب يُنشأ، والربط يُعالَج يدويًا */
   end;
@@ -420,9 +442,15 @@ begin
 
   if new.auth_uid is not null or new.uid is null then return new; end if;
 
+  --  «حسابٌ لم يُربط بعد» صارت «لم يُربط في هذه الشعبة»: الحساب
+  --  الواحد يرتبط بصفٍّ في كل مقرر تدرسه صاحبته، وإنما المنع من
+  --  صفّين لحسابٍ واحد في الشعبة الواحدة.
   select u.id into aid from auth.users u
    where lower(u.email) = 's' || new.uid || '@ku.edu.kw'
-     and not exists (select 1 from students s2 where s2.auth_uid = u.id)
+     and not exists (select 1 from students s2
+                      where s2.auth_uid = u.id
+                        and s2.section_id = new.section_id
+                        and s2.id is distinct from new.id)
    limit 1;
 
   new.auth_uid := aid;
@@ -501,7 +529,7 @@ end $$;
 
 do $$ begin
   create policy tpfiles_self_read on storage.objects for select
-    using (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+    using (bucket_id = 'tp-files' and (storage.foldername(name))[1] in (select my_student_ids()));
 exception when insufficient_privilege or undefined_table or undefined_object then
   raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
 end $$;
@@ -514,7 +542,7 @@ end $$;
 
 do $$ begin
   create policy tpfiles_self_write on storage.objects for insert
-    with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+    with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] in (select my_student_ids()));
 exception when insufficient_privilege or undefined_table or undefined_object then
   raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
 end $$;
@@ -529,9 +557,9 @@ end $$;
 do $$ begin
   create policy tpfiles_self_edit on storage.objects for update
     using (bucket_id = 'tp-files'
-           and (storage.foldername(name))[1] = my_student_id()
+           and (storage.foldername(name))[1] in (select my_student_ids())
            and not locked_file(name))
-    with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+    with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] in (select my_student_ids()));
 exception when insufficient_privilege or undefined_table or undefined_object then
   raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
 end $$;
@@ -545,10 +573,40 @@ end $$;
 do $$ begin
   create policy tpfiles_self_del on storage.objects for delete
     using (bucket_id = 'tp-files'
-           and (storage.foldername(name))[1] = my_student_id()
+           and (storage.foldername(name))[1] in (select my_student_ids())
            and not locked_file(name));
 exception when insufficient_privilege or undefined_table or undefined_object then
   raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════════
+--  ترقية سجلات ما قبل تعدّد المقررات
+--
+--  صار مفتاح الشعبة «المقرر:الشعبة» — «wilaya:1» لا «1» — وهو
+--  أساس الفصل بين المقررات في المنصة كلها. والسجلات التي كُتبت قبل
+--  ذلك مفاتيحها بلا مقرر، فتُنسب إلى مقرر الولاية الخاصة، وهو
+--  المقرر الوحيد الذي كان.
+--
+--  الشرط «بلا نقطتين» يجعل التشغيل المكرَّر بلا أثر: ما رُقّي مرةً
+--  لا يُرقّى ثانية، ولا يصير «wilaya:wilaya:1».
+--  وعلى قاعدةٍ جديدة الجداولُ فارغة فلا يتغير شيء.
+-- ═══════════════════════════════════════════════════════════════
+do $$
+declare n int; t text;
+begin
+  foreach t in array array['students','events','attendance','grades','schedule','scheme'] loop
+    execute format(
+      'update %I set section_id = ''wilaya:'' || section_id where position('':'' in section_id) = 0', t);
+    get diagnostics n = row_count;
+    if n > 0 then raise notice 'رُقّي %: % سجلًّا', t, n; end if;
+  end loop;
+
+  --  ومعرّف ورقة العمل كذلك: صار «wilaya:w5» فلا يلتبس بورقةٍ
+  --  تحمل الرقم نفسه في مقرر آخر.
+  update submissions set worksheet_id = 'wilaya:' || worksheet_id
+   where position(':' in worksheet_id) = 0;
+  get diagnostics n = row_count;
+  if n > 0 then raise notice 'رُقّي submissions: % تسليمًا', n; end if;
 end $$;
 
 -- PostgREST يخزّن شكل المخطّط في ذاكرته، فلا يرى دالةً أُضيفت بعد

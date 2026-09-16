@@ -60,10 +60,13 @@
         checkLocal();
         return;
       }
-      /* حساب طالبة: هل ارتبط بصفّ؟ */
+      /* حساب طالبة: هل ارتبط بصفّ؟
+         والصفوف قد تكون أكثر من واحد — صفٌّ في كل مقرر تدرسه. */
       Store.students().then(function (rows) {
         document.getElementById("whoText").textContent = rows && rows.length
-          ? me.email + " — حساب " + rows[0].name + "."
+          ? me.email + " — حساب " + rows[0].name +
+            (rows.length > 1 ? " · مرتبط بـ" + TPUI.count(rows.length,
+              ["مقرر واحد", "مقررين", "مقررات", "مقررًا"]) : "") + "."
           : me.email + " — الحساب سليم، لكنه غير مرتبط بصفّ في الكشف بعد. " +
             "إن كنتِ طالبة فأبلغي الدكتورة لتضيفك، وسيرتبط حسابك تلقائيًا. " +
             "وإن كنتِ الدكتورة فأضيفي معرّفك في جدول owners.";
