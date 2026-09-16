@@ -352,7 +352,14 @@ create trigger on_student_row_saved
   before insert or update of uid on students
   for each row execute function link_student_row();
 
-alter table storage.objects enable row level security;
+-- على Supabase هذا الجدول مملوك لدور supabase_storage_admin وحمايته
+-- مفعَّلة أصلًا، فمحاولة تفعيلها تردّ 42501 وتُسقط المخطّط كلّه. وهي
+-- لازمة على قاعدة اختبارٍ محلية. فتُحاوَل ويُتجاوَز فشلها.
+do $$ begin
+  alter table storage.objects enable row level security;
+exception when insufficient_privilege or undefined_table or wrong_object_type then
+  raise notice 'حماية storage.objects مفعَّلة أصلًا — تُخطّي.';
+end $$;
 
 -- هل يشير تسليمٌ مقفل إلى هذا الملف؟
 create or replace function locked_file(p text) returns boolean
@@ -365,41 +372,102 @@ language sql stable security definer set search_path = public, pg_temp as $$
 $$;
 
 -- ═══ تخزين ملفات الطالبات ═══
-insert into storage.buckets (id, name, public)
-values ('tp-files', 'tp-files', false)
-on conflict (id) do nothing;
+--  كل ما يمسّ مخطّط storage يُحرَس: هو مملوك لدور آخر على Supabase،
+--  وقد يُمنع إنشاء سياساته من محرّر SQL حسب إصدار المشروع. فإن مُنع،
+--  يُكمل المخطّط عمله وتُنشأ السياسات من واجهة Storage يدويًا —
+--  ولا يسقط كل شيء بسبب جدولٍ واحد.
+
+
+-- ═══ تخزين ملفات الطالبات ═══
+do $$ begin
+  insert into storage.buckets (id, name, public)
+  values ('tp-files', 'tp-files', false)
+  on conflict (id) do nothing;
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
 
 -- مسار الملف: <student_id>/<اسم الملف>
-drop policy if exists tpfiles_owner on storage.objects;
-create policy tpfiles_owner on storage.objects for all
-  using (bucket_id = 'tp-files' and is_owner())
-  with check (bucket_id = 'tp-files' and is_owner());
+do $$ begin
+  drop policy if exists tpfiles_owner on storage.objects;
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
+
+do $$ begin
+  create policy tpfiles_owner on storage.objects for all
+    using (bucket_id = 'tp-files' and is_owner())
+    with check (bucket_id = 'tp-files' and is_owner());
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
 
 --  القراءة والكتابة مفصولتان: كانت for all فتُبطل قفل التسليم —
 --  يُقفل الصفّ في submissions ولا يُقفل الملف في التخزين، فتستبدل
 --  الطالبة ملف ورقتها المسلَّمة بعد انتهاء الموعد.
-drop policy if exists tpfiles_self on storage.objects;
-drop policy if exists tpfiles_self_read on storage.objects;
-create policy tpfiles_self_read on storage.objects for select
-  using (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+do $$ begin
+  drop policy if exists tpfiles_self on storage.objects;
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
 
-drop policy if exists tpfiles_self_write on storage.objects;
-create policy tpfiles_self_write on storage.objects for insert
-  with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+do $$ begin
+  drop policy if exists tpfiles_self_read on storage.objects;
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
+
+do $$ begin
+  create policy tpfiles_self_read on storage.objects for select
+    using (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
+
+do $$ begin
+  drop policy if exists tpfiles_self_write on storage.objects;
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
+
+do $$ begin
+  create policy tpfiles_self_write on storage.objects for insert
+    with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
 
 --  التعديل والحذف ممنوعان على ملفٍ يشير إليه تسليمٌ مقفل
-drop policy if exists tpfiles_self_edit on storage.objects;
-create policy tpfiles_self_edit on storage.objects for update
-  using (bucket_id = 'tp-files'
-         and (storage.foldername(name))[1] = my_student_id()
-         and not locked_file(name))
-  with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+do $$ begin
+  drop policy if exists tpfiles_self_edit on storage.objects;
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
 
-drop policy if exists tpfiles_self_del on storage.objects;
-create policy tpfiles_self_del on storage.objects for delete
-  using (bucket_id = 'tp-files'
-         and (storage.foldername(name))[1] = my_student_id()
-         and not locked_file(name));
+do $$ begin
+  create policy tpfiles_self_edit on storage.objects for update
+    using (bucket_id = 'tp-files'
+           and (storage.foldername(name))[1] = my_student_id()
+           and not locked_file(name))
+    with check (bucket_id = 'tp-files' and (storage.foldername(name))[1] = my_student_id());
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
+
+do $$ begin
+  drop policy if exists tpfiles_self_del on storage.objects;
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
+
+do $$ begin
+  create policy tpfiles_self_del on storage.objects for delete
+    using (bucket_id = 'tp-files'
+           and (storage.foldername(name))[1] = my_student_id()
+           and not locked_file(name));
+exception when insufficient_privilege or undefined_table or undefined_object then
+  raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
+end $$;
 
 -- ═══════════════════════════════════════════════════════════════
 --  بعد التشغيل: سجّلي دخولك مرة، ثم نفّذي هذا السطر بمعرّفك
