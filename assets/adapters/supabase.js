@@ -291,6 +291,11 @@
                  { method: "DELETE" }).then(function () {});
     },
 
+    unmarkAttendance: function (studentId, session) {
+      return req("attendance?student_id=eq." + enc(studentId) + "&session=eq." + enc(session),
+                 { method: "DELETE" }).then(function () {});
+    },
+
     /* الجدول --------------------------------------------------- */
     schedule: function (sectionId) {
       var q = "schedule?select=*";

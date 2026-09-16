@@ -94,6 +94,13 @@
      آخرُه. (والأقرب من ذلك: تصغير الخط بمفتاح − حتى تسع الشريحة.) */
   var innerEl = document.querySelector(".inner");
   var folioEl = document.querySelector(".folio");
+  if (folioEl) {
+    var moreMark = document.createElement("div");
+    moreMark.className = "more-mark";
+    moreMark.setAttribute("aria-hidden", "true");
+    moreMark.textContent = "تتمّة الشريحة ↓";
+    folioEl.appendChild(moreMark);
+  }
 
   function markMore() {
     if (!innerEl || !folioEl) return;

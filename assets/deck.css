@@ -29,14 +29,16 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);overflow:
        box-shadow:0 2px 28px rgba(var(--shadow-rgb),.28);
        border:1px solid var(--faculty);padding:clamp(10px,1.4vw,18px);min-height:0}
 .folio::before{content:"";position:absolute;inset:5px;border:1px solid var(--line-faculty);pointer-events:none}
-/* علامة التتمّة — تظهر ما دام تحت الحافّة نصّ لم يُعرض بعد */
-.folio::after{content:"تتمّة الشريحة ↓";position:absolute;bottom:-1px;
-  left:50%;transform:translate(-50%,50%);background:var(--navy);
+/*  علامة التتمّة — تظهر ما دام تحت الحافّة نصّ لم يُعرض بعد.
+    عنصرٌ حقيقي لا ::after: الطباعة تشغل .folio::after بسطر
+    الاعتماد، فلو كانت العلامة فيه لأطفأ أحدُهما الآخر. */
+.more-mark{position:absolute;bottom:-1px;left:50%;
+  transform:translate(-50%,50%);background:var(--navy);
   border:1px solid var(--faculty);color:var(--faculty);padding:.2em 1em;
   font-family:var(--ui);font-size:clamp(.62rem,1vw,.76rem);white-space:nowrap;
   opacity:0;transition:opacity .15s ease;pointer-events:none}
-.folio.more::after{opacity:1}
-@media print{.folio::after{display:none}}
+.folio.more .more-mark{opacity:1}
+@media print{.more-mark{display:none}}
 /*  safe center لا center: التوسيط العادي يدفع المحتوى الفائض فوق
     نقطة صفر التمرير، فيصير أوّل الفقرة غير قابلٍ للبلوغ مهما مرّرتِ
     — وهو ما وقع في ٩٣ شريحة عند تكبير الخط إلى ١٥٠٪. و safe يتخلّى
@@ -108,11 +110,6 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 @media print{.zoom{display:none}}
 .credit{white-space:nowrap}
 
-/*  الشريحة تملأ الإطار وتزيد عليه عند الحاجة.
-    كانت height:100% بالضبط، فإن طال محتواها فاض عن الإطار وقُصّ في
-    صمت — يضيع الخيار الرابع من السؤال وفيه الجواب أحيانًا. وبما أن
-    ارتفاعها كان مساويًا للإطار تمامًا لم يجد .inner ما يمرّره.
-    و min-height تُبقي التوسيط للشريحة القصيرة وتُطلق الطويلة. */
 /*  الشريحة تملأ الإطار وتزيد عليه عند الحاجة — min-height لا height،
     وإلا بقي المحتوى الطويل خارج صندوقها فلم يجد الإطارُ ما يمرّره. */
 .slide{display:none}
@@ -196,3 +193,43 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 .matn.flow{font-size:calc(clamp(.98rem,1.85vw,1.42rem) * var(--z));line-height:1.9;max-width:62ch}
 .matn.flow p+p{margin-top:.7em}
 @media (max-width:640px){.matn.flow{max-width:none}}
+
+/* ═══ لوحة الحضور داخل العرض ═══
+   تشارك لوحةَ الرصد هيكلها، وتختلف عنها بشريط «الضغط يعلّم» وبألوان
+   الحالات على البطاقات. وزرّها العائم فوق زرّ الرصد لا بجانبه، فلا
+   يزاحمه على الشاشات الضيقة. */
+.att-fab{inset-block-end:calc(clamp(12px,2vw,22px) + 2.6em)}
+
+.att-brush{display:flex;flex-wrap:wrap;gap:.4em;align-items:center;
+  padding:clamp(9px,1.4vw,14px) clamp(12px,1.8vw,18px);
+  border-bottom:1px solid var(--line)}
+.att-lbl{color:var(--neutral);font-size:clamp(.7rem,1.15vw,.82rem);
+  margin-inline-end:.2em}
+.att-pick{padding:.3em .8em;font-size:clamp(.72rem,1.2vw,.85rem);
+  border-color:var(--line);color:var(--neutral);background:transparent}
+.att-pick:hover{color:var(--surface)}
+.att-pick.on{font-weight:600}
+.att-pick.s-present.on{border-color:var(--faculty);color:var(--faculty)}
+.att-pick.s-late.on{border-color:var(--student);color:var(--student)}
+.att-pick.s-excused.on{border-color:var(--neutral);color:var(--surface)}
+.att-pick.s-absent.on{border-color:var(--danger);color:var(--danger)}
+.att-all{margin-inline-start:auto;padding:.3em .8em;
+  font-size:clamp(.72rem,1.2vw,.85rem);border-color:var(--faculty);color:var(--faculty)}
+
+/* حالة الطالبة على بطاقتها — بحدٍّ ملوّن وخلفيةٍ خفيفة من اللون نفسه */
+.att-chip .pt{font-variant-numeric:normal}
+.att-chip.s-present{border-color:var(--faculty);
+  background:rgba(var(--faculty-rgb),.12)}
+.att-chip.s-present .pt{color:var(--faculty)}
+.att-chip.s-late{border-color:var(--student);
+  background:rgba(var(--student-rgb),.12)}
+.att-chip.s-late .pt{color:var(--student)}
+.att-chip.s-excused{border-color:var(--neutral);
+  background:rgba(var(--neutral-rgb),.10)}
+.att-chip.s-excused .pt{color:var(--surface)}
+.att-chip.s-absent{border-color:var(--danger);
+  background:rgba(var(--danger-rgb),.12)}
+.att-chip.s-absent .pt{color:var(--danger)}
+
+.rec.busy{opacity:.6}
+@media print{.att-fab{display:none!important}}

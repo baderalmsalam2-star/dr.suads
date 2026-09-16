@@ -206,6 +206,17 @@
       return Promise.resolve();
     },
 
+    /*  إرجاع طالبةٍ واحدة إلى «بلا تعليم». يُحذف السجل ولا تُكتب فيه
+        حالةٌ فارغة: عمود الحالة مقيَّدٌ في الخادم بالحالات الأربع،
+        فالفارغ يُرفض. */
+    unmarkAttendance: function (studentId, session) {
+      var all = read("attendance", []);
+      write("attendance", all.filter(function (a) {
+        return !(a.studentId === studentId && +a.session === +session);
+      }));
+      return Promise.resolve();
+    },
+
     /* جدول التواريخ: { "<sectionId>": { "<session>": "YYYY-MM-DD" } } */
     schedule: function (sectionId) {
       var all = read("schedule", {});
@@ -425,6 +436,10 @@
     attendance: function (f) { return A.attendance(f); },
     markAttendance: function (r) { return A.markAttendance(r); },
     clearAttendance: function (sec, ses) { return A.clearAttendance(sec, ses); },
+    unmarkAttendance: function (st, ses) {
+      if (A.unmarkAttendance) return A.unmarkAttendance(st, ses);
+      return Local.unmarkAttendance(st, ses);
+    },
     schedule: function (sec) { return A.schedule(sec); },
     setSchedule: function (sec, m) { return A.setSchedule(sec, m); },
 
