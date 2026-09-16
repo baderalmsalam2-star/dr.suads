@@ -604,6 +604,137 @@ insert into rls_results select 'الترقية تنسب المفتاح القد�
 insert into rls_results select 'وتشغيلها مرتين لا يضاعف البادئة',
   (select worksheet_id from submissions where id='old-s')='wilaya:w3';
 
+-- ═══════════════════════════════════════════════════════════════
+--  رمز الحضور الدوّار
+--
+--  المطلوب إثباته: أن الطالبة لا تبلغ الرمز إلا من الشاشة، وأنها
+--  لا تسجّل به إلا حضورَ نفسها في محاضرته هو.
+-- ═══════════════════════════════════════════════════════════════
+insert into schedule(section_id,session,day) values ('wilaya:9',4,'2026-10-06')
+  on conflict do nothing;
+insert into attend_codes(section_id,session,nonce,ttl_sec)
+ values ('wilaya:9',4,'LIVE-CODE-1',25);
+
+-- الطالبة لا ترى جدول الرموز — ولو رأته لأخذت الرمز من بيتها
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into rls_results select 'الطالبة لا ترى جدول الرموز', (select count(*) from attend_codes)=0;
+commit;
+begin; set local role anon;
+insert into rls_results select 'وبلا حساب كذلك', (select count(*) from attend_codes)=0;
+commit;
+
+-- ولا تكتب فيه رمزًا من عندها
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into attend_codes(section_id,session,nonce) values ('wilaya:9',4,'MINE');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تكتب فيه رمزًا من عندها', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تكتب فيه رمزًا من عندها', true);
+  end;
+end $$;
+
+-- بالرمز الحيّ تسجّل حضورها هي
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into rls_results select 'بالرمز الحيّ تسجّل حضورها', mark_attendance('LIVE-CODE-1')='t-sara';
+commit;
+insert into rls_results select 'وحضورها «حاضرة» في محاضرة الرمز',
+  (select status from attendance where student_id='t-sara' and session=4)='present';
+insert into rls_results select 'وبتاريخ المحاضرة من الجدول',
+  (select day from attendance where student_id='t-sara' and session=4)='2026-10-06';
+insert into rls_results select 'ولم تسجّل لغيرها',
+  not exists (select 1 from attendance where student_id='t-noura' and session=4);
+
+-- ومسحه مرتين لا يُكرّر السجل
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+select mark_attendance('LIVE-CODE-1');
+commit;
+insert into rls_results select 'ومسحه مرتين لا يُكرّر السجل',
+  (select count(*) from attendance where student_id='t-sara' and session=4)=1;
+
+-- رمزٌ مضت مدّته يُرفض
+insert into attend_codes(section_id,session,nonce,issued_at,ttl_sec)
+ values ('wilaya:9',5,'OLD-CODE-1', now() - interval '2 minutes', 25);
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333333',true);
+    perform mark_attendance('OLD-CODE-1');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('رمزٌ مضت مدّته يُرفض', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('رمزٌ مضت مدّته يُرفض', true);
+  end;
+end $$;
+insert into rls_results select 'ولم يُكتب به حضور',
+  not exists (select 1 from attendance where session=5);
+
+-- رمزٌ مخترَع يُرفض
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333333',true);
+    perform mark_attendance('GUESSED-CODE');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('رمزٌ مخترَع يُرفض', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('رمزٌ مخترَع يُرفض', true);
+  end;
+end $$;
+
+-- حسابٌ خارج كشف الشعبة لا يسجّل بالرمز ولو كان حيًّا
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','ffffffff-0000-0000-0000-000000000001',true);
+    perform mark_attendance('LIVE-CODE-1');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('حسابٌ خارج الكشف لا يسجّل بالرمز', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('حسابٌ خارج الكشف لا يسجّل بالرمز', true);
+  end;
+end $$;
+
+-- وبلا حساب لا يُستدعى أصلًا
+do $$
+begin
+  begin
+    perform set_config('role','anon',true);
+    perform mark_attendance('LIVE-CODE-1');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('وبلا حساب لا تُستدعى الدالة', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('وبلا حساب لا تُستدعى الدالة', true);
+  end;
+end $$;
+
+-- «بعذر» لا يُنقض بمسح الرمز
+insert into attendance(id,student_id,section_id,session,status,day)
+ values ('t-exc','t-noura','wilaya:9',4,'excused','2026-10-06');
+begin; set local role authenticated; set local request.jwt.claim.sub = :'NOURA';
+select mark_attendance('LIVE-CODE-1');
+commit;
+insert into rls_results select 'العذر لا يُنقض بمسح الرمز',
+  (select status from attendance where id='t-exc')='excused';
+
+-- والمالكة تكتب الرمز وتقرؤه
+begin; set local role authenticated; set local request.jwt.claim.sub = :'OWNER';
+insert into attend_codes(section_id,session,nonce) values ('wilaya:9',6,'OWNER-CODE');
+insert into rls_results select 'المالكة تكتب الرمز وتقرؤه',
+  (select count(*) from attend_codes where nonce='OWNER-CODE')=1;
+commit;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

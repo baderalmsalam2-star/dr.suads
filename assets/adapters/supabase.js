@@ -373,6 +373,28 @@
       });
     },
 
+    /* ─── رمز الحضور الدوّار ───
+       جهاز الدكتورة يولّد الرمز ويكتبه، صفٌّ واحد لكل (شعبة، محاضرة)
+       يُحدَّث كل دورة. والطالبة لا تقرأ الجدول — تمسح الرمز فقط. */
+    issueCode: function (sectionId, session, nonce, ttlSec) {
+      return req("attend_codes?on_conflict=section_id,session", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: [{ section_id: String(sectionId), session: +session, nonce: nonce,
+                 issued_at: new Date().toISOString(), ttl_sec: ttlSec || 25 }]
+      }).then(function () { return nonce; });
+    },
+
+    /*  تسجيل الحضور بمسح الرمز. تمرّ من دالة في الخادم لا من كتابة
+        مباشرة: الطالبة لا تكتب في جدول الحضور إطلاقًا. ويُرسَل رمز
+        الدخول لأن الدالة تعرف صاحبته من auth.uid() لا مما ترسله. */
+    markByCode: function (nonce) {
+      return req("rpc/mark_attendance", {
+        method: "POST",
+        body: { p_nonce: String(nonce) }
+      });
+    },
+
     /* الدرجات اليدوية ----------------------------------------- */
     grades: function (f) {
       f = f || {};

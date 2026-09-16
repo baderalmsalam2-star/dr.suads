@@ -233,3 +233,31 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 
 .rec.busy{opacity:.6}
 @media print{.att-fab{display:none!important}}
+
+/* ═══ شاشة رمز الحضور — تُعرض على البروجكتر ═══
+   تملأ الشاشة لأن المقصود أن يُمسح من آخر القاعة، والرمز أبيضُ
+   على أسود مهما كانت لوحة الألوان: قارئات الهواتف تتعثّر في
+   الرموز الملوّنة، وهذا ليس موضع زينة. */
+.att-code{position:fixed;inset:0;z-index:60;background:var(--navy);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:clamp(12px,2vw,24px);padding:clamp(14px,2.4vw,34px)}
+.ac-head{position:absolute;inset-block-start:clamp(12px,2vw,22px);
+  inset-inline:clamp(14px,2.4vw,34px);display:flex;align-items:center;gap:1em}
+.ac-title{flex:1;font-family:var(--matn);font-weight:700;color:var(--surface);
+  font-size:clamp(1.2rem,3vw,2.4rem)}
+.ac-qr{background:#fff;padding:clamp(10px,1.4vw,18px);line-height:0;
+  width:min(58vh,74vw,540px)}
+.ac-qr svg{width:100%;height:auto;display:block}
+
+/* شريطٌ ينكمش مع الزمن، فيُرى قربُ التبدّل بلا قراءة رقم */
+.ac-life{color:var(--faculty);font-size:clamp(.82rem,1.6vw,1.1rem);
+  font-variant-numeric:tabular-nums;position:relative;padding-bottom:.55em;
+  min-width:min(58vh,74vw,540px);text-align:center}
+.ac-life::after{content:"";position:absolute;inset-inline-start:0;bottom:0;
+  height:2px;width:var(--left,100%);background:var(--faculty);
+  transition:width 1s linear}
+.ac-note{color:var(--neutral);font-size:clamp(.72rem,1.3vw,.92rem);
+  text-align:center;max-width:46ch;line-height:1.9}
+.att-qr{padding:.3em .8em;font-size:clamp(.72rem,1.2vw,.85rem);
+  border-color:var(--student);color:var(--student)}
+@media print{.att-code{display:none!important}}

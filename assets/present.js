@@ -23,6 +23,10 @@
   var brush = "absent";                    /* ما يضعه الضغط */
   var panel, grid, bar, title, foot;
 
+  /* ─── رمز الحضور الدوّار ─── */
+  var TTL = 25;                            /* عمر الرمز بالثواني */
+  var codeBox = null, codeTimer = null, codeTick = null, codeOn = false;
+
   if (!sessionNo || !STATES.length) return;
 
   build();
@@ -82,7 +86,7 @@
   function toggle() {
     open = !open;
     panel.hidden = !open;
-    if (open) load();
+    if (open) load(); else closeCode();
   }
 
   /* ─── البيانات ─── */
@@ -138,6 +142,126 @@
     all.textContent = "الكل حاضرات";
     all.addEventListener("click", markAll);
     bar.appendChild(all);
+
+    /*  الرمز يعمل مع الخادم وحده: في الوضع المحلي لا شيء يصل جهاز
+        الطالبة بجهاز الدكتورة. فيُخفى الزرّ بدل أن يُعرض ثم يعتذر. */
+    if (Store.codesReady && Store.codesReady() && baseUrl()) {
+      var qr = document.createElement("button");
+      qr.type = "button";
+      qr.className = "att-qr";
+      qr.textContent = "رمز الحضور";
+      qr.addEventListener("click", openCode);
+      bar.appendChild(qr);
+    }
+  }
+
+  /*  عنوان المنصة كما تفتحه الطالبة. من المتصفّح إن كانت الصفحة
+      تُقدَّم عبر خادم — وهو الحال على الشبكة. */
+  function baseUrl() {
+    if (location.protocol !== "http:" && location.protocol !== "https:") return "";
+    return location.origin + location.pathname.replace(/sessions\/[^/]+\/[^/]*$/, "");
+  }
+
+  /* ═══ شاشة الرمز — تُعرض على البروجكتر ═══ */
+  function openCode() {
+    if (!codeBox) buildCode();
+    codeOn = true;
+    codeBox.hidden = false;
+    rotate();
+    codeTimer = setInterval(rotate, TTL * 1000);
+  }
+
+  function closeCode() {
+    codeOn = false;
+    if (codeBox) codeBox.hidden = true;
+    clearInterval(codeTimer); codeTimer = null;
+    clearInterval(codeTick); codeTick = null;
+  }
+
+  function buildCode() {
+    codeBox = document.createElement("div");
+    codeBox.className = "att-code";
+    codeBox.hidden = true;
+
+    var head = document.createElement("div");
+    head.className = "ac-head";
+    var h = document.createElement("div");
+    h.className = "ac-title";
+    h.textContent = "امسحي الرمز لتسجيل حضورك";
+    head.appendChild(h);
+
+    var x = document.createElement("button");
+    x.type = "button";
+    x.className = "rec-x";
+    x.textContent = "إغلاق";
+    x.addEventListener("click", closeCode);
+    head.appendChild(x);
+    codeBox.appendChild(head);
+
+    var box = document.createElement("div");
+    box.className = "ac-qr";
+    box.id = "acQr";
+    codeBox.appendChild(box);
+
+    var life = document.createElement("div");
+    life.className = "ac-life";
+    life.id = "acLife";
+    codeBox.appendChild(life);
+
+    var note = document.createElement("div");
+    note.className = "ac-note";
+    note.textContent = "الرمز يتبدّل كل " + ar(TTL) + " ثانية. " +
+      "مسحُه يقتضي الدخول بحسابك في المنصة.";
+    codeBox.appendChild(note);
+
+    document.body.appendChild(codeBox);
+    addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && codeOn) { closeCode(); e.stopPropagation(); }
+    }, true);
+  }
+
+  /*  الرمز عشوائيّ من مولّد المتصفّح المعمَّى، لا من الوقت ولا من
+      رقم المحاضرة — فلا يُحزَر ولا يُشتقّ. */
+  function newNonce() {
+    var a = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    return [].map.call(a, function (b) {
+      return ("0" + b.toString(16)).slice(-2);
+    }).join("");
+  }
+
+  function rotate() {
+    if (!codeOn) return;
+    var nonce = newNonce();
+    Store.issueCode(section.id, sessionNo, nonce, TTL).then(function () {
+      if (!codeOn) return;
+      var url = baseUrl() + "attend.html?c=" + encodeURIComponent(nonce);
+      document.getElementById("acQr").innerHTML =
+        QR.svg(url, { dark: "#0A0A0A", light: "#FFFFFF" });
+      countdown();
+      load();                               /* الشبكة تُظهر من سجّلت */
+    }).catch(function (e) {
+      if (!codeOn) return;
+      document.getElementById("acQr").textContent = "";
+      document.getElementById("acLife").textContent =
+        e.message || "تعذّر إصدار الرمز.";
+    });
+  }
+
+  function countdown() {
+    clearInterval(codeTick);
+    var left = TTL;
+    var el = document.getElementById("acLife");
+    function paint() {
+      el.textContent = "يتبدّل بعد " + ar(left) + " ثانية";
+      el.style.setProperty("--left", (left / TTL) * 100 + "%");
+    }
+    paint();
+    codeTick = setInterval(function () {
+      left = Math.max(0, left - 1);
+      paint();
+      if (!left) clearInterval(codeTick);
+    }, 1000);
   }
 
   /* ─── الشبكة ─── */

@@ -321,6 +321,7 @@ PAGE = '''<!DOCTYPE html>
 <script src="../../assets/ui.js"></script>
 <script src="../../assets/deck.js"></script>
 <script src="../../assets/participate.js"></script>
+<script src="../../assets/qr.js"></script>
 <script src="../../assets/present.js"></script>
 </body>
 </html>

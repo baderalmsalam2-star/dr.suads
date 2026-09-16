@@ -146,6 +146,32 @@ create table if not exists scheme (
   updated_at  timestamptz not null default now()
 );
 
+-- ─── رمز الحضور الدوّار ───
+--  الدكتورة تعرض على البروجكتر رمزًا يتبدّل كل بضع ثوانٍ، فتمسحه
+--  الطالبة فيُسجَّل حضورها. وجهاز الدكتورة هو الذي يولّد الرمز
+--  ويكتبه هنا، صفٌّ واحد لكل (شعبة، محاضرة) يُحدَّث كل دورة.
+--
+--  ولا تقرأ الطالبةُ هذا الجدول إطلاقًا — لا سياسةَ قراءةٍ لها
+--  فيه. ولو قرأته لاستغنت عن الحضور: تفتح الصفحة من بيتها فتأخذ
+--  الرمز الحاليّ. القراءة محصورةٌ في mark_attendance وهي تعمل
+--  بصلاحية المالك في الخادم.
+--
+--  حدود ما يمنعه هذا الرمز — تُقال صراحةً ولا تُوهَم الدكتورة
+--  خلافَها:
+--    • يمنع الرمزَ المصوَّر أمسِ أو قبل ساعة: لأنه يبطل بعد ثوانٍ.
+--    • ولا يمنع طالبةً في القاعة أن تُرسل الرمز الظاهر الآن إلى
+--      غائبةٍ تمسحه خلال الثواني نفسها. ولا حيلةَ في ذلك إلا
+--      المراجعة، فلوحة الحضور بيد الدكتورة تُصحّح ما شاءت.
+create table if not exists attend_codes (
+  section_id text not null,
+  session    int  not null,
+  nonce      text not null,
+  issued_at  timestamptz not null default now(),
+  ttl_sec    int  not null default 25 check (ttl_sec between 5 and 300),
+  primary key (section_id, session)
+);
+create unique index if not exists attend_codes_nonce on attend_codes (nonce);
+
 -- ═══ تفعيل حماية الصفوف ═══
 alter table owners      enable row level security;
 alter table grades      enable row level security;
@@ -155,6 +181,7 @@ alter table events      enable row level security;
 alter table attendance  enable row level security;
 alter table submissions enable row level security;
 alter table schedule    enable row level security;
+alter table attend_codes enable row level security;
 
 --  صفوف الطالبة الحالية — صفٌّ في كل مقرر تدرسه، لا صفٌّ واحد.
 --  (كانت my_student_id() تُرجع صفًّا واحدًا مهما كثرت المقررات،
@@ -365,6 +392,71 @@ create policy schedule_read on schedule for select
 drop policy if exists schedule_write on schedule;
 create policy schedule_write on schedule for all
   using (is_owner()) with check (is_owner());
+
+-- ─── attend_codes: المالكة وحدها، ولا أحد غيرها ───
+drop policy if exists attend_codes_owner on attend_codes;
+create policy attend_codes_owner on attend_codes for all
+  using (is_owner()) with check (is_owner());
+
+-- ولا سياسة قراءةٍ للطالبة — وهذا هو الحارس، لا إخفاءُ الرمز.
+
+-- ═══════════════════════════════════════════════════════════════
+--  تسجيل الحضور بمسح الرمز
+--
+--  الطالبة لا تكتب في جدول الحضور مباشرةً (سياسة attendance_owner
+--  وحدها تكتب)، فالكتابة كلها تمرّ من هنا. والدالة تحدّد بالضبط ما
+--  يقع:
+--    • الرمز يُطابَق كاملًا، ويُشترط أن يكون حيًّا (لم تمضِ ttl).
+--    • الشعبة والمحاضرة من صفّ الرمز لا مما ترسله الطالبة — فلا
+--      تسجّل حضورًا في محاضرةٍ أخرى ولا في شعبةٍ أخرى.
+--    • والطالبة هي صاحبة الحساب الداخل، من كشف تلك الشعبة نفسها.
+--      فحسابٌ غير مرتبط بالكشف لا يسجّل شيئًا.
+--    • ولا تُنزَل «بعذر» إلى «حاضرة»: العذر قرارٌ من الدكتورة، ولو
+--      حضرت بعده فالتصحيح بيدها.
+-- ═══════════════════════════════════════════════════════════════
+create or replace function mark_attendance(p_nonce text)
+returns text
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_sec text; v_ses int; v_day date; v_student text; v_old text;
+begin
+  select section_id, session into v_sec, v_ses
+    from attend_codes
+   where nonce = p_nonce
+     and issued_at + make_interval(secs => ttl_sec) > now();
+  if v_sec is null then
+    raise exception 'انتهت صلاحية الرمز — امسحي الرمز الظاهر الآن على الشاشة';
+  end if;
+
+  --  s.id لا id: الجدولان كلاهما فيه عمود id، فالمجرَّد ملتبس.
+  select s.id, a.status into v_student, v_old
+    from students s
+    left join attendance a
+      on a.student_id = s.id and a.session = v_ses
+   where s.section_id = v_sec and s.auth_uid = auth.uid()
+   limit 1;
+
+  if v_student is null then
+    raise exception 'حسابك غير مرتبط بكشف هذه الشعبة — راجعي الدكتورة';
+  end if;
+
+  if v_old = 'excused' then return v_student; end if;   /* العذر لا يُنقض */
+
+  select day into v_day from schedule
+   where section_id = v_sec and session = v_ses;
+
+  insert into attendance (id, student_id, section_id, session, day, status, at)
+  values ('at-' || replace(gen_random_uuid()::text, '-', ''),
+          v_student, v_sec, v_ses, coalesce(v_day, current_date), 'present',
+          (extract(epoch from now()) * 1000)::bigint)
+  on conflict (student_id, session) do update
+    set status = 'present', at = excluded.at, day = excluded.day;
+
+  return v_student;
+end $$;
+
+revoke all on function mark_attendance(text) from public;
+grant execute on function mark_attendance(text) to authenticated;
 
 -- ═══════════════════════════════════════════════════════════════
 --  الربط التلقائي بحساب الجامعة

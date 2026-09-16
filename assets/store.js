@@ -440,6 +440,26 @@
       if (A.unmarkAttendance) return A.unmarkAttendance(st, ses);
       return Local.unmarkAttendance(st, ses);
     },
+
+    /*  رمز الحضور الدوّار — للخادم وحده.
+        في الوضع المحلي لا شيء يجمع جهاز الدكتورة بجهاز الطالبة،
+        فلا معنى للرمز أصلًا. والصفحات تسأل codesReady() فتُخفي
+        الزرّ بدل أن تعرضه ثم تعتذر. */
+    codesReady: function () { return !!(A.issueCode && A.markByCode); },
+
+    issueCode: function (sectionId, session, nonce, ttlSec) {
+      if (!A.issueCode) {
+        return Promise.reject(new Error("رمز الحضور يعمل مع الخادم فقط."));
+      }
+      return A.issueCode(sectionId, session, nonce, ttlSec);
+    },
+
+    markByCode: function (nonce) {
+      if (!A.markByCode) {
+        return Promise.reject(new Error("رمز الحضور يعمل مع الخادم فقط."));
+      }
+      return A.markByCode(nonce);
+    },
     schedule: function (sec) { return A.schedule(sec); },
     setSchedule: function (sec, m) { return A.setSchedule(sec, m); },
 
