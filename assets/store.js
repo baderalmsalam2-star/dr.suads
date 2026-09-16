@@ -287,14 +287,20 @@
      الحقيقي من صفحة «الطالبات» بلصق الأسماء. */
   function seedRoster() {
     var C = window.COURSE || { sections: [] };
+    function ar(n) {
+      return String(n).replace(/\d/g, function (d) { return "٠١٢٣٤٥٦٧٨٩"[d]; });
+    }
     var out = [];
     (C.sections || []).forEach(function (sec) {
       for (var n = 1; n <= (sec.roster || 0); n++) {
         out.push({
           id: uid("st"), no: n, sectionId: sec.id,
-          name: "طالبة رقم " + String(n).replace(/\d/g, function (d) {
-            return "٠١٢٣٤٥٦٧٨٩"[d];
-          }), placeholder: true, active: true
+          /* صفٌّ نموذجيّ لا طالبة: الاسم موسومٌ بأنه نموذج، والرقم
+             أصفارٌ بيّنة — فلا يُظنّ برقمٍ أنه رقم طالبة حقيقية،
+             ولا يُطابق بريدًا جامعيًّا فيربط حسابًا بالخطأ. */
+          name: "طالبة " + ar(n) + " · نموذج",
+          uid: "0000000" + ("00" + n).slice(-3),
+          placeholder: true, active: true
         });
       }
     });

@@ -14,7 +14,12 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);overflow:
 .src{color:var(--faculty);white-space:nowrap}
 
 /* الجدول: إطار المخطوط */
+/* الجدول سطحٌ مرفوع عن الأرضية لا حقلٌ مسطّح معها: بلا هذا تصير
+   شاشة الحصة لونًا واحدًا يملأ العرض فتُقرأ سوادًا، بخلاف الرئيسية
+   المملوءة ببطاقات وحدود. */
 .folio{flex:1;margin:clamp(10px,1.6vw,22px) 0;position:relative;
+       background:var(--navy-2);
+       box-shadow:0 2px 28px rgba(var(--shadow-rgb),.28);
        border:1px solid var(--faculty);padding:clamp(10px,1.4vw,18px);min-height:0}
 .folio::before{content:"";position:absolute;inset:5px;border:1px solid var(--line-faculty);pointer-events:none}
 .inner{height:100%;overflow-y:auto;padding:clamp(16px,3vw,46px) clamp(14px,3.4vw,56px);

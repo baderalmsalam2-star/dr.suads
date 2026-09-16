@@ -82,8 +82,17 @@
   function sectionPicker(select, onChange) {
     var params = new URLSearchParams(location.search);
     var current = window.TP.resolveSection(params);
+    var all = window.TP.sections();
 
-    window.TP.sections().forEach(function (s) {
+    /* بشعبة واحدة لا معنى لقائمة اختيار: تُخفى هي ووسمها، وتظهر
+       من نفسها متى أُضيفت شعبة ثانية في data/course.js */
+    if (all.length < 2 && select) {
+      select.hidden = true;
+      var lab = select.id && document.querySelector('label[for="' + select.id + '"]');
+      if (lab) lab.hidden = true;
+    }
+
+    all.forEach(function (s) {
       var o = document.createElement("option");
       o.value = s.id;
       o.textContent = s.name;

@@ -40,40 +40,40 @@
 
 /* ١) خضراء ذهبية — خضرة داكنة وذهب المخطوطات */
 html[data-theme="green"]{
-  --navy:#0E2A20;  --navy-2:#16382B;
+  --navy:#14362A;  --navy-2:#1E4A39;
   --faculty:#6FD8B0;  --student:#E8C466;  --neutral:#D8DED9;
   --danger:#E8836B;   --ink:#0E2A20;
-  --navy-rgb:14,42,32;      --faculty-rgb:111,216,176;
+  --navy-rgb:20,54,42;      --faculty-rgb:111,216,176;
   --student-rgb:232,196,102; --neutral-rgb:216,222,217;
   --danger-rgb:232,131,107;
 }
 
 /* ٢) عنّابية — نبيذ داكن ووردة ورملي */
 html[data-theme="wine"]{
-  --navy:#2A1218;  --navy-2:#3B1B23;
+  --navy:#361A22;  --navy-2:#4A2530;
   --faculty:#E9A8A0;  --student:#EFC96A;  --neutral:#E2D8D6;
   --danger:#FF8A75;   --ink:#2A1218;
-  --navy-rgb:42,18,24;      --faculty-rgb:233,168,160;
+  --navy-rgb:54,26,34;      --faculty-rgb:233,168,160;
   --student-rgb:239,201,106; --neutral-rgb:226,216,214;
   --danger-rgb:255,138,117;
 }
 
 /* ٣) ليلية بنفسجية — نيلي عميق وبنفسج وكهرمان */
 html[data-theme="indigo"]{
-  --navy:#171634;  --navy-2:#232149;
+  --navy:#1E1C45;  --navy-2:#2B2860;
   --faculty:#A99BF5;  --student:#F5C453;  --neutral:#DCDAE8;
   --danger:#F0806B;   --ink:#171634;
-  --navy-rgb:23,22,52;      --faculty-rgb:169,155,245;
+  --navy-rgb:30,28,69;      --faculty-rgb:169,155,245;
   --student-rgb:245,196,83;  --neutral-rgb:220,218,232;
   --danger-rgb:240,128,107;
 }
 
 /* ٤) فحمية — رمادي محايد بلا صبغة، لمن تريد الهدوء */
 html[data-theme="slate"]{
-  --navy:#1B1E22;  --navy-2:#272B31;
+  --navy:#242830;  --navy-2:#333841;
   --faculty:#79B8E8;  --student:#E5B94F;  --neutral:#D7DADE;
   --danger:#E27D65;   --ink:#1B1E22;
-  --navy-rgb:27,30,34;      --faculty-rgb:121,184,232;
+  --navy-rgb:36,40,48;      --faculty-rgb:121,184,232;
   --student-rgb:229,185,79;  --neutral-rgb:215,218,222;
   --danger-rgb:226,125,101;
 }
@@ -99,6 +99,14 @@ html[data-theme="paper"] select:focus-visible{outline-color:var(--faculty)}
 /* وسم hidden لا يصمد أمام display:flex المعلَن على الصنف، فيُثبَّت هنا
    مرة واحدة لكل الصفحات بدل ملاحقته صنفًا صنفًا. */
 [hidden]{display:none!important}
+/* رابط نصّي داخل الفقرات. بلا هذا يرثه المتصفّح أزرقَ افتراضيًّا
+   (‎#0000EE‎) فلا يُقرأ على أرضيةٍ داكنة — وهو ما وقع فعلًا لرابط
+   «الدرجات» في لوحة الشرف. والأنماط الأخصّ (شريط التنقل، الجداول،
+   بطاقات الحصص) في app.css وهو يُحمَّل بعده فيعلو عليه. */
+a:not(.btn){color:var(--faculty);text-decoration-thickness:1px;
+  text-underline-offset:.22em}
+a:not(.btn):hover{color:var(--student)}
+
 button,a.btn{font:inherit;color:var(--faculty);background:none;
   border:1px solid var(--faculty);padding:.35em 1.1em;cursor:pointer;text-decoration:none}
 button:focus-visible,a:focus-visible,li:focus-visible,select:focus-visible{
