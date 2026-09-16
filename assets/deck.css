@@ -1,5 +1,12 @@
 /* ═══ أنماط عرض المحاضرة — مشتركة بين كل المحاضرات ═══
    محتوى المحاضرة يعيش في ملف المحاضرة وحده؛ لا تُنسخ هذه الأنماط. */
+
+/*  --z مُعامل تكبير نصّ الشريحة، يضربه مفتاحا + و − في العرض.
+    قاعات الكلية تختلف: بعضها تُقرأ من آخرها وبعضها لا، والمقاسُ
+    الواحد لا يصلح لها جميعًا. يُضرب فيه المقاس كلُّه — الأدنى
+    والأوسط والأعلى — فتبقى نسب العناوين إلى المتن على حالها. */
+:root{--z:1}
+
 html,body{height:100%}
 body{background:var(--navy);color:var(--surface);font-family:var(--ui);overflow:hidden}
 
@@ -32,30 +39,30 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);overflow:
 
 /* الرُّبرِكة */
 .rubric{color:var(--student);font-family:var(--matn);font-weight:700;
-        font-size:clamp(1.05rem,2vw,1.6rem);margin-bottom:.5em}
+        font-size:calc(clamp(1.05rem,2vw,1.6rem) * var(--z));margin-bottom:.5em}
 
 h1{font-family:var(--matn);font-weight:700;line-height:1.25;
-   font-size:clamp(2rem,6.4vw,4.6rem);color:var(--surface)}
-.sub{font-family:var(--matn);font-size:clamp(1.05rem,2.4vw,1.9rem);color:var(--faculty);margin-top:.5em}
+   font-size:calc(clamp(2rem,6.4vw,4.6rem) * var(--z));color:var(--surface)}
+.sub{font-family:var(--matn);font-size:calc(clamp(1.05rem,2.4vw,1.9rem) * var(--z));color:var(--faculty);margin-top:.5em}
 
 .matn{font-family:var(--matn);line-height:1.95;color:var(--surface);
-      font-size:clamp(1.15rem,2.75vw,2.15rem);max-width:34ch}
+      font-size:calc(clamp(1.15rem,2.75vw,2.15rem) * var(--z));max-width:34ch}
 .matn p+p{margin-top:.85em}
 .matn .q{color:var(--faculty)}
 
-.note{font-size:clamp(.8rem,1.4vw,1.05rem);color:var(--neutral);line-height:1.8;
+.note{font-size:calc(clamp(.8rem,1.4vw,1.05rem) * var(--z));color:var(--neutral);line-height:1.8;
       margin-top:1.4em;max-width:52ch;border-inline-start:2px solid var(--faculty);padding-inline-start:.9em}
 
 /* الأسئلة */
-.qtext{font-family:var(--matn);font-size:clamp(1.35rem,3.4vw,2.6rem);line-height:1.6;max-width:30ch}
+.qtext{font-family:var(--matn);font-size:calc(clamp(1.35rem,3.4vw,2.6rem) * var(--z));line-height:1.6;max-width:30ch}
 ol.opts{list-style:none;margin-top:clamp(1em,2.4vw,1.7em);display:grid;gap:.55em;max-width:44ch}
-ol.opts li{font-family:var(--matn);font-size:clamp(1.05rem,2.3vw,1.65rem);
+ol.opts li{font-family:var(--matn);font-size:calc(clamp(1.05rem,2.3vw,1.65rem) * var(--z));
            border:1px solid var(--line);padding:.45em .9em;display:flex;gap:.8em;align-items:baseline}
 ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:none}
 .reveal ol.opts li.right{border-color:var(--student);background:rgba(var(--student-rgb),.14)}
 .reveal ol.opts li.right::after{content:"✓";margin-inline-start:auto;color:var(--student)}
 .answer{display:none;margin-top:1.3em;font-family:var(--matn);
-        font-size:clamp(1rem,2vw,1.45rem);color:var(--surface);max-width:44ch;
+        font-size:calc(clamp(1rem,2vw,1.45rem) * var(--z));color:var(--surface);max-width:44ch;
         border-top:1px solid var(--faculty);padding-top:.8em}
 .reveal .answer{display:block}
 
@@ -74,6 +81,19 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 .marks i{width:16px;height:2px;background:var(--line);display:block}
 .marks i.on{background:var(--faculty)}
 .keys{color:rgba(var(--neutral-rgb),.55);white-space:nowrap}
+
+/* مفتاحا حجم الخط. العلامتان وحدهما مع اسم المفتاح ونسبته —
+   جرّبنا «أ+» فصارت الألف عند هذا المقاس شرطةً لا تُقرأ. */
+.zoom{display:flex;align-items:center;gap:.35em;white-space:nowrap}
+.zoom .lbl{font-size:clamp(.66rem,1.1vw,.82rem);color:rgba(var(--neutral-rgb),.55);
+  margin-inline-end:.15em}
+.zoom button{font-family:var(--ui);font-weight:600;line-height:1;background:transparent;
+  color:var(--neutral);border:1px solid var(--line);cursor:pointer;
+  font-size:clamp(.85rem,1.5vw,1.05rem);padding:.2em 0;min-width:2.1em;text-align:center}
+.zoom button:hover{color:var(--surface);border-color:var(--faculty)}
+.zoom .lvl{color:var(--neutral);font-variant-numeric:tabular-nums;
+  font-size:clamp(.66rem,1.1vw,.82rem);min-width:3.4em;text-align:center}
+@media print{.zoom{display:none}}
 .credit{white-space:nowrap}
 
 .slide{display:none;height:100%}
@@ -86,7 +106,7 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 @media (max-width:640px){
   .inner{padding:14px 10px}
   .matn,.qtext{max-width:none}
-  .keys{display:none}
+  .keys,.zoom .lvl{display:none}
   .credit{display:none}
   .nav{display:flex}
   .marks{flex:none}
@@ -97,7 +117,7 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
   .stage{height:auto}.folio{page-break-after:always;border-color:#999}
   .slide{display:flex!important;min-height:88vh}
   .matn,.qtext,h1{color:#000}.reveal .answer,.answer{display:block}
-  .timer,.keys,.marks,.nav,.bar .home{display:none}
+  .timer,.keys,.zoom,.marks,.nav,.bar .home{display:none}
   .folio{position:relative}
   .folio::after{content:"تم تطوير التطبيق بواسطة بدر المسلم";
     position:absolute;bottom:6px;left:0;right:0;text-align:center;
@@ -154,6 +174,6 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 
 /* نص المذكرة أكثف من نص المحاضرة الأولى المكتوب يدويًا، فله مقياس
    أصغر وسطر أعرض حتى تسع الشريحةُ الفقرةَ بلا تمرير. */
-.matn.flow{font-size:clamp(.98rem,1.85vw,1.42rem);line-height:1.9;max-width:62ch}
+.matn.flow{font-size:calc(clamp(.98rem,1.85vw,1.42rem) * var(--z));line-height:1.9;max-width:62ch}
 .matn.flow p+p{margin-top:.7em}
 @media (max-width:640px){.matn.flow{max-width:none}}
