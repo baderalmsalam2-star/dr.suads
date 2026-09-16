@@ -551,6 +551,11 @@ exception when insufficient_privilege or undefined_table or undefined_object the
   raise notice 'تُخطّي (صلاحية التخزين): %', sqlerrm;
 end $$;
 
+-- PostgREST يخزّن شكل المخطّط في ذاكرته، فلا يرى دالةً أُضيفت بعد
+-- إقلاعه حتى يُطلب منه إعادة القراءة. بلا هذا السطر تردّ المنصة:
+--   Could not find the function ... in the schema cache
+notify pgrst, 'reload schema';
+
 -- ═══════════════════════════════════════════════════════════════
 --  بعد التشغيل: سجّلي دخولك مرة، ثم نفّذي هذا السطر بمعرّفك
 --  (تجدينه في Authentication ← Users):
