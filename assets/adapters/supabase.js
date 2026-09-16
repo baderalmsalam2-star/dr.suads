@@ -388,9 +388,15 @@
       }).then(function () { return sch; });
     },
 
+    /* ─── معرّف الملف هو مساره ───
+       كان يُرفع إلى "shared/<id>" ويُقرأ من "<student_id>/<id>"،
+       فلا يُفتح ملفٌ أبدًا ويقول البرنامج «غير موجود على هذا الجهاز».
+       والرفع إلى shared/ كان يُرفض أصلًا بسياسة tpfiles_self التي
+       تشترط أن يكون أول جزءٍ من المسار هو صفّ الطالبة.
+       بجعل المعرّف هو المسار ينتهي التخمين: لا موضع يشتقّه من شيء. */
     putFile: function (rec) {
-      rec.id = rec.id || uid("f");
-      var path = (rec.studentId || "shared") + "/" + rec.id;
+      rec.id = rec.id || ((rec.studentId || "shared") + "/" + uid("f"));
+      var path = rec.id;
       return fetch(STORAGE + "object/tp-files/" + path, {
         method: "POST",
         headers: {
@@ -408,15 +414,15 @@
 
     getFile: function (id) {
       return req("submissions?select=student_id,files").then(function (rows) {
-        var owner = "shared", meta = null;
+        var meta = null;
         (rows || []).forEach(function (row) {
           Object.keys(row.files || {}).forEach(function (k) {
             (row.files[k] || []).forEach(function (f) {
-              if (f.fileId === id) { owner = row.student_id; meta = f; }
+              if (f.fileId === id) meta = f;
             });
           });
         });
-        return fetch(STORAGE + "object/tp-files/" + owner + "/" + id, {
+        return fetch(STORAGE + "object/tp-files/" + id, {
           headers: { apikey: CFG.anonKey, Authorization: "Bearer " + token() }
         }).then(function (r) {
           if (!r.ok) return null;

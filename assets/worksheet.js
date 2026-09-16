@@ -362,7 +362,10 @@
       }
       Promise.all(files.map(function (f) {
         return TPUI.readAsDataURL(f).then(function (data) {
-          return Store.putFile({ name: f.name, type: f.type, size: f.size, data: data })
+          /* صفّ الطالبة يُمرَّر: هو أول جزءٍ من مسار التخزين، وسياسة
+             Storage تشترطه. وبلا تمريره كان الرفع يُرفض على الخادم. */
+          return Store.putFile({ name: f.name, type: f.type, size: f.size,
+                                 data: data, studentId: sub.studentId })
             .then(function (fileId) {
               return { fileId: fileId, name: f.name, type: f.type, size: f.size };
             });

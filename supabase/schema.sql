@@ -37,13 +37,13 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 create or replace function is_owner() returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, pg_temp as $$
   select exists (select 1 from owners where uid = auth.uid());
 $$;
 
 -- المشرف التقني وحده
 create or replace function is_admin() returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, pg_temp as $$
   select exists (
     select 1 from owners where uid = auth.uid() and role = 'admin'
   );
@@ -149,7 +149,7 @@ alter table schedule    enable row level security;
 
 -- صفّ الطالبة الحالية
 create or replace function my_student_id() returns text
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, pg_temp as $$
   select id from students where auth_uid = auth.uid() limit 1;
 $$;
 
@@ -202,15 +202,39 @@ drop policy if exists submissions_self on submissions;
 create policy submissions_self on submissions for select
   using (student_id = my_student_id());
 
+--  الطالبة تولد مسودةً لا تسليمًا مقفلًا. بلا قيد status كانت تستطيع
+--  إرسال صفٍّ status='submitted' لكل ورقة بطلب واحد، بإجابات فارغة،
+--  فتنال درجة الواجبات الإلكترونية كاملةً بلا أن تحلّ شيئًا.
 drop policy if exists submissions_self_write on submissions;
 create policy submissions_self_write on submissions for insert
-  with check (student_id = my_student_id());
+  with check (student_id = my_student_id() and status = 'draft');
 
 -- التسليم المقفل لا يُعدَّل من الطالبة
 drop policy if exists submissions_self_update on submissions;
 create policy submissions_self_update on submissions for update
   using (student_id = my_student_id() and status <> 'submitted')
   with check (student_id = my_student_id());
+
+--  ووقت التسليم يُختم في الخادم لا يُرسَل من المتصفّح، ولا يُرجَع
+--  تسليمٌ مقفل إلى مسودة.
+create or replace function stamp_submission() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if new.status = 'submitted'
+     and (tg_op = 'INSERT' or old.status is distinct from 'submitted') then
+    new.submitted_at := now();
+  end if;
+  if tg_op = 'UPDATE' and old.status = 'submitted'
+     and new.status <> 'submitted' and not is_owner() then
+    raise exception 'التسليم المقفل لا يُعاد إلى مسودة';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists on_submission_saved on submissions;
+create trigger on_submission_saved
+  before insert or update on submissions
+  for each row execute function stamp_submission();
 
 -- ─── grades: المالكة ترصد، والطالبة تقرأ درجتها هي وحدها ───
 drop policy if exists grades_owner on grades;
@@ -259,7 +283,7 @@ create policy schedule_write on schedule for all
 --  الصيغة ولا يُربط بأي صفّ — وهو ما نريده.
 -- ═══════════════════════════════════════════════════════════════
 create or replace function link_student_account() returns trigger
-language plpgsql security definer set search_path = public, auth as $$
+language plpgsql security definer set search_path = public, auth, pg_temp as $$
 declare sid text;
 begin
   sid := substring(lower(coalesce(new.email,'')) from '^s([0-9]{6,12})@ku\.edu\.kw$');
@@ -283,9 +307,17 @@ create trigger on_auth_user_created
 --  فعند إضافة صفّ جديد (أو تصحيح رقم جامعي) نبحث عن حساب موجود
 --  ببريد ذلك الرقم ونربطه. هكذا يستوي الترتيبان.
 create or replace function link_student_row() returns trigger
-language plpgsql security definer set search_path = public, auth as $$
+language plpgsql security definer set search_path = public, auth, pg_temp as $$
 declare aid uuid;
 begin
+  --  عند تصحيح الرقم الجامعي يُفكّ الربط القديم أولًا.
+  --  بلا هذا: تخطئ الدكتورة في رقم نورة فتكتب رقم سارة، فيرتبط صفّ
+  --  نورة بحساب سارة؛ ثم تصحّح الرقم، فينسحب المُطلِق لأن auth_uid
+  --  لم يعد فارغًا — فيبقى صفّ نورة بيد سارة إلى آخر الفصل.
+  if tg_op = 'UPDATE' and new.uid is distinct from old.uid then
+    new.auth_uid := null;
+  end if;
+
   if new.auth_uid is not null or new.uid is null then return new; end if;
 
   select u.id into aid from auth.users u

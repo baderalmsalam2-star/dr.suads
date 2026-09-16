@@ -81,6 +81,7 @@
     var tb = el("tbody");
     book.rows.forEach(function (row, i) {
       var tr = el("tr");
+      tr.dataset.student = row.student.id;
       if (!row.complete) tr.className = "incomplete";
       tr.appendChild(el("td", "num", ar(i + 1)));
 
@@ -99,18 +100,65 @@
       scheme.items.forEach(function (it) {
         var c = row.cells[it.id];
         /* كل بند قابل للتعديل — المحسوب منه والمُدخَل */
-        tr.appendChild(manCell(row, it, c));
+        var td = manCell(row, it, c);
+        td.dataset.item = it.id;
+        tr.appendChild(td);
       });
 
       var sum = el("td", "sum", n1(row.total) + " / " + ar(row.outOf));
+      sum.dataset.role = "sum";
       if (row.pct > 100) sum.title = "تجاوز ١٠٠ بالبونص — يُسقَف عند التقدير";
       tr.appendChild(sum);
-      tr.appendChild(el("td", "gr", row.grade));
+      var gr = el("td", "gr", row.grade);
+      gr.dataset.role = "grade";
+      tr.appendChild(gr);
       tb.appendChild(tr);
     });
     t.appendChild(tb);
   }
 
+
+  /* ─── تحديث المشتقّات بلا هدم ───
+       كان الحفظ يعيد بناء الجدول كلّه، فيُزال العنصر المركَّز مع
+       الجدول. وإزالة عنصرٍ مركَّز لا تُطلق change، فالرقم الذي كانت
+       الدكتورة تكتبه في الخانة التالية يضيع صامتًا بلا رسالة.
+       فتُحدَّث هنا المجاميع والتقديرات والخانات المحسوبة غير
+       المركَّزة، وتبقى كل خانة إدخال في مكانها. */
+  function refresh() {
+    Store.gradebook(section.id).then(function (gb) {
+      book = gb;
+      var t = document.getElementById("book");
+
+      gb.rows.forEach(function (row) {
+        var tr = t.querySelector('tr[data-student="' + row.student.id + '"]');
+        if (!tr) return;
+        tr.classList.toggle("incomplete", !row.complete);
+
+        gb.scheme.items.forEach(function (it) {
+          var td = tr.querySelector('td[data-item="' + it.id + '"]');
+          if (!td) return;
+          var inp = td.querySelector("input");
+          if (inp && document.activeElement === inp) return;   /* لا تُمسّ */
+          var c = row.cells[it.id];
+          if (inp) {
+            inp.value = c.score == null ? "" : Math.round(c.score * 100) / 100;
+            inp.className = c.overridden ? "filled over" : (c.auto ? "calc" : (c.score != null ? "filled" : ""));
+            td.classList.toggle("over", !!c.overridden);
+            td.classList.toggle("calc", !!c.auto && !c.overridden);
+            var note = td.querySelector(".note");
+            if (note) note.textContent = c.note || "";
+          }
+        });
+
+        var sum = tr.querySelector('td[data-role="sum"]');
+        if (sum) sum.textContent = n1(row.total) + " / " + ar(row.outOf);
+        var gr = tr.querySelector('td[data-role="grade"]');
+        if (gr) gr.textContent = row.grade;
+      });
+
+      renderDist();
+    }).catch(fail);
+  }
 
   function manCell(row, it, c) {
     var td = el("td", "man");
@@ -144,7 +192,7 @@
                         itemId: it.id, score: v })
         .then(function () {
           if (v == null && c.auto) TPUI.toast("رجع البند إلى الحساب التلقائي.", "good");
-          load();
+          refresh();
         })
         .catch(fail);
     });

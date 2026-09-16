@@ -310,6 +310,55 @@ begin
   end;
 end $$;
 
+-- ── ما كشفه الفحص ──
+-- الطالبة لا تولد تسليمًا مقفلًا (فتنال درجة الواجبات بلا حلّ)
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into submissions(id,student_id,worksheet_id,status)
+      values ('t-cheat','t-sara','w5','submitted');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا تولد تسليمًا مقفلًا', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('لا تولد تسليمًا مقفلًا', true);
+  end;
+end $$;
+
+-- لكنها تولد مسودة ثم تسلّمها
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into submissions(id,student_id,worksheet_id,status,answers)
+  values ('t-ok','t-sara','w5','draft','{"q":1}');
+with u as (update submissions set status='submitted' where id='t-ok' returning 1)
+  insert into rls_results select 'تسلّم مسودتها هي', count(*)=1 from u;
+commit;
+
+-- ووقت التسليم يُختم في الخادم لا يُرسَل من المتصفّح
+insert into rls_results select 'وقت التسليم مختوم من الخادم',
+  (select submitted_at is not null and submitted_at > now() - interval '1 minute'
+     from submissions where id='t-ok');
+
+-- ولا تُرجع المقفل إلى مسودة.
+-- سياسة using ترشّح الصفّ فلا يقع تحديث ولا يُرفع استثناء — فالفحص
+-- على الحالة بعدها لا على وقوع خطأ.
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+update submissions set status='draft' where id='t-ok';
+commit;
+insert into rls_results select 'لا تُرجع المقفل إلى مسودة',
+  (select status from submissions where id='t-ok')='submitted';
+
+-- تصحيح الرقم الجامعي يفكّ الربط الخاطئ
+insert into auth.users(id,email) values
+ ('dddddddd-0000-0000-0000-000000000001','s2202140001@ku.edu.kw') on conflict do nothing;
+insert into students(id,section_id,no,name,uid) values ('t-mix','9',8,'نورة','2202140001');
+insert into rls_results select 'ارتبط بالرقم الخطأ أولًا',
+  (select auth_uid from students where id='t-mix')='dddddddd-0000-0000-0000-000000000001';
+update students set uid='2202140002' where id='t-mix';
+insert into rls_results select 'تصحيح الرقم يفكّ الربط الخاطئ',
+  (select auth_uid from students where id='t-mix') is null;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

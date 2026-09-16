@@ -502,8 +502,14 @@
         att.forEach(function (a) {
           (attBy[a.studentId] = attBy[a.studentId] || []).push(a);
         });
+        /* التسليم الفارغ لا يُحتسب ولو كان وسمه «مسلَّم». حارسٌ ثانٍ
+           خلف سياسة قاعدة البيانات: صفٌّ بلا إجابة ولا ملف لم تُحلّ
+           فيه ورقة، فلا يستحق درجة الواجبات. */
         subs.forEach(function (x) {
           if (x.status !== "submitted" && x.status !== "locked") return;
+          var has = Object.keys(x.answers || {}).length > 0 ||
+                    Object.keys(x.files || {}).length > 0;
+          if (!has) return;
           (subBy[x.studentId] = subBy[x.studentId] || {})[x.worksheetId] = true;
         });
         manual.forEach(function (g) {
