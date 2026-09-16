@@ -27,23 +27,16 @@
 <div class="control">
   <label for="section">الشعبة:</label>
   <select id="section" aria-label="اختيار الشعبة"></select>
+  <label for="lesson">المحاضرة:</label>
+  <select id="lesson" aria-label="اختيار المحاضرة"></select>
   <span class="hint">لا توجد درجات — التسليم يُرصد كتفاعل فقط.</span>
   <span class="spacer"></span>
   <button id="collect" type="button" class="ghost">استلام ملف تسليم</button>
   <input type="file" id="collectFile" accept=".json,application/json" multiple hidden>
 </div>
 
-<div class="section-title">الأنشطة الصفّية
-  <span class="sub">تُحلّ داخل المحاضرة · عليها درجة الواجبات الإلكترونية</span></div>
-<ul class="cards" id="classwork"></ul>
-
-<div class="section-title">الواجبات اللاصفّية
-  <span class="sub">تُسلَّم قبل المحاضرة القادمة · عليها درجة الواجبات الإلكترونية</span></div>
-<ul class="cards" id="homework"></ul>
-
-<div class="section-title">أوراق المراجعة
-  <span class="sub">تدريب على أسئلة المحاضرات · لا تدخل الدرجة</span></div>
-<ul class="cards" id="sheets"></ul>
+<!-- الأوراق مجموعة بمحاضراتها، كل محاضرة طيّةٌ تُفتح وتُطوى. -->
+<div id="groups"></div>
 
 <div class="section-title">حالة التسليم <span class="sub" id="sub"></span></div>
 <div class="wrap"><table class="grid" id="table"></table></div>

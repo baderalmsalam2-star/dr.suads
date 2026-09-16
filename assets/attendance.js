@@ -43,18 +43,10 @@
       }).catch(fail);
   }
 
-  /* المحاضرة المفتوحة افتراضًا: محاضرة اليوم إن وُجدت، وإلا آخر محاضرة مضت */
+  /* المحاضرة المفتوحة افتراضًا — القاعدة نفسها في TPUI فتتفق عليها
+     هذه الصفحة وصفحة أوراق العمل */
   function pickDefaultSession() {
-    var today = Store.dayKey(), best = null;
-    Object.keys(sched).forEach(function (n) {
-      if (sched[n] === today) best = +n;
-    });
-    if (best === null) {
-      var past = Object.keys(sched).filter(function (n) { return sched[n] <= today; })
-                       .map(Number).sort(function (a, b) { return b - a; });
-      best = past.length ? past[0] : 1;
-    }
-    sessionSel.value = best;
+    sessionSel.value = TPUI.currentSession(sched);
   }
 
   function loadSheet() {

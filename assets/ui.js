@@ -182,6 +182,21 @@
     return current;
   }
 
+  /* ─── المحاضرة الجارية ───
+     محاضرة اليوم إن وُجدت، وإلا آخر محاضرة مضت، وإلا الأولى.
+     تُقال في مكانٍ واحد فتتفق عليها صفحتا الحضور وأوراق العمل —
+     فلا تفتح إحداهما المحاضرة الثالثة والأخرى الرابعة. */
+  function currentSession(sched) {
+    sched = sched || {};
+    var today = window.Store ? Store.dayKey() : "";
+    var best = null;
+    Object.keys(sched).forEach(function (n) { if (sched[n] === today) best = +n; });
+    if (best !== null) return best;
+    var past = Object.keys(sched).filter(function (n) { return sched[n] <= today; })
+                    .map(Number).sort(function (a, b) { return b - a; });
+    return past.length ? past[0] : 1;
+  }
+
   /* رسالة عابرة أعلى الصفحة */
   var toastEl = null, toastTimer = null;
   function toast(msg, kind) {
@@ -307,6 +322,7 @@
     empty: empty, download: download, readAsText: readAsText,
     readAsDataURL: readAsDataURL, arDate: arDate, arMonth: arMonth, bytes: bytes,
     count: count, safeName: safeName, csv: csv,
+    currentSession: currentSession,
     points:   function (n) { return count(n, POINTS); },
     students: function (n) { return count(n, STUDENTS); },
     shares:   function (n) { return count(n, SHARES); },

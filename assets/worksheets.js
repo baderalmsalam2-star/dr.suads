@@ -3,14 +3,72 @@
   "use strict";
 
   var el = TPUI.el, ar = TP.ar;
+  var COURSE = window.COURSE || {};
   var SHEETS = window.WORKSHEETS || [];
 
   TPUI.chrome("worksheets", "أوراق العمل والواجبات");
   TPUI.credit("credit");
 
   var section = TPUI.sectionPicker(document.getElementById("section"), function (s) {
-    section = s; render();
+    section = s; sched = null; render();
   });
+
+  /* ─── منتقي المحاضرة ───
+     الأوراق تبلغ ثلاثًا في كل محاضرة، فصفحةٌ مسطّحة تعرض سبعين بطاقةً
+     وسبعين عمودًا — لا يُهتدى فيها إلى ورقة اليوم. فتُجمع الأوراق
+     تحت محاضراتها، وتُفتح الصفحة على المحاضرة الجارية. */
+  var LESSON_KEY = "tp.ws.lesson";
+  var lessonSel = document.getElementById("lesson");
+  var sched = null;
+  var lesson = null;                 /* رقم المحاضرة، أو "all" */
+
+  lessonSel.addEventListener("change", function () {
+    lesson = lessonSel.value;
+    try { localStorage.setItem(LESSON_KEY, lesson); } catch (e) { /* تصفّح خاص */ }
+    paint();
+  });
+
+  /* أرقام المحاضرات التي لها أوراق، مرتّبة */
+  function lessonNumbers() {
+    var seen = {};
+    SHEETS.forEach(function (w) { seen[+w.session || 0] = true; });
+    return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+  }
+
+  function titleOf(n) {
+    var s = (COURSE.sessions || []).filter(function (x) { return +x.n === +n; })[0];
+    return s ? s.title : "";
+  }
+
+  function fillLessons() {
+    var nums = lessonNumbers();
+    var want = lesson;
+    if (want == null) {
+      try { want = localStorage.getItem(LESSON_KEY); } catch (e) { want = null; }
+      if (!want) want = String(TPUI.currentSession(sched));
+    }
+    lessonSel.textContent = "";
+    var all = document.createElement("option");
+    all.value = "all";
+    all.textContent = "كل المحاضرات (" + ar(nums.length) + ")";
+    lessonSel.appendChild(all);
+
+    nums.forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = String(n);
+      o.textContent = "المحاضرة " + ar(n) + (titleOf(n) ? " · " + titleOf(n) : "");
+      lessonSel.appendChild(o);
+    });
+
+    /* المحفوظ إن كان لا يزال قائمًا، وإلا أقرب محاضرة لها أوراق */
+    var ok = want === "all" || nums.indexOf(+want) >= 0;
+    if (!ok && nums.length) {
+      var near = nums.filter(function (n) { return n <= +want; });
+      want = String(near.length ? near[near.length - 1] : nums[0]);
+    }
+    lesson = ok || nums.length ? want : "all";
+    lessonSel.value = lesson;
+  }
 
   /* ─── استلام ملفات التسليم من الطالبات ─── */
   var collectFile = document.getElementById("collectFile");
@@ -107,65 +165,133 @@
 
 
   /* ─── العرض ─── */
+  var data = null;              /* { students, subs } — يُقرأ مرةً ويُرسم مرارًا */
+
   function render() {
     document.getElementById("sub").textContent = section.name;
 
-    Promise.all([Store.students(section.id), Store.submissions({})]).then(function (r) {
+    Promise.all([
+      Store.students(section.id),
+      Store.submissions({}),
+      sched ? Promise.resolve(sched) : Store.schedule(section.id)
+    ]).then(function (r) {
+      sched = r[2] || {};
       var students = r[0].slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
-      var subs = r[1];
       var ids = {};
-      students.forEach(function (s) { ids[s.id] = true; });
-      var mine = subs.filter(function (s) { return ids[s.studentId]; });
-
-      cards("classwork", byType("classwork"), mine, students.length);
-      cards("homework",  byType("homework"),  mine, students.length);
-      cards("sheets",    byType("worksheet"), mine, students.length);
-
-      function byType(t) {
-        return SHEETS.filter(function (w) { return (w.type || "worksheet") === t; });
-      }
-      matrix(students, mine);
+      students.forEach(function (st) { ids[st.id] = true; });
+      data = { students: students, subs: r[1].filter(function (x) { return ids[x.studentId]; }) };
+      fillLessons();
+      paint();
     }).catch(fail);
   }
 
   var KIND = { classwork: "نشاط صفّي", homework: "واجب لاصفّي", worksheet: "ورقة مراجعة" };
+  /* الترتيب داخل المحاضرة: ما يُحتسب أولًا، والمراجعة آخرًا */
+  var ORDER = { classwork: 0, homework: 1, worksheet: 2 };
 
-  function cards(containerId, list, subs, total) {
-    var ul = document.getElementById(containerId);
-    ul.textContent = "";
-    if (!list.length) {
-      ul.appendChild(el("li", "", "")).appendChild(
-        TPUI.empty("لا شيء هنا بعد.",
-          "الأنشطة في activities.js، وأوراق المراجعة في worksheets.js — داخل مجلّد المقرر"));
+  function shown() {
+    if (lesson === "all") return lessonNumbers();
+    return [+lesson];
+  }
+
+  function sheetsOf(n) {
+    return SHEETS.filter(function (w) { return +w.session === +n; })
+                 .sort(function (a, b) {
+                   return (ORDER[a.type || "worksheet"] || 0) - (ORDER[b.type || "worksheet"] || 0);
+                 });
+  }
+
+  function paint() {
+    if (!data) return;
+    var box = document.getElementById("groups");
+    box.textContent = "";
+
+    var nums = shown();
+    if (!nums.length) {
+      box.appendChild(TPUI.empty("لا أوراق بعد.",
+        "الأنشطة في activities.js، وأوراق المراجعة في worksheets.js — داخل مجلّد المقرر"));
+      matrix(data.students, data.subs, []);
       return;
     }
-    list.forEach(function (w) {
-      var done = subs.filter(function (s) {
-        return s.worksheetId === w.id && s.status === "submitted";
-      }).length;
 
-      var li = el("li", "card ready" + (done ? " done" : ""));
-      li.appendChild(el("span", "badge", done ? ar(done) + " من " + ar(total) : "لم يُسلَّم بعد"));
+    var open = TPUI.currentSession(sched);
+    nums.forEach(function (n) {
+      box.appendChild(group(n, nums.length === 1 || +n === +open));
+    });
+    matrix(data.students, data.subs, nums);
+  }
 
-      var a = el("a", "open");
-      a.href = "worksheet.html?w=" + encodeURIComponent(w.id) +
-               "&section=" + encodeURIComponent(section.id);
-      a.appendChild(el("span", "no", "المحاضرة " + ar(w.session) + " · " + KIND[w.type || "worksheet"]));
-      a.appendChild(el("h2", "", w.title));
-      if (w.subtitle) a.appendChild(el("div", "sub", w.subtitle));
+  /* طيّة محاضرة: عنوانها ملخّصٌ يُغني عن فتحها */
+  function group(n, openIt) {
+    var list = sheetsOf(n);
+    var total = data.students.length;
 
-      var meta = el("div", "meta");
-      meta.appendChild(el("span", "", w.pages || ""));
-      var graded = w.type === "classwork" || w.type === "homework";
-      meta.appendChild(el("span", "readers", TPUI.questions(w.items.length) +
-        (graded ? " · التسليم يُحتسب" : " · للمراجعة")));
-      a.appendChild(meta);
-      li.appendChild(a);
-      ul.appendChild(li);
+    var d = el("details", "lesson-group");
+    d.open = !!openIt;
+
+    var sum = el("summary");
+    var t = el("div", "g-title");
+    t.appendChild(el("span", "g-no", "المحاضرة " + ar(n)));
+    t.appendChild(el("span", "g-name", titleOf(n) || ""));
+    sum.appendChild(t);
+
+    /* كم ورقةً في المحاضرة، وكم منها سُلِّم من الشعبة كلها */
+    var graded = list.filter(function (w) {
+      return w.type === "classwork" || w.type === "homework";
+    });
+    var doneAll = graded.length && total
+      ? graded.every(function (w) { return submitted(w).length >= total; })
+      : false;
+    var some = graded.reduce(function (a, w) { return a + submitted(w).length; }, 0);
+
+    var tag = el("span", "g-count" + (doneAll ? " done" : ""));
+    tag.textContent = TPUI.sheets(list.length) +
+      (graded.length && total
+        ? " · سُلِّم " + ar(some) + " من " + ar(graded.length * total)
+        : "");
+    sum.appendChild(tag);
+    d.appendChild(sum);
+
+    var ul = el("ul", "cards");
+    list.forEach(function (w) { ul.appendChild(card(w, total)); });
+    d.appendChild(ul);
+    return d;
+  }
+
+  function submitted(w) {
+    return data.subs.filter(function (x) {
+      return x.worksheetId === w.id && x.status === "submitted";
     });
   }
 
-  function matrix(students, subs) {
+  function card(w, total) {
+    var done = submitted(w).length;
+    var li = el("li", "card ready" + (done ? " done" : ""));
+    li.appendChild(el("span", "badge", done ? ar(done) + " من " + ar(total) : "لم يُسلَّم بعد"));
+
+    var a = el("a", "open");
+    a.href = "worksheet.html?w=" + encodeURIComponent(w.id) +
+             "&section=" + encodeURIComponent(section.id);
+    a.appendChild(el("span", "no", KIND[w.type || "worksheet"]));
+    a.appendChild(el("h2", "", w.title));
+    if (w.subtitle) a.appendChild(el("div", "sub", w.subtitle));
+
+    var meta = el("div", "meta");
+    meta.appendChild(el("span", "", w.pages || ""));
+    var graded = w.type === "classwork" || w.type === "homework";
+    meta.appendChild(el("span", "readers", TPUI.questions(w.items.length) +
+      (graded ? " · التسليم يُحتسب" : " · للمراجعة")));
+    a.appendChild(meta);
+    li.appendChild(a);
+    return li;
+  }
+
+  /*  مصفوفة التسليم تتبع المنتقي:
+      محاضرةٌ واحدة ⇒ عمودٌ لكل ورقة فيها، بحالة كل طالبة صريحة.
+      كل المحاضرات ⇒ عمودٌ لكل محاضرة يحمل «كم من كم» — لأن سبعين
+      عمودًا لا تُقرأ، والمقصود من النظرة الشاملة معرفةُ من تأخّرت
+      لا أيّ ورقةٍ بعينها. */
+  function matrix(students, subs, nums) {
     var table = document.getElementById("table");
     var emptyBox = document.getElementById("emptyBox");
     table.textContent = "";
@@ -179,10 +305,19 @@
     }
     table.hidden = false;
 
+    var wide = nums.length !== 1;
+    var cols = wide
+      ? nums.map(function (n) {
+          return { key: n, label: "م" + ar(n), sheets: sheetsOf(n) };
+        })
+      : sheetsOf(nums[0]).map(function (w) {
+          return { key: w.id, label: w.title.replace(/^.*?: /, ""), sheets: [w] };
+        });
+
     var head = el("thead"), hr = el("tr");
     hr.appendChild(el("th", "", "#"));
     hr.appendChild(el("th", "", "الطالبة"));
-    SHEETS.forEach(function (w) { hr.appendChild(el("th", "", w.title.replace(/^.*?: /, ""))); });
+    cols.forEach(function (c) { hr.appendChild(el("th", wide ? "num" : "sheet", c.label)); });
     head.appendChild(hr);
     table.appendChild(head);
 
@@ -190,20 +325,29 @@
     students.forEach(function (st) {
       var tr = el("tr");
       tr.appendChild(el("td", "num", ar(st.no)));
-      var td = el("td");
+      var td = el("td", "name");
       var a = el("a", "", st.name);
       a.href = "student.html?id=" + encodeURIComponent(st.id);
       td.appendChild(a);
       tr.appendChild(td);
 
-      SHEETS.forEach(function (w) {
-        var sub = subs.filter(function (s) {
-          return s.studentId === st.id && s.worksheetId === w.id;
-        })[0];
+      cols.forEach(function (c) {
         var cell = el("td", "num");
-        if (sub && sub.status === "submitted") {
+        var mine = subs.filter(function (x) {
+          return x.studentId === st.id && c.sheets.some(function (w) {
+            return w.id === x.worksheetId;
+          });
+        });
+        var done = mine.filter(function (x) { return x.status === "submitted"; }).length;
+
+        if (wide) {
+          if (!c.sheets.length) cell.textContent = "—";
+          else cell.appendChild(el("span",
+            "chip " + (done >= c.sheets.length ? "gold" : done ? "blue" : ""),
+            ar(done) + "/" + ar(c.sheets.length)));
+        } else if (done) {
           cell.appendChild(el("span", "chip gold", "سُلِّم"));
-        } else if (sub) {
+        } else if (mine.length) {
           cell.appendChild(el("span", "chip blue", "مسودة"));
         } else {
           cell.textContent = "—";
