@@ -78,6 +78,33 @@
     head.appendChild(nav);
   }
 
+  /* ─── سطر الاعتماد ───
+     يُركَّب هنا مرةً واحدة بدل textContent في اثني عشر ملفًا، فيصير
+     اسم المطوّر رابطًا إلى واتساب. والرابط يفتح في لسانٍ جديد
+     برابطٍ مقطوع (noopener) فلا تصل صفحةُ واتساب إلى نافذة المنصة. */
+  function credit(el) {
+    el = typeof el === "string" ? document.getElementById(el) : el;
+    if (!el) return;
+    el.textContent = "";
+    var txt = COURSE.credit || "";
+    var by = COURSE.creditBy || "";
+    var link = COURSE.creditLink || "";
+
+    if (!by || !link || txt.indexOf(by) < 0) { el.textContent = txt; return; }
+
+    var i = txt.indexOf(by);
+    el.appendChild(document.createTextNode(txt.slice(0, i)));
+    var a = document.createElement("a");
+    a.href = link;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.className = "credit-link";
+    a.title = "تواصل عبر واتساب";
+    a.textContent = by;
+    el.appendChild(a);
+    el.appendChild(document.createTextNode(txt.slice(i + by.length)));
+  }
+
   /* قائمة اختيار الشعبة — تحفظ الاختيار وتنادي onChange */
   function sectionPicker(select, onChange) {
     var params = new URLSearchParams(location.search);
@@ -231,6 +258,7 @@
 
   window.TPUI = {
     el: el, chrome: chrome, sectionPicker: sectionPicker, toast: toast,
+    credit: credit,
     empty: empty, download: download, readAsText: readAsText,
     readAsDataURL: readAsDataURL, arDate: arDate, arMonth: arMonth, bytes: bytes,
     count: count, safeName: safeName, csv: csv,

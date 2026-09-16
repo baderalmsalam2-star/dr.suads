@@ -9,7 +9,7 @@
   KINDS.forEach(function (k) { LABEL[k.id] = k.label; });
 
   var id = new URLSearchParams(location.search).get("id");
-  document.getElementById("credit").textContent = (window.COURSE || {}).credit || "";
+  TPUI.credit("credit");
   document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
 
   if (!id) return bail("لم تُحدَّد الطالبة.", "افتحي صفحتها من كشف الطالبات.");

@@ -7,7 +7,7 @@
   var ar = TP.ar;
   var me = null;
 
-  document.getElementById("credit").textContent = COURSE.credit || "";
+  TPUI.credit("credit");
   document.getElementById("kicker").textContent =
     (COURSE.title || "") + " · " + (COURSE.instructor || "");
 

@@ -22,7 +22,7 @@
   });
 
   TPUI.chrome("admin", "الفحص", "المشرف التقني");
-  document.getElementById("credit").textContent = COURSE.credit || "";
+  TPUI.credit("credit");
 
   TPRole.get().then(function (r) {
     if (r === "unknown") {

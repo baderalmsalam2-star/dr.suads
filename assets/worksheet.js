@@ -18,7 +18,7 @@
   var picker = document.getElementById("student");
 
   TPUI.chrome("worksheets", W ? W.title : "ورقة عمل", W ? W.subtitle : null);
-  document.getElementById("credit").textContent = (window.COURSE || {}).credit || "";
+  TPUI.credit("credit");
 
   if (!W) {
     document.getElementById("emptyBox").appendChild(

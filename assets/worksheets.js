@@ -6,7 +6,7 @@
   var SHEETS = window.WORKSHEETS || [];
 
   TPUI.chrome("worksheets", "أوراق العمل والواجبات");
-  document.getElementById("credit").textContent = (window.COURSE || {}).credit || "";
+  TPUI.credit("credit");
 
   var section = TPUI.sectionPicker(document.getElementById("section"), function (s) {
     section = s; render();

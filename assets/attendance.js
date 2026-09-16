@@ -12,7 +12,7 @@
   var sessions = (COURSE.sessions || []).slice().sort(function (a, b) { return a.n - b.n; });
 
   TPUI.chrome("attendance", "الحضور والغياب");
-  document.getElementById("credit").textContent = COURSE.credit || "";
+  TPUI.credit("credit");
 
   var sessionSel = document.getElementById("session");
   var sheet = document.getElementById("sheet");

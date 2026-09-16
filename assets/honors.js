@@ -8,7 +8,7 @@
   KINDS.forEach(function (k) { KIND_LABEL[k.id] = k.label; });
 
   TPUI.chrome("honors", "لوحة الشرف");
-  document.getElementById("credit").textContent = (window.COURSE || {}).credit || "";
+  TPUI.credit("credit");
 
   var scopeSel = document.getElementById("scope");
   var dayInput = document.getElementById("day");

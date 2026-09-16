@@ -3,7 +3,7 @@
   "use strict";
   var COURSE = window.COURSE || {};
   var ar = TP.ar;
-  document.getElementById("credit").textContent = COURSE.credit || "";
+  TPUI.credit("credit");
   document.getElementById("kicker").textContent = COURSE.title || "";
 
   var state = document.getElementById("state");

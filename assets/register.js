@@ -5,7 +5,7 @@
   var KEY = "tp.baseUrl";
 
   TPUI.chrome("register", "باركود التسجيل", "يُعرض على الطالبات في أول حصة");
-  document.getElementById("credit").textContent = COURSE.credit || "";
+  TPUI.credit("credit");
 
   var section = TPUI.sectionPicker(document.getElementById("section"), function (s) {
     section = s; draw();

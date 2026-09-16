@@ -7,7 +7,7 @@
   var section, scheme = null, book = null, dirty = false;
 
   TPUI.chrome("grades", "الدرجات");
-  document.getElementById("credit").textContent = COURSE.credit || "";
+  TPUI.credit("credit");
   document.getElementById("foot-note").textContent =
     "كل بند قابل للتعديل: اكتبي رقمًا فيعلو على الحساب، وأفرغي الخانة فيرجع إلى الحساب.";
 

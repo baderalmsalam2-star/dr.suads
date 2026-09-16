@@ -140,3 +140,7 @@ button:focus-visible,a:focus-visible,li:focus-visible,select:focus-visible{
 .mix-note{color:var(--neutral);opacity:.75;font-size:.72rem;line-height:1.6;
   max-inline-size:16em;border-top:1px solid var(--line);padding-top:.5em}
 .mixer button{align-self:flex-start}
+
+/* اسم المطوّر في سطر الاعتماد — رابط واتساب */
+.credit-link{color:inherit;text-decoration-style:dotted;text-underline-offset:.2em}
+.credit-link:hover{color:var(--student)}

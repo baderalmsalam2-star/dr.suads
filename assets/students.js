@@ -6,7 +6,7 @@
   var section = null;
 
   TPUI.chrome("students", "الطالبات");
-  document.getElementById("credit").textContent = (window.COURSE || {}).credit || "";
+  TPUI.credit("credit");
 
   section = TPUI.sectionPicker(document.getElementById("section"), function (s) {
     section = s; render();

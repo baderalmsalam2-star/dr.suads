@@ -18,7 +18,7 @@
   var built = null;
 
   TPUI.chrome("compose", "مُنشئ الحصص", "يبني ملف الحصة من نص المذكرة");
-  document.getElementById("credit").textContent = (window.COURSE || {}).credit || "";
+  TPUI.credit("credit");
 
   /* أول رقم حصة غير مجهَّز */
   var pending = (COURSE.sessions || []).filter(function (s) {

@@ -11,7 +11,7 @@
   document.title = "منصة التدريس — " + (COURSE.title || "");
   set("course", COURSE.title);
   set("instructor", COURSE.instructor);
-  set("credit", COURSE.credit);
+  TPUI.credit("credit");
 
   function set(id, text) {
     var n = document.getElementById(id);
