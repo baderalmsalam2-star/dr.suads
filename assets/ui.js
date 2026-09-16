@@ -44,13 +44,57 @@
     return AR_MONTHS[+p[1] - 1] + " " + ar(p[0]);
   }
 
+  /* ─── مبدّل المقرر ───
+     يظهر في الترويسة متى سُجِّل أكثر من مقرر، ويختفي ما دام المقرر
+     واحدًا — كقائمة الشعب سواء بسواء. والتبديل يُعيد تحميل الصفحة
+     بـ ?course=، لأن بيانات المقرر تُنتخب مرةً عند التحميل: إعادة
+     بنائها في مكانها تترك نصف الصفحة على المقرر السابق. */
+  function coursePicker() {
+    var all = (window.TP && TP.courses) ? TP.courses() : [];
+    if (all.length < 2) return null;
+
+    var box = el("div", "course-picker");
+    var lab = el("label", "", "المقرر");
+    var sel = document.createElement("select");
+    sel.id = "coursePick";
+    lab.htmlFor = sel.id;
+
+    all.forEach(function (c) {
+      var o = document.createElement("option");
+      o.value = c.id;
+      o.textContent = c.short || c.title || c.id;
+      sel.appendChild(o);
+    });
+    sel.value = COURSE.id || all[0].id;
+
+    sel.addEventListener("change", function () {
+      if (!TP.setCourse(sel.value)) return;
+      var u = new URL(location.href);
+      u.searchParams.set("course", sel.value);
+      u.searchParams.delete("section");   /* شعبة المقرر السابق لا وجود لها هنا */
+      location.href = u.toString();
+    });
+
+    box.appendChild(lab);
+    box.appendChild(sel);
+    return box;
+  }
+
   /* ترويسة موحّدة: العنوان + شريط التنقل */
   function chrome(activeId, title, subtitle) {
     var head = document.getElementById("chrome");
     if (!head) return;
 
     var mast = el("header", "masthead");
-    mast.appendChild(el("div", "kicker", "منصة التدريس"));
+    var pick = coursePicker();
+    if (pick) {
+      var top = el("div", "mast-top");
+      top.appendChild(el("div", "kicker", "منصة التدريس"));
+      top.appendChild(pick);
+      mast.appendChild(top);
+    } else {
+      mast.appendChild(el("div", "kicker", "منصة التدريس"));
+    }
     mast.appendChild(el("h1", "", title || COURSE.title || ""));
     if (subtitle !== null) {
       mast.appendChild(el("div", "who", subtitle || COURSE.instructor || ""));
@@ -112,7 +156,7 @@
     var all = window.TP.sections();
 
     /* بشعبة واحدة لا معنى لقائمة اختيار: تُخفى هي ووسمها، وتظهر
-       من نفسها متى أُضيفت شعبة ثانية في data/course.js */
+       من نفسها متى أُضيفت شعبة ثانية في ملف المقرر */
     if (all.length < 2 && select) {
       select.hidden = true;
       var lab = select.id && document.querySelector('label[for="' + select.id + '"]');
@@ -257,7 +301,8 @@
   }
 
   window.TPUI = {
-    el: el, chrome: chrome, sectionPicker: sectionPicker, toast: toast,
+    el: el, chrome: chrome, sectionPicker: sectionPicker,
+    coursePicker: coursePicker, toast: toast,
     credit: credit,
     empty: empty, download: download, readAsText: readAsText,
     readAsDataURL: readAsDataURL, arDate: arDate, arMonth: arMonth, bytes: bytes,

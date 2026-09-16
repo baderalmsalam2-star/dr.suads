@@ -63,18 +63,18 @@
 <div id="snippets" hidden>
   <div class="section-title">٤ · أضف هذين السطرين</div>
   <div class="item">
-    <div class="qno">في <b>data/course.js</b> داخل <b>sessions</b></div>
+    <div class="qno">في <b>data/courses/&lt;المقرر&gt;/course.js</b> داخل <b>sessions</b></div>
     <textarea id="snipCourse" rows="10" readonly></textarea>
     <button id="copyCourse" type="button" class="ghost sm">نسخ</button>
   </div>
   <div class="item">
-    <div class="qno">في <b>data/worksheets.js</b> — ورقة عمل من أسئلة المحاضرة (اختياري)</div>
+    <div class="qno">في <b>data/courses/&lt;المقرر&gt;/worksheets.js</b> — ورقة عمل من أسئلة المحاضرة (اختياري)</div>
     <textarea id="snipSheet" rows="10" readonly></textarea>
     <button id="copySheet" type="button" class="ghost sm">نسخ</button>
   </div>
   <div class="note-box">
     احفظ الملف المنزَّل داخل مجلد <b>sessions/</b>، ثم الصق السطر الأول في
-    <b>data/course.js</b>. حدِّث الصفحة الرئيسية فتظهر المحاضرة «متاحة».
+    <b>data/courses/&lt;المقرر&gt;/course.js</b>. حدِّث الصفحة الرئيسية فتظهر المحاضرة «متاحة».
   </div>
 </div>
 
@@ -83,9 +83,7 @@
   <div id="credit"></div>
 </footer>
 
-<script src="data/course.js"></script>
-<script src="data/worksheets.js"></script>
-<script src="data/activities.js"></script>
+<script src="data/courses.js"></script>
 <script src="assets/config.js"></script>
 <script src="assets/adapters/supabase.js"></script>
 <script src="assets/store.js"></script>

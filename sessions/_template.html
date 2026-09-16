@@ -1,9 +1,10 @@
 <!-- ═══════════════════════════════════════════════════════════
      قالب محاضرة جديدة.
-     ١) انسخ هذا الملف باسم مثل sessions/03-اسم-المحاضرة.html
+     ١) انسخ هذا الملف إلى مجلّد المقرر، مثل sessions/wilaya/03-اسم-المحاضرة.html
      ٢) غيّر <title> و data-session إلى رقم المحاضرة
      ٣) استبدل الشرائح أدناه بمحتوى المحاضرة
-     ٤) أضف المحاضرة إلى data/course.js واجعل status: "ready"
+     ٤) أضف المحاضرة إلى data/courses/<المقرر>/course.js واجعل status: "ready"
+     ملاحظة: داخل مجلّد المقرر تصير المسارات ../../ لا ../
      التفاصيل في «دليل التشغيل.md»
      ═══════════════════════════════════════════════════════════ -->
 <!DOCTYPE html>
@@ -103,7 +104,7 @@
   </div>
 </div>
 
-<script src="../data/course.js"></script>
+<script src="../data/courses.js"></script>
 <script src="../assets/config.js"></script>
 <script src="../assets/adapters/supabase.js"></script>
 <script src="../assets/store.js"></script>

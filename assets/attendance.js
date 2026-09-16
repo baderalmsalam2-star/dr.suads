@@ -264,9 +264,9 @@
                             ar(Math.round((POLICY.absentLimit || 0) * 100)) + "٪)");
       if (warned) msgs.push(TPUI.students(warned) + " قاربت الحد");
       note.appendChild(el("div", "note-box", msgs.length
-        ? msgs.join(" · ") + ". حد الحرمان يُعدَّل في data/course.js بحسب لائحة الكلية."
+        ? msgs.join(" · ") + ". حد الحرمان يُعدَّل في ملف المقرر بحسب لائحة الكلية."
         : "لا أحد قارب حد الغياب. الحد الحالي " +
-          ar(Math.round((POLICY.absentLimit || 0) * 100)) + "٪ — يُعدَّل في data/course.js."));
+          ar(Math.round((POLICY.absentLimit || 0) * 100)) + "٪ — يُعدَّل في ملف المقرر."));
     }).catch(fail);
   }
 

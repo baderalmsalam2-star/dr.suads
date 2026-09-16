@@ -234,3 +234,15 @@ tr.exam-row td{background:rgba(var(--student-rgb),.09);color:var(--student);font
 
 /* رصد حضورٍ على محاضرةٍ مضت */
 .hint.retro{color:var(--student);opacity:1}
+
+/* ═══ مبدّل المقرر في الترويسة — لا يظهر إلا بأكثر من مقرر ═══ */
+.mast-top{display:flex;align-items:baseline;justify-content:space-between;
+          flex-wrap:wrap;gap:.6em 1.2em}
+.mast-top .kicker{margin-bottom:0}
+.course-picker{display:flex;align-items:center;gap:.5em;
+               font-size:clamp(.78rem,1.4vw,.95rem)}
+.course-picker label{color:var(--neutral)}
+.course-picker select{font-family:var(--ui);font-size:inherit;
+                      color:var(--surface);background:var(--navy-2);
+                      border:1px solid var(--line-faculty);padding:.35em .7em}
+@media print{.course-picker{display:none}}

@@ -136,7 +136,7 @@
     if (!list.length) {
       ul.appendChild(el("li", "", "")).appendChild(
         TPUI.empty("لا شيء هنا بعد.",
-          "الأنشطة في data/activities.js، وأوراق المراجعة في data/worksheets.js"));
+          "الأنشطة في activities.js، وأوراق المراجعة في worksheets.js — داخل مجلّد المقرر"));
       return;
     }
     list.forEach(function (w) {

@@ -4,7 +4,13 @@
 كل كلمة في الخرج مأخوذة من المذكرة حرفيًا؛ الخطة تحدد التقسيم
 والعناوين والأسئلة فقط. شغّله من جذر المشروع:
 
-    python3 tools/build_sessions.py مذكرة.docx
+    python3 tools/build_sessions.py مذكرة.docx [معرّف-المقرر]
+
+المقرر الافتراضي wilaya. وكل مقرر له:
+    tools/courses/<المقرر>/plan-*.json     خطة تقسيم محاضراته
+    data/courses/<المقرر>/course.js        بياناته — يُكتب فيه sessions
+    data/courses/<المقرر>/worksheets.js    أوراق عمله — تُكتب فيه
+    sessions/<المقرر>/NN-*.html            ملفات محاضراته
 """
 import glob, io, json, os, re, sys, zipfile
 import xml.etree.ElementTree as ET
@@ -258,21 +264,24 @@ PAGE = '''<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
 {favicon}
-<link rel="manifest" href="../manifest.webmanifest">
-<link rel="apple-touch-icon" sizes="180x180" href="../icons/icon-180.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="../../icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="../../icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="../../icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="../../icons/icon-120.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="د. سعاد المطوع">
 <meta name="theme-color" content="#002856">
-<script src="../assets/theme.js"></script>
-<link rel="stylesheet" href="../assets/tokens.css">
-<link rel="stylesheet" href="../assets/deck.css">
+<script src="../../assets/theme.js"></script>
+<link rel="stylesheet" href="../../assets/tokens.css">
+<link rel="stylesheet" href="../../assets/deck.css">
 </head>
 <body data-session="{n}">
 <div class="stage">
 
   <div class="bar">
     <div>
-      <a class="home" id="home" href="../index.html">→ المنصة</a> ·
+      <a class="home" id="home" href="../../index.html">→ المنصة</a> ·
       <span id="course"></span> · <b id="instructor"></b> · <span id="sec"></span>
     </div>
     <div class="src" id="src"></div>
@@ -299,13 +308,13 @@ PAGE = '''<!DOCTYPE html>
   </div>
 </div>
 
-<script src="../assets/config.js"></script>
-<script src="../assets/adapters/supabase.js"></script>
-<script src="../data/course.js"></script>
-<script src="../assets/store.js"></script>
-<script src="../assets/ui.js"></script>
-<script src="../assets/deck.js"></script>
-<script src="../assets/participate.js"></script>
+<script src="../../assets/config.js"></script>
+<script src="../../assets/adapters/supabase.js"></script>
+<script src="../../data/courses.js"></script>
+<script src="../../assets/store.js"></script>
+<script src="../../assets/ui.js"></script>
+<script src="../../assets/deck.js"></script>
+<script src="../../assets/participate.js"></script>
 </body>
 </html>
 '''
@@ -321,33 +330,45 @@ def patch_block(path, start, end, payload):
     io.open(path, 'w', encoding='utf-8').write(out)
 
 
-def main(docx):
+def main(docx, course='wilaya'):
     paras = read_docx(docx)
     plan = []
-    for f in sorted(glob.glob(os.path.join(ROOT, 'tools', 'plan-*.json'))):
+    pattern = os.path.join(ROOT, 'tools', 'courses', course, 'plan-*.json')
+    for f in sorted(glob.glob(pattern)):
         plan += json.load(io.open(f, encoding='utf-8'))
+    if not plan:
+        raise SystemExit('لا خطة لهذا المقرر: ' + pattern)
     plan.sort(key=lambda s: s['n'])
+
+    out_dir = os.path.join(ROOT, 'sessions', course)
+    data_dir = os.path.join(ROOT, 'data', 'courses', course)
+    if not os.path.isdir(data_dir):
+        raise SystemExit('لا مجلّد بيانات لهذا المقرر: ' + data_dir)
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
 
     favicon = re.search(r'<link rel="icon"[^>]*>',
                         io.open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()).group(0)
 
-    part = lambda n: 'wilaya' if n <= 10 else ('wakala' if n <= 24 else 'wisaya')
+    # اسم الوحدة في اسم الملف: من الخطة إن ذُكر، وإلا من معرّف المقرر
+    def part(sp):
+        return sp.get('part') or course
     entries, sheets = [], []
 
     for idx, sp in enumerate(plan):
         nxt = plan[idx + 1] if idx + 1 < len(plan) else None
         slides, readers = build_session(sp, paras, nxt)
-        name = '%02d-%s.html' % (sp['n'], part(sp['n']))
-        io.open(os.path.join(ROOT, 'sessions', name), 'w', encoding='utf-8').write(
+        name = '%02d-%s.html' % (sp['n'], part(sp))
+        io.open(os.path.join(out_dir, name), 'w', encoding='utf-8').write(
             PAGE.format(n=sp['n'], nar=ar(sp['n']), title=esc(sp['title']),
                         slides=slides, favicon=favicon))
 
         entries.append(
             '    { n: %d, title: %s, subtitle: %s, pages: %s,\n'
-            '      file: "sessions/%s", readers: %d, status: "ready" }'
+            '      file: "sessions/%s/%s", readers: %d, status: "ready" }'
             % (sp['n'], json.dumps(sp['title'], ensure_ascii=False),
                json.dumps(sp['subtitle'], ensure_ascii=False),
-               json.dumps(sp['src'], ensure_ascii=False), name, readers))
+               json.dumps(sp['src'], ensure_ascii=False), course, name, readers))
 
         items = ',\n'.join(
             '      { id: "w%dq%d", kind: "mcq",\n'
@@ -366,11 +387,11 @@ def main(docx):
                json.dumps(sp['subtitle'], ensure_ascii=False),
                json.dumps(sp['src'], ensure_ascii=False), items))
 
-    patch_block(os.path.join(ROOT, 'data', 'course.js'),
+    patch_block(os.path.join(data_dir, 'course.js'),
                 '/* GENERATED:SESSIONS:START */', '/* GENERATED:SESSIONS:END */',
                 ',\n' + ',\n'.join(entries) + '\n  ')
 
-    patch_block(os.path.join(ROOT, 'data', 'worksheets.js'),
+    patch_block(os.path.join(data_dir, 'worksheets.js'),
                 '/* GENERATED:SHEETS:START */', '/* GENERATED:SHEETS:END */',
                 ',\n' + ',\n'.join(sheets) + '\n')
 
@@ -379,4 +400,5 @@ def main(docx):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1] if len(sys.argv) > 1 else 'mudhakkira.docx')
+    main(sys.argv[1] if len(sys.argv) > 1 else 'mudhakkira.docx',
+         sys.argv[2] if len(sys.argv) > 2 else 'wilaya')

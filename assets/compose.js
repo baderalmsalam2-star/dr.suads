@@ -7,6 +7,12 @@
   var el = TPUI.el, ar = TP.ar;
   var LETTERS = ["أ", "ب", "ج", "د"];
 
+  /* مجلّد المقرر داخل sessions/ — المحاضرات مفصولة بمقرراتها */
+  function dir() {
+    var id = (window.COURSE || {}).id;
+    return id ? id + "/" : "";
+  }
+
   var KINDS = [
     { id: "reader",  label: "قراءة — تُسنَد لطالبة", tab: "" },
     { id: "faculty", label: "تقرؤها الدكتورة",       tab: "تقرؤها الدكتورة" },
@@ -306,7 +312,7 @@
 '    </div>\n' +
 '    <div class="keys">→ ← للتنقل · مسافة: الجواب · ر: المؤقت · م: رصد التفاعل · طباعة: تصدير</div>\n' +
 '    <div class="credit" id="credit"></div>\n  </div>\n</div>\n\n' +
-'<script src="' + assetPrefix + 'data/course.js"><\/script>\n' +
+'<script src="' + assetPrefix + 'data/courses.js"><\/script>\n' +
 '<script src="' + assetPrefix + 'assets/store.js"><\/script>\n' +
 '<script src="' + assetPrefix + 'assets/ui.js"><\/script>\n' +
 '<script src="' + assetPrefix + 'assets/deck.js"><\/script>\n' +
@@ -334,7 +340,7 @@
     });
     if (badQ.length) return TPUI.toast("سؤال ناقص: اكتب نصه وخيارين على الأقل.", "bad");
 
-    built = { meta: m, file: page(m, "../"), preview: page(m, "") };
+    built = { meta: m, file: page(m, "../../"), preview: page(m, "") };
 
     var f = document.getElementById("preview");
     f.srcdoc = built.preview;
@@ -351,7 +357,7 @@
   document.getElementById("download").addEventListener("click", function () {
     if (!built) return;
     TPUI.download(fileName(built.meta), built.file, "text/html");
-    TPUI.toast("نُزّل الملف — احفظه داخل مجلد sessions/", "good");
+    TPUI.toast("نُزّل الملف — احفظه داخل مجلد sessions/" + dir(), "good");
   });
 
   function fileName(m) {
@@ -366,7 +372,7 @@
 '      title: ' + JSON.stringify(m.title) + ',\n' +
 '      subtitle: ' + JSON.stringify(m.subtitle) + ',\n' +
 '      pages: ' + JSON.stringify(m.pages) + ',\n' +
-'      file: "sessions/' + fileName(m) + '",\n' +
+'      file: "sessions/' + dir() + fileName(m) + '",\n' +
 '      readers: ' + readers + ',\n' +
 '      status: "ready"\n' +
 '    }';

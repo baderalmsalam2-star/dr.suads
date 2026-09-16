@@ -1,0 +1,99 @@
+/* ═══════════════════════════════════════════════════════════════
+   سجلّ المقررات — المنصة تخدم أكثر من مقرر.
+
+   كل مقرر مجلَّدٌ في data/courses/<المعرّف>/ فيه ثلاثة ملفات:
+       course.js       بيانات المقرر ومحاضراته وتوزيعة درجاته
+       worksheets.js   أوراق العمل المولَّدة من خطة المحاضرات
+       activities.js   الأنشطة الصفّية واللاصفّية (تُحرَّر يدويًا)
+
+   لإضافة مقرر: انسخ مجلّد مقرر قائم، وغيّر ما فيه، ثم اكتب
+   معرّفه في COURSE_FILES أدناه. لا يُعدَّل أي ملف آخر في المنصة،
+   ولا أي صفحة HTML.
+
+   لماذا document.write؟ المنصة بلا أدوات بناء وتعمل من القرص
+   مباشرةً (file://)، وبقية الملفات تفترض أن window.COURSE جاهزٌ
+   قبلها. و document.write من سكربتٍ خارجيّ أثناء التحليل يُدرج
+   السكربتات بالترتيب ويوقف التحليل حتى تُنفَّذ — وهو ما نريده
+   بالضبط. والمسارات من أصل الصفحة نفسه، فلا يمسّها منعُ المتصفح
+   لسكربتات المصادر الأخرى.
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+
+  /* ═══ المقررات المسجَّلة — أضف معرّف المقرر هنا وحده ═══ */
+  var COURSE_FILES = [
+    "wilaya"
+  ];
+
+  var LIST = [];
+  window.TP_COURSES = LIST;
+
+  function byId(id) {
+    for (var i = 0; i < LIST.length; i++) {
+      if (String(LIST[i].id) === String(id)) return LIST[i];
+    }
+    return null;
+  }
+
+  window.TPCourse = {
+    list: LIST,
+    get: byId,
+
+    /* يُستدعى من data/courses/<id>/course.js */
+    add: function (c) {
+      if (!c || !c.id) throw new Error("مقرر بلا معرّف");
+      if (byId(c.id)) throw new Error("معرّف مقرر مكرّر: " + c.id);
+      c.sheets = [];
+
+      /*  مفتاح الشعبة فريدٌ على مستوى المنصة كلّها: «المقرر:الشعبة».
+          هذا هو أساس الفصل بين المقررات: كل سجلّ في المنصة —
+          طالبة أو حضور أو درجة أو تسليم — معلَّقٌ بمفتاح شعبة،
+          فصار معلَّقًا بمقرره لزامًا. ولا يحتاج الخادم عمودًا
+          جديدًا ولا سياسةً جديدة.
+          و«الشعبة الأولى» في مقررين شعبتان مختلفتان، وهو الصواب:
+          طالبات المقرر غير طالبات المقرر الآخر.
+          والمفتاح يدلّ على مقرره، فرابط الباركود وحده يكفي لفتح
+          المقرر الصحيح على جهاز الطالبة. */
+      (c.sections || []).forEach(function (s) {
+        if (s.no == null) s.no = s.id;
+        s.id = c.id + ":" + s.no;
+        s.courseId = c.id;
+      });
+      LIST.push(c);
+      return c;
+    },
+
+    /*  تُستدعى من worksheets.js و activities.js.
+        first = true تضع القائمة في المقدمة (الأنشطة قبل أوراق
+        العمل، لأنها هي المحسوبة في درجة الواجبات). */
+    sheets: function (id, list, first) {
+      var c = byId(id);
+      if (!c) throw new Error("أوراق لمقرر غير مسجَّل: " + id);
+      /*  معرّف الورقة يصير فريدًا بين المقررات، فلا يلتبس تسليمٌ
+          بتسليم لو تشابه الترقيم في مقررين. */
+      (list || []).forEach(function (w) {
+        if (String(w.id).indexOf(id + ":") !== 0) w.id = id + ":" + w.id;
+        w.courseId = id;
+      });
+      c.sheets = first ? (list || []).concat(c.sheets) : c.sheets.concat(list || []);
+      return c.sheets;
+    }
+  };
+
+  /* ═══ تحميل ملفات المقررات بالترتيب ═══ */
+  var here = (document.currentScript && document.currentScript.src) || "data/courses.js";
+  var base = here.replace(/[^/]*$/, "");
+
+  function load(rel) {
+    document.write('<script src="' + base + rel + '"><\/script>');
+  }
+
+  COURSE_FILES.forEach(function (id) {
+    load("courses/" + id + "/course.js");
+    load("courses/" + id + "/worksheets.js");
+    load("courses/" + id + "/activities.js");
+  });
+
+  /* يُنتخب المقرر العامل ويُبنى window.COURSE و window.TP */
+  load("active.js");
+})();

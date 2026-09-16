@@ -4,7 +4,7 @@
    يقرأ إعداداته بهذا الترتيب:
      ١) معطيات الرابط  ?section=2&roster=20&startAt=6
      ٢) الشعبة المحفوظة من الصفحة الرئيسية
-     ٣) بيانات المقرر في data/course.js
+     ٣) بيانات المقرر في data/courses/<المقرر>/course.js
    فلا حاجة لتعديل مصدر المحاضرة لعرضها على شعبة أخرى. */
 (function () {
   "use strict";
@@ -65,7 +65,7 @@
       if (!list.length) return;
 
       /* الكشف الحقيقي هو المرجع في عدد القارئات، لا الرقم المكتوب في
-         data/course.js — وإلا التفّت الدورة على عدد خاطئ. */
+         ملف المقرر — وإلا التفّت الدورة على عدد خاطئ. */
       var real = params.get("roster") ? roster : list.length;
       seat = TP.seatMaker(real, startAt);
       nextSeat = TP.seatMaker(real, startAt + readerSlides.length);

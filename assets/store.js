@@ -82,8 +82,7 @@
 
     /* الطالبات ------------------------------------------------ */
     students: function (sectionId) {
-      var all = read("students", null);
-      if (all === null) { all = seedRoster(); write("students", all); }
+      var all = seedIfNeeded(read("students", []));
       if (sectionId == null) return Promise.resolve(all);
       return Promise.resolve(all.filter(function (s) {
         return String(s.sectionId) === String(sectionId);
@@ -283,15 +282,35 @@
     return -1;
   }
 
-  /* كشف مبدئي من أعداد الشعب في data/course.js — يُستبدل بالكشف
-     الحقيقي من صفحة «الطالبات» بلصق الأسماء. */
-  function seedRoster() {
+  /* كشف مبدئي من أعداد الشعب في ملف المقرر — يُستبدل بالكشف
+     الحقيقي من صفحة «الطالبات» بلصق الأسماء.
+
+     يُبذر لكل شعبة مرةً واحدة لا للمنصة كلها مرة: المقررات تُفتح
+     واحدًا بعد واحد، فلو بُذر عند أول تشغيل فقط لبقيت شعب المقرر
+     الثاني فارغة إلى الأبد. ويُسجَّل ما بُذر حتى لا يعود الكشف
+     النموذجيّ بعد أن تحذفه الدكتورة. */
+  function seedIfNeeded(all) {
     var C = window.COURSE || { sections: [] };
+    var done = read("seeded", []);
+    var added = false;
+
+    (C.sections || []).forEach(function (sec) {
+      if (done.indexOf(String(sec.id)) >= 0) return;
+      done.push(String(sec.id));
+      added = true;
+      seedSection(sec).forEach(function (r) { all.push(r); });
+    });
+
+    if (added) { write("students", all); write("seeded", done); }
+    return all;
+  }
+
+  function seedSection(sec) {
     function ar(n) {
       return String(n).replace(/\d/g, function (d) { return "٠١٢٣٤٥٦٧٨٩"[d]; });
     }
     var out = [];
-    (C.sections || []).forEach(function (sec) {
+    {
       for (var n = 1; n <= (sec.roster || 0); n++) {
         out.push({
           id: uid("st"), no: n, sectionId: sec.id,
@@ -303,11 +322,11 @@
           placeholder: true, active: true
         });
       }
-    });
+    }
     return out;
   }
 
-  /* التوزيعة الافتراضية من data/course.js — نسخة لا مرجعًا،
+  /* التوزيعة الافتراضية من ملف المقرر — نسخة لا مرجعًا،
      فتحريرها في صفحة الدرجات لا يمسّ الأصل */
   function defaultScheme() {
     var g = (window.COURSE || {}).grading || {};
@@ -747,6 +766,10 @@
       }
       if (mode === "replace") {
         write("students", payload.students || []);
+        /* الكشف صار من النسخة، فلا يُبذر فوقه كشفٌ نموذجيّ */
+        write("seeded", ((window.COURSE || {}).sections || []).map(function (x) {
+          return String(x.id);
+        }));
         write("events", payload.events || []);
         write("submissions", payload.submissions || []);
         write("attendance", payload.attendance || []);

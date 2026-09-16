@@ -22,22 +22,9 @@
 </head>
 <body>
 
-  <header class="masthead">
-    <div class="kicker">منصة التدريس</div>
-    <h1 id="course"></h1>
-    <div class="who" id="instructor"></div>
-  </header>
-
-  <nav class="nav-main" aria-label="أقسام المنصة">
-    <a href="index.html" class="on" aria-current="page">الرئيسية</a>
-    <a href="students.html">الطالبات</a>
-    <a href="register.html">الباركود</a>
-    <a href="attendance.html">الحضور</a>
-    <a href="worksheets.html">أوراق العمل</a>
-    <a href="honors.html">لوحة الشرف</a>
-    <a href="compose.html">مُنشئ المحاضرات</a>
-    <a href="login.html">الحساب</a>
-  </nav>
+  <!-- الترويسة والتنقل يُبنيان في assets/ui.js كبقية الصفحات، فلا
+       يتخلّف شريط الرئيسية عن غيره كلما أُضيف قسم أو مبدّل. -->
+  <div id="chrome"></div>
 
   <div class="control">
     <label for="section">الشعبة:</label>
@@ -59,7 +46,7 @@
     <div id="credit"></div>
   </footer>
 
-<script src="data/course.js"></script>
+<script src="data/courses.js"></script>
 <script src="assets/config.js"></script>
 <script src="assets/adapters/supabase.js"></script>
 <script src="assets/store.js"></script>

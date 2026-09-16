@@ -9,14 +9,8 @@
   KINDS.forEach(function (k) { LABEL[k.id] = k.label; });
 
   document.title = "منصة التدريس — " + (COURSE.title || "");
-  set("course", COURSE.title);
-  set("instructor", COURSE.instructor);
+  TPUI.chrome("home", COURSE.title, COURSE.instructor);
   TPUI.credit("credit");
-
-  function set(id, text) {
-    var n = document.getElementById(id);
-    if (n && text) n.textContent = text;
-  }
 
   var section = TPUI.sectionPicker(document.getElementById("section"), function (s) {
     section = s; render();
