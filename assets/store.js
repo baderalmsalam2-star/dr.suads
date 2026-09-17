@@ -14,8 +14,29 @@
 (function () {
   "use strict";
 
-  var PREFIX = "tp.v1.";
-  var DB_NAME = "tp-files", DB_VER = 1, FILES = "files";
+  /* ═══ العرض التجريبي ═══
+     ?demo=1 يفتح نسخةً ببيانات من نسج البرنامج: كشفٌ وهميّ وحضورٌ
+     وتفاعلٌ وتسليمات — تُعرض على الزملاء بلا أن تمسّ بيانات الشعبة
+     الحقيقية بحرف.
+
+     والعزل حقيقيّ لا شكليّ:
+       • بادئة تخزينٍ أخرى، فلا تُقرأ بيانات الشعبة ولا يُكتب فوقها.
+       • والمحوّل المحلي قسرًا، فلا يصل الخادمَ طلبٌ واحد.
+     ويبقى الوضع مثبَّتًا في اللسان (sessionStorage) فلا ينفلت عند
+     الانتقال بين الصفحات، ولا يتسرّب إلى لسانٍ آخر. */
+  var DEMO = (function () {
+    var KEY = "tp.demo.on";
+    var q = null;
+    try { q = new URLSearchParams(location.search).get("demo"); } catch (e) { q = null; }
+    try {
+      if (q === "1") sessionStorage.setItem(KEY, "1");
+      else if (q === "0") sessionStorage.removeItem(KEY);
+      return sessionStorage.getItem(KEY) === "1";
+    } catch (e) { return q === "1"; }
+  })();
+
+  var PREFIX = DEMO ? "tp.demo." : "tp.v1.";
+  var DB_NAME = DEMO ? "tp-files-demo" : "tp-files", DB_VER = 1, FILES = "files";
 
   /* ─── أدوات ─── */
   function uid(p) {
@@ -341,11 +362,102 @@
       if (done.indexOf(String(sec.id)) >= 0) return;
       done.push(String(sec.id));
       added = true;
-      seedSection(sec).forEach(function (r) { all.push(r); });
+      (DEMO ? demoSection(sec) : seedSection(sec)).forEach(function (r) { all.push(r); });
     });
 
-    if (added) { write("students", all); write("seeded", done); }
+    if (added) {
+      write("students", all); write("seeded", done);
+      if (DEMO) demoActivity(all);
+    }
     return all;
+  }
+
+  /* ═══ كشف العرض التجريبي ═══
+     أسماء مختلقة بيّنة الاختلاق — أسماءٌ أولى بلا ألقاب، وأرقامٌ
+     جامعية من تسعات. ليست أسماء أحد. */
+  var DEMO_NAMES = [
+    "أسماء", "بشرى", "جواهر", "حصة", "دانة", "رزان", "زينب", "سارة",
+    "شهد", "صفية", "ضحى", "عائشة", "غالية", "فاطمة", "لطيفة", "مريم",
+    "منيرة", "نوف", "هاجر", "هيا", "وضحى", "يسرى"
+  ];
+
+  function demoSection(sec) {
+    var out = [];
+    var n = Math.min(DEMO_NAMES.length, sec.roster || DEMO_NAMES.length);
+    for (var i = 0; i < n; i++) {
+      out.push({
+        id: uid("st"), no: i + 1, sectionId: sec.id,
+        name: DEMO_NAMES[i],
+        uid: "99900" + ("00000" + (i + 1)).slice(-5),
+        placeholder: false, active: true
+      });
+    }
+    return out;
+  }
+
+  /*  حضورٌ وتفاعلٌ وتسليماتٌ لثلاث محاضراتٍ مضت، بأرقامٍ تبدو
+      كأرقام فصلٍ حقيقي: أكثرهنّ حاضرات، وقليلٌ غائبات، والتفاعل
+      متفاوت. العشوائية مبذورة فالعرض واحدٌ في كل مرة. */
+  function demoActivity(all) {
+    var rnd = (function (s) {
+      return function () { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; };
+    })(20260917);
+
+    var mine = all.filter(function (x) { return !x.placeholder; });
+    if (!mine.length) return;
+    var sec = mine[0].sectionId;
+    var today = new Date();
+    var days = [], atts = [], evs = [], subs = [];
+
+    /*  آخر المحاضرات اليومَ نفسه: من يفتح العرض يرى لوحة شرف اليوم
+        مليئةً لا فارغة — وإلا بدت المنصة خاويةً وهي عامرة. */
+    for (var k = 2; k >= 0; k--) {
+      var d = new Date(today.getTime() - k * 2 * 86400000);
+      days.push(dayKey(d));
+    }
+
+    var sched = {};
+    days.forEach(function (day, si) {
+      var session = si + 1;
+      sched[session] = day;
+      mine.forEach(function (st, i) {
+        var r = rnd();
+        var status = r < 0.82 ? "present" : (r < 0.9 ? "late" : (r < 0.95 ? "excused" : "absent"));
+        atts.push({ id: uid("at"), studentId: st.id, sectionId: sec,
+                    session: session, day: day, status: status, at: Date.now() });
+
+        if (status === "absent" || status === "excused") return;
+        var howMany = Math.floor(rnd() * 3);
+        for (var q = 0; q < howMany; q++) {
+          var kind = rnd() < 0.45 ? "answer" : (rnd() < 0.5 ? "read" : "discuss");
+          evs.push({ id: uid("ev"), studentId: st.id, sectionId: sec,
+                     session: session, kind: kind,
+                     points: kind === "answer" ? 3 : (kind === "read" ? 2 : 1),
+                     secs: kind === "answer" ? Math.round((2 + rnd() * 12) * 10) / 10 : null,
+                     day: day, at: Date.now() });
+        }
+      });
+    });
+
+    var sheets = (window.WORKSHEETS || []).filter(function (w) {
+      return (w.type === "homework" || w.type === "classwork") && w.session <= 3;
+    }).slice(0, 3);
+    sheets.forEach(function (w) {
+      mine.forEach(function (st) {
+        if (rnd() > 0.72) return;
+        subs.push({ id: uid("sub"), studentId: st.id, worksheetId: w.id,
+                    session: w.session, answers: { demo: 1 }, files: {},
+                    status: "submitted", submittedAt: new Date().toISOString(),
+                    startedAt: new Date().toISOString(), updatedAt: Date.now() });
+      });
+    });
+
+    write("attendance", atts);
+    write("events", evs);
+    write("submissions", subs);
+    var sc = read("schedule", {});
+    sc[String(sec)] = sched;
+    write("schedule", sc);
   }
 
   function seedSection(sec) {
@@ -445,9 +557,13 @@
   }
 
   /* ─── الواجهة العامة ─── */
-  var A = window.TP_ADAPTER || Local;
+  /*  في العرض التجريبي لا يُستعمل محوّل الخادم مهما كان مضبوطًا:
+      بياناتٌ من نسج البرنامج لا تُكتب في قاعدة الشعبة. */
+  var A = DEMO ? Local : (window.TP_ADAPTER || Local);
 
+  /* Store.demo يُقرأ في الواجهة لعرض شارة «عرض تجريبي» */
   window.Store = {
+    demo: DEMO,
     adapter: A.name || "custom",
     uid: uid,
     dayKey: dayKey,
@@ -542,6 +658,22 @@
 
     /* ترتيب التفاعل — أساس لوحة الشرف.
        يُرجع [{student, points, counts:{kind:n}, total}] تنازليًا. */
+    /*  ترتيبٌ بالسرعة والصواب: الأكثر إجاباتٍ صحيحة أولًا، فإن
+        تساوتا فالأسرع متوسّطًا. ومن لم تُجب شيئًا لا تدخل الترتيب
+        أصلًا — اللوحة لمن أجابت لا لمن حضرت. */
+    fastest: function (filter) {
+      return Store.ranking(filter).then(function (rows) {
+        return rows.filter(function (r) { return r.right > 0; })
+          .sort(function (a, b) {
+            if (b.right !== a.right) return b.right - a.right;
+            var as = a.secs == null ? Infinity : a.secs;
+            var bs = b.secs == null ? Infinity : b.secs;
+            if (as !== bs) return as - bs;
+            return (a.student.no || 0) - (b.student.no || 0);
+          });
+      });
+    },
+
     ranking: function (filter) {
       var kinds = ((window.COURSE || {}).engagement || {}).kinds || [];
       var pts = {};
@@ -575,15 +707,35 @@
           });
           var byId = {};
           students.forEach(function (s) {
-            byId[s.id] = { student: s, points: 0, total: 0, counts: {} };
+            byId[s.id] = { student: s, points: 0, total: 0, counts: {},
+                           right: 0, secs: null, fastest: null };
           });
+          var sumSecs = {};
           events.forEach(function (e) {
             var row = byId[e.studentId];
             if (!row) return;                       /* طالبة محذوفة */
             row.points += (e.points != null ? e.points : (pts[e.kind] || 0));
             row.total += 1;
             row.counts[e.kind] = (row.counts[e.kind] || 0) + 1;
+
+            /*  السرعة والصواب: الإجابات الصحيحة وحدها تُقاس. ومن
+                رُصدت لها إجابة بلا زمن (رصدٌ خارج شريحة سؤال) تُعدّ
+                في الصواب ولا تدخل في متوسّط السرعة. */
+            if (e.kind === "answer") {
+              row.right += 1;
+              if (e.secs != null) {
+                sumSecs[e.studentId] = sumSecs[e.studentId] || { n: 0, t: 0 };
+                sumSecs[e.studentId].n += 1;
+                sumSecs[e.studentId].t += +e.secs;
+                if (row.fastest == null || +e.secs < row.fastest) row.fastest = +e.secs;
+              }
+            }
           });
+          Object.keys(sumSecs).forEach(function (id) {
+            var a = sumSecs[id];
+            byId[id].secs = Math.round((a.t / a.n) * 10) / 10;
+          });
+
           return Object.keys(byId).map(function (k) { return byId[k]; })
             .sort(function (a, b) {
               return b.points - a.points ||

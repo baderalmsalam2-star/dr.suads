@@ -88,6 +88,12 @@ create table if not exists events (
 create index if not exists events_student on events (student_id);
 create index if not exists events_scope   on events (section_id, day);
 
+--  زمن الإجابة بالثواني من فتح شريحة السؤال.
+--  الدكتورة لا تحمل ساعةً بيدها: الشريحة تعرف متى فُتحت، والضغطة
+--  تعرف متى وقعت، فالفرق بينهما زمنُ الإجابة. وعليه تُرتَّب لوحة
+--  الشرف بالسرعة بعد الصواب.
+alter table events add column if not exists secs numeric;
+
 -- ─── الحضور: سجل واحد لكل (طالبة، محاضرة) ───
 create table if not exists attendance (
   id         text primary key,

@@ -29,6 +29,11 @@
   <select id="section" aria-label="اختيار الشعبة"></select>
 
   <label for="scope">المدى:</label>
+  <label for="board">اللوحة:</label>
+  <select id="board" aria-label="نوع اللوحة">
+    <option value="points">الأكثر تفاعلًا</option>
+    <option value="speed">الأسرع إجابةً</option>
+  </select>
   <select id="scope" aria-label="مدى لوحة الشرف">
     <option value="day">اليوم</option>
     <option value="month">الشهر</option>
@@ -48,6 +53,9 @@
 <div class="section-title">الترتيب الكامل <span class="sub" id="sub"></span></div>
 <div class="wrap"><table class="grid" id="table"></table></div>
 <div id="emptyBox"></div>
+
+<!-- خلاصة اليوم: سطرٌ واحد يُقرأ في نهاية المحاضرة -->
+<div id="daily" class="daily" hidden></div>
 
 <div class="note-box">
   نقاط التفاعل تُرصد أثناء المحاضرة من لوحة الرصد (مفتاح <b>م</b> داخل العرض)، ومن تسليم أوراق العمل.

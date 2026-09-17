@@ -327,3 +327,27 @@ button.revert{margin-inline-start:.5em;vertical-align:middle;
 .card.exam{border-color:var(--student)}
 .card.exam .no{color:var(--student)}
 .card.exam .badge{border-color:var(--student);color:var(--student)}
+
+/* ═══ خلاصة اليوم في لوحة الشرف ═══ */
+.daily{border:1px solid var(--faculty);padding:clamp(16px,2.4vw,26px);
+  display:flex;flex-direction:column;gap:.8em}
+.daily .d-title{font-family:var(--matn);font-weight:700;color:var(--student);
+  font-size:clamp(1.05rem,2vw,1.45rem)}
+.daily .d-grid{display:grid;gap:clamp(10px,1.6vw,18px);
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+.daily .d-stat{border:1px solid var(--line);padding:clamp(11px,1.6vw,17px)}
+.daily .d-k{color:var(--neutral);font-size:clamp(.7rem,1.15vw,.84rem)}
+.daily .d-v{font-family:var(--matn);font-weight:700;color:var(--student);
+  font-size:clamp(1.3rem,2.6vw,1.9rem);line-height:1.2;margin-top:.15em}
+.daily .d-v.blue{color:var(--faculty)}
+.daily .d-top{color:var(--neutral);font-size:clamp(.82rem,1.5vw,.98rem);line-height:1.9}
+
+/* ═══ شارة العرض التجريبي ═══ */
+.demo-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.6em 1em;
+  border:1px dashed var(--student);padding:.6em clamp(.8em,1.6vw,1.2em);
+  margin-top:clamp(10px,1.4vw,16px);font-size:clamp(.75rem,1.3vw,.9rem)}
+.demo-bar .db-tag{background:var(--student);color:var(--navy);font-weight:600;
+  padding:.1em .7em;white-space:nowrap}
+.demo-bar .db-text{color:var(--neutral);flex:1;min-width:14ch;line-height:1.7}
+.demo-bar .btn{margin-inline-start:auto}
+@media print{.demo-bar{display:none}}

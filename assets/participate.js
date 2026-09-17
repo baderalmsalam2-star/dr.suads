@@ -170,12 +170,32 @@
     kindBar.appendChild(undo);
   }
 
+  /* ─── زمن الإجابة ───
+     متى فُتحت شريحة السؤال الحالية؟ الفرق بينها وبين لحظة الضغط
+     هو زمن الإجابة. ولا يُقاس إلا على شرائح الأسئلة (data-q):
+     القراءة والمناقشة لا معنى لسرعتهما. */
+  var qOpenedAt = null;
+  addEventListener("tp:slide", function (e) {
+    var sl = e.detail && e.detail.slide;
+    qOpenedAt = (sl && sl.hasAttribute("data-q")) ? Date.now() : null;
+  });
+
+  function answerSecs() {
+    if (qOpenedAt == null) return null;
+    var s = (Date.now() - qOpenedAt) / 1000;
+    /* أكثر من خمس دقائق ليس سرعةَ إجابة — تُركت الشريحة مفتوحة */
+    return s > 300 ? null : Math.round(s * 10) / 10;
+  }
+
   function record(studentId, kind) {
+    var secs = answerSecs();
     Store.addEvent({
       studentId: studentId, sectionId: section.id, session: sessionNo,
-      kind: kind.id, points: kind.points
+      kind: kind.id, points: kind.points,
+      secs: secs
     }).then(function () {
-      flash(kind.label + " +" + ar(kind.points));
+      flash(kind.label + " +" + ar(kind.points) +
+            (secs != null ? " · " + ar(secs) + "ث" : ""));
       picked = null;
       load();
       renderKinds();

@@ -15,6 +15,7 @@
     { id: "honors",     label: "لوحة الشرف",   href: "honors.html" },
     { id: "compose",    label: "مُنشئ المحاضرات",  href: "compose.html" },
     { id: "login",      label: "الحساب",       href: "login.html" },
+    { id: "demo",       label: "عرض تجريبي",   href: "demo.html" },
     /* لا يظهر إلا للمشرف — يُضاف في chrome() بعد سؤال TPRole */
     { id: "admin",      label: "الفحص",        href: "admin.html", admin: true }
   ];
@@ -120,6 +121,24 @@
     /* مبدّل الألوان في طرف الشريط — يظهر إن كان theme.js محمَّلًا */
     if (window.TPTheme) nav.appendChild(TPTheme.picker());
     head.appendChild(nav);
+
+    /*  شارة العرض التجريبي — تُلازم كل صفحة ما دام الوضع قائمًا،
+        فلا تُظنّ الأرقامُ أرقامَ الشعبة. */
+    if (window.Store && Store.demo) head.appendChild(demoBar());
+  }
+
+  function demoBar() {
+    var bar = el("div", "demo-bar");
+    bar.appendChild(el("span", "db-tag", "عرض تجريبي"));
+    bar.appendChild(el("span", "db-text",
+      "كل ما تراه هنا من نسج البرنامج — أسماءٌ وأرقامٌ مختلقة. " +
+      "بيانات الشعبة الحقيقية لا تُقرأ ولا تُمسّ."));
+    var out = el("a", "btn sm", "خروج");
+    var u = new URL(location.href);
+    u.searchParams.set("demo", "0");
+    out.href = u.toString();
+    bar.appendChild(out);
+    return bar;
   }
 
   /* ─── سطر الاعتماد ───

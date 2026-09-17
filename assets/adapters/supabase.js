@@ -158,6 +158,7 @@
 
   var M_STUDENT = { sectionId: "section_id", authUid: "auth_uid", updatedAt: "updated_at" };
   var M_EVENT = { studentId: "student_id", sectionId: "section_id" };
+  /* secs يحمل اسمه نفسه في الجدول فلا يحتاج تعيينًا */
   var M_ATT = { studentId: "student_id", sectionId: "section_id" };
   var M_SUB = { studentId: "student_id", worksheetId: "worksheet_id",
                 submittedAt: "submitted_at", startedAt: "started_at",
