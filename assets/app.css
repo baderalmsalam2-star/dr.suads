@@ -296,3 +296,28 @@ button.revert{margin-inline-start:.5em;vertical-align:middle;
 @media print{
   .edited::after,button.revert,#editText{display:none!important}
 }
+
+/* ═══ نافذة التسليم في صفحة الورقة ═══ */
+.win-box{display:flex;flex-wrap:wrap;align-items:center;gap:.6em 1.1em;
+  border:1px solid var(--line);padding:clamp(9px,1.3vw,14px) clamp(12px,1.8vw,20px);
+  font-size:clamp(.78rem,1.3vw,.95rem)}
+.win-state{color:var(--neutral)}
+.win-state.open{color:var(--faculty)}
+.win-state.soon{color:var(--student)}
+.win-state.closed{color:var(--danger)}
+.win-set{display:flex;flex-wrap:wrap;align-items:center;gap:.5em .8em;
+  margin-inline-start:auto}
+.win-set label{color:var(--neutral)}
+.win-set input{font:inherit;font-size:.95em;color:var(--faculty);
+  background:var(--navy-2);border:1px solid var(--line);padding:.35em .6em}
+.win-set input:focus{outline:none;border-color:var(--faculty)}
+@media print{.win-set{display:none}}
+
+/* شارة موعد التسليم على بطاقة الورقة — تحت الشارة العلوية */
+.win-chip{position:absolute;bottom:-1px;left:clamp(14px,3vw,26px);
+  transform:translateY(50%);background:var(--navy);border:1px solid var(--neutral);
+  color:var(--neutral);padding:.18em .8em;white-space:nowrap;
+  font-size:clamp(.62rem,1vw,.74rem)}
+.win-chip.soon{border-color:var(--student);color:var(--student)}
+.win-chip.closed{border-color:var(--danger);color:var(--danger)}
+.win-chip.open{border-color:var(--line);color:var(--neutral)}

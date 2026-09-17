@@ -119,6 +119,31 @@
     },
 
     /* كم تصحيحًا في هذا المقرر — لصفحة الفحص */
-    count: function () { return Object.keys(over).length; }
+    count: function () { return Object.keys(over).length; },
+
+    /* ─── نافذة التسليم ───
+       موعدا الفتح والإغلاق يُخزَّنان كبقية التصحيحات: صفٌّ في
+       content بحقل opensAt أو dueAt. والحراسة في الخادم — في
+       stamp_submission — لا هنا: ما يُحرَس في المتصفّح يُتخطّى
+       بطلبٍ واحد مباشر. وما هنا بيانٌ للطالبة لا حاجز. */
+    window: function (ref) {
+      return {
+        opens: over[key(ref, "opensAt")] || null,
+        due:   over[key(ref, "dueAt")]   || null
+      };
+    },
+
+    /* هل التسليم مفتوحٌ الآن بحسب الساعة المحلية؟ */
+    isOpen: function (ref) {
+      var w = window.TPContent.window(ref);
+      var now = Date.now();
+      if (w.opens && now < Date.parse(w.opens)) return "soon";
+      if (w.due && now > Date.parse(w.due)) return "closed";
+      return "open";
+    },
+
+    setWindow: function (ref, field, iso) {
+      return window.TPContent.set(ref, field, iso || "");
+    }
   };
 })();

@@ -12,6 +12,7 @@
 
   var section = TP.resolveSection(params);
   var students = [], student = null, sub = null, saveTimer = null;
+  var owner = false;                 /* يُضبط بعد سؤال TPRole */
 
   var itemsBox = document.getElementById("items");
   var stateEl = document.getElementById("state");
@@ -34,8 +35,102 @@
   function start() {
     TPUI.chrome("worksheets", W.title, W.subtitle);
     document.getElementById("intro").textContent = W.intro || "";
+    windowSetup();
     editSetup();
     loadStudents();
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     نافذة التسليم
+
+     ما هنا بيانٌ لا حاجز: الحارس الحقيقي في الخادم (دالة
+     stamp_submission ترفض التسليم خارج النافذة). فلو عُطِّل
+     جافاسكربت أو أُرسل الطلب مباشرةً، بقي الحدّ قائمًا.
+     وتُخفى الأزرار هنا لأن عرض زرٍّ يردّه الخادم عبثٌ لا حراسة.
+     ═══════════════════════════════════════════════════════════ */
+  var winBox = document.getElementById("window");
+  var winState = document.getElementById("winState");
+
+  function windowSetup() {
+    if (!winBox) return;
+    paintWindow();
+
+    if (!window.TPRole) return;
+    TPRole.get().then(function (r) {
+      owner = (r === "teacher" || r === "admin");
+      if (sub) render();             /* الأزرار تتبع الدور */
+      if (!owner) return;
+      var set = document.getElementById("winSet");
+      set.hidden = false;
+      winBox.hidden = false;
+
+      var o = document.getElementById("opensAt");
+      var d = document.getElementById("dueAt");
+      var w = TPContent.window(W.id);
+      o.value = toLocal(w.opens);
+      d.value = toLocal(w.due);
+
+      o.addEventListener("change", function () { saveWin("opensAt", o.value); });
+      d.addEventListener("change", function () { saveWin("dueAt", d.value); });
+      document.getElementById("winClear").addEventListener("click", function () {
+        o.value = ""; d.value = "";
+        Promise.all([TPContent.setWindow(W.id, "opensAt", ""),
+                     TPContent.setWindow(W.id, "dueAt", "")])
+          .then(function () { paintWindow(); render();
+                              TPUI.toast("رُفع الموعد — التسليم مفتوح.", "good"); })
+          .catch(fail);
+      });
+    });
+  }
+
+  function saveWin(field, localValue) {
+    /*  حقل datetime-local يعطي وقتًا بلا منطقة. يُحوَّل إلى ISO
+        بمنطقة الجهاز — وجهاز الدكتورة على توقيت الكويت، وهو الموعد
+        الذي تقصده. */
+    var iso = localValue ? new Date(localValue).toISOString() : "";
+    TPContent.setWindow(W.id, field, iso).then(function () {
+      paintWindow();
+      render();
+      TPUI.toast(iso ? "حُفظ الموعد." : "رُفع الموعد.", "good");
+    }).catch(fail);
+  }
+
+  function toLocal(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    var p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+           "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  function when(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    var p = function (n) { return ar((n < 10 ? "0" : "") + n); };
+    return TPUI.arDate(d.getFullYear() + "-" +
+             ((d.getMonth() + 1) < 10 ? "0" : "") + (d.getMonth() + 1) + "-" +
+             (d.getDate() < 10 ? "0" : "") + d.getDate()) +
+           " · " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  function paintWindow() {
+    if (!winBox) return;
+    var w = TPContent.window(W.id);
+    var st = TPContent.isOpen(W.id);
+
+    if (!w.opens && !w.due) {
+      winState.textContent = "التسليم مفتوح — بلا موعد.";
+      winState.className = "win-state";
+      return;                            /* يبقى الصندوق مخفيًّا للطالبة */
+    }
+    winBox.hidden = false;
+    winState.className = "win-state " + st;
+    winState.textContent =
+      st === "soon"   ? "لم يُفتح التسليم بعد — يُفتح " + when(w.opens) :
+      st === "closed" ? "أُغلق التسليم — كان آخر موعد " + when(w.due) :
+      w.due           ? "التسليم مفتوح — آخر موعد " + when(w.due)
+                      : "التسليم مفتوح.";
   }
 
   /* ─── اختيار الطالبة ─── */
@@ -105,10 +200,14 @@
       ? "سُلِّمت في " + TPUI.arDate((sub.submittedAt || "").slice(0, 10))
       : (sub.id ? "مسودة محفوظة" : "لم تبدأ بعد");
 
-    document.getElementById("submit").hidden = locked;
-    document.getElementById("save").hidden = locked;
+    /*  خارج النافذة تُخفى أزرار الحفظ والتسليم: الخادم يردّها على
+        كل حال، وعرضُ زرٍّ مردود إيهامٌ لا حراسة. والدكتورة خارج
+        الحدّ — تُدخل تسليم من اعتذرت، كما في الخادم سواءً بسواء. */
+    var shut = !owner && TPContent.isOpen(W.id) !== "open";
+    document.getElementById("submit").hidden = locked || shut;
+    document.getElementById("save").hidden = locked || shut;
     document.getElementById("send").hidden = !locked;
-    document.getElementById("reopen").hidden = !locked;
+    document.getElementById("reopen").hidden = !locked || !owner;
 
     applyEdit();                    /* الأسئلة بُنيت من جديد */
   }

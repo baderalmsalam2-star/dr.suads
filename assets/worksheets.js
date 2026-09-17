@@ -261,6 +261,17 @@
     return d;
   }
 
+  /* «٢٤ سبتمبر ١١:٥٩» — يوم وساعة بلا سنة، فالفصل واحد */
+  function shortWhen(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    var M = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
+             "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+    var p = function (n) { return ar((n < 10 ? "0" : "") + n); };
+    return ar(d.getDate()) + " " + M[d.getMonth()] + " " +
+           p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
   function submitted(w) {
     return data.subs.filter(function (x) {
       return x.worksheetId === w.id && x.status === "submitted";
@@ -285,6 +296,18 @@
     meta.appendChild(el("span", "readers", TPUI.questions(w.items.length) +
       (graded ? " · التسليم يُحتسب" : " · للمراجعة")));
     a.appendChild(meta);
+
+    /* حال نافذة التسليم — تُرى من الكشف بلا فتح الورقة */
+    var st = TPContent.isOpen(w.id);
+    if (st !== "open") {
+      var win = TPContent.window(w.id);
+      li.appendChild(el("span", "win-chip " + st,
+        st === "soon" ? "يُفتح " + shortWhen(win.opens)
+                      : "أُغلق " + shortWhen(win.due)));
+    } else if (TPContent.window(w.id).due) {
+      li.appendChild(el("span", "win-chip open",
+        "آخر موعد " + shortWhen(TPContent.window(w.id).due)));
+    }
     li.appendChild(a);
     return li;
   }

@@ -369,11 +369,38 @@ create policy submissions_self_update on submissions for update
 --  تسليمٌ مقفل إلى مسودة.
 create or replace function stamp_submission() returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_opens timestamptz; v_due timestamptz;
 begin
   if new.status = 'submitted'
      and (tg_op = 'INSERT' or old.status is distinct from 'submitted') then
+
+    --  ═══ نافذة التسليم ═══
+    --  موعدا الفتح والإغلاق يُضبطان من صفحة الورقة ويُخزَّنان في
+    --  content (ref = معرّف الورقة، field = opensAt / dueAt).
+    --  والحراسة هنا لا في المتصفّح: ما يُحرَس في الصفحة يُتخطّى
+    --  بطلبٍ واحد مباشر إلى الخادم.
+    --
+    --  والمالكة خارج الحدّ: تُدخل تسليم طالبةٍ اعتذرت بعد الموعد،
+    --  وهذا قرارها هي.
+    if not is_owner() then
+      select (value)::timestamptz into v_opens from content
+       where ref = new.worksheet_id and field = 'opensAt';
+      select (value)::timestamptz into v_due from content
+       where ref = new.worksheet_id and field = 'dueAt';
+
+      if v_opens is not null and now() < v_opens then
+        raise exception 'لم يُفتح التسليم بعد — يُفتح في %',
+          to_char(v_opens at time zone 'Asia/Kuwait', 'YYYY-MM-DD HH24:MI');
+      end if;
+      if v_due is not null and now() > v_due then
+        raise exception 'أُغلق التسليم — كان آخر موعد %',
+          to_char(v_due at time zone 'Asia/Kuwait', 'YYYY-MM-DD HH24:MI');
+      end if;
+    end if;
+
     new.submitted_at := now();
   end if;
+
   if tg_op = 'UPDATE' and old.status = 'submitted'
      and new.status <> 'submitted' and not is_owner() then
     raise exception 'التسليم المقفل لا يُعاد إلى مسودة';

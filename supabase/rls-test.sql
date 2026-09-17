@@ -806,6 +806,92 @@ delete from content where id='wilaya:h1#h1q1|prompt';
 insert into rls_results select 'وتحذفه فيعود الأصل', (select count(*) from content)=2;
 commit;
 
+-- ═══════════════════════════════════════════════════════════════
+--  نافذة التسليم
+--
+--  الحراسة في الخادم لا في المتصفّح: ما يُحرَس في الصفحة يُتخطّى
+--  بطلبٍ واحد مباشر. والمالكة خارج الحدّ — تُدخل تسليم من اعتذرت.
+-- ═══════════════════════════════════════════════════════════════
+insert into content(id,course_id,ref,field,value) values
+ ('wilaya:w-late|dueAt','wilaya','wilaya:w-late','dueAt',
+  (now() - interval '1 day')::text),
+ ('wilaya:w-soon|opensAt','wilaya','wilaya:w-soon','opensAt',
+  (now() + interval '1 day')::text);
+
+-- بعد الموعد: التسليم يُرفض
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into submissions(id,student_id,worksheet_id,status)
+  values ('lt-1','t-sara','wilaya:w-late','draft');
+commit;
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    update submissions set status='submitted' where id='lt-1';
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('التسليم بعد الموعد يُرفض', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('التسليم بعد الموعد يُرفض', true);
+  end;
+end $$;
+insert into rls_results select 'والصفّ باقٍ مسودة',
+  (select status from submissions where id='lt-1')='draft';
+
+-- وقبل الفتح كذلك
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into submissions(id,student_id,worksheet_id,status)
+  values ('sn-1','t-sara','wilaya:w-soon','draft');
+commit;
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    update submissions set status='submitted' where id='sn-1';
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('التسليم قبل الفتح يُرفض', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('التسليم قبل الفتح يُرفض', true);
+  end;
+end $$;
+
+-- وداخل النافذة يُقبل
+insert into content(id,course_id,ref,field,value) values
+ ('wilaya:w-open|opensAt','wilaya','wilaya:w-open','opensAt',(now() - interval '1 hour')::text),
+ ('wilaya:w-open|dueAt','wilaya','wilaya:w-open','dueAt',(now() + interval '1 hour')::text);
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into submissions(id,student_id,worksheet_id,status)
+  values ('op-1','t-sara','wilaya:w-open','draft');
+update submissions set status='submitted' where id='op-1';
+commit;
+insert into rls_results select 'وداخل النافذة يُقبل',
+  (select status from submissions where id='op-1')='submitted';
+
+-- وورقةٌ بلا نافذة تُسلَّم كما كانت
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into submissions(id,student_id,worksheet_id,status)
+  values ('nw-1','t-sara','wilaya:w-none','draft');
+update submissions set status='submitted' where id='nw-1';
+commit;
+insert into rls_results select 'وورقةٌ بلا نافذة تُسلَّم كما كانت',
+  (select status from submissions where id='nw-1')='submitted';
+
+-- والمالكة تُدخل تسليمًا بعد الموعد
+begin; set local role authenticated; set local request.jwt.claim.sub = :'OWNER';
+update submissions set status='submitted' where id='lt-1';
+commit;
+insert into rls_results select 'والمالكة تُدخل تسليمًا بعد الموعد',
+  (select status from submissions where id='lt-1')='submitted';
+
+-- والطالبة ترى موعد ورقتها (فالموعد في content وهي تقرأ مقررها)
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into rls_results select 'الطالبة ترى موعد التسليم',
+  exists (select 1 from content where ref='wilaya:w-late' and field='dueAt');
+commit;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

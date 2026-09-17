@@ -38,6 +38,18 @@
   <button id="editText" type="button" class="ghost" hidden>تحرير النصوص</button>
 </div>
 
+<!-- نافذة التسليم: بيانٌ للجميع، وضبطٌ للدكتورة وحدها -->
+<div id="window" class="win-box" hidden>
+  <span class="win-state" id="winState"></span>
+  <span class="win-set" id="winSet" hidden>
+    <label for="opensAt">يُفتح:</label>
+    <input type="datetime-local" id="opensAt">
+    <label for="dueAt">آخر موعد:</label>
+    <input type="datetime-local" id="dueAt">
+    <button id="winClear" type="button" class="ghost sm">بلا موعد</button>
+  </span>
+</div>
+
 <div id="intro" class="note-box"></div>
 <div id="items"></div>
 <div id="emptyBox"></div>
