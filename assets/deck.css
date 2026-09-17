@@ -52,10 +52,13 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);overflow:
      font-size:clamp(.7rem,1.2vw,.9rem);color:var(--student);white-space:nowrap}
 
 /* الرُّبرِكة */
-.rubric{color:var(--student);font-family:var(--matn);font-weight:700;
+/* العناوين مشكولة (tools/tashkeel.py)، والتشكيل حبرٌ فوق السطر وتحته،
+   فيحتاج فسحةً في ارتفاع السطر. بغيرها اصطدمت الضمّة بما فوقها
+   والكسرة بما تحتها، أو قصّها صندوقُ السطر. */
+.rubric{color:var(--student);font-family:var(--matn);font-weight:700;line-height:1.75;
         font-size:calc(clamp(1.05rem,2vw,1.6rem) * var(--z));margin-bottom:.5em}
 
-h1{font-family:var(--matn);font-weight:700;line-height:1.25;
+h1{font-family:var(--matn);font-weight:700;line-height:1.6;
    font-size:calc(clamp(2rem,6.4vw,4.6rem) * var(--z));color:var(--surface)}
 .sub{font-family:var(--matn);font-size:calc(clamp(1.05rem,2.4vw,1.9rem) * var(--z));color:var(--faculty);margin-top:.5em}
 

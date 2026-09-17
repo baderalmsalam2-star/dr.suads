@@ -10,7 +10,10 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);
                   border:1px solid var(--line-faculty);pointer-events:none}
 .masthead .kicker{color:var(--student);font-family:var(--matn);font-weight:700;
                   font-size:clamp(.95rem,1.8vw,1.35rem);margin-bottom:.45em}
-.masthead h1{font-family:var(--matn);font-weight:700;line-height:1.2;
+/* العناوين مشكولة (tools/tashkeel.py)، والتشكيل حبرٌ فوق السطر وتحته،
+   فيحتاج فسحةً في ارتفاع السطر. بغيرها اصطدمت الضمّة بما فوقها
+   والكسرة بما تحتها، أو قصّها صندوقُ السطر. */
+.masthead h1{font-family:var(--matn);font-weight:700;line-height:1.5;
              font-size:clamp(1.7rem,4.6vw,3.4rem)}
 .masthead .who{font-family:var(--matn);color:var(--faculty);margin-top:.5em;
                font-size:clamp(1rem,2vw,1.55rem)}
@@ -45,7 +48,7 @@ button.danger{border-color:var(--danger);color:var(--danger)}
 button:disabled{opacity:.4;cursor:not-allowed}
 button.sm{padding:.25em .7em;font-size:.85em}
 
-.section-title{font-family:var(--matn);color:var(--student);font-weight:700;
+.section-title{font-family:var(--matn);color:var(--student);font-weight:700;line-height:1.75;
                font-size:clamp(1.05rem,2vw,1.5rem);margin-top:.3em}
 .section-title .sub{font-family:var(--ui);color:var(--neutral);font-weight:400;
                     font-size:.62em;margin-inline-start:.7em}
@@ -73,7 +76,7 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 .card.ready:hover,.card.ready:focus-within{background:var(--ink)}
 .card .no{color:var(--faculty);font-size:clamp(.7rem,1.15vw,.85rem);letter-spacing:.06em;
           font-variant-numeric:tabular-nums}
-.card h2{font-family:var(--matn);font-weight:700;line-height:1.3;
+.card h2{font-family:var(--matn);font-weight:700;line-height:1.65;
          font-size:clamp(1.2rem,2.4vw,1.7rem);color:var(--surface)}
 .card .sub{font-family:var(--matn);color:var(--faculty);font-size:clamp(.95rem,1.6vw,1.15rem)}
 .card .meta{margin-top:auto;padding-top:.8em;display:flex;justify-content:space-between;
