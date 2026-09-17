@@ -156,6 +156,30 @@
     return { forms: n, size: papers[0].length, shared: shared, samePlace: samePlace };
   }
 
+  /*  ═══ السؤال متعدّد الإجابات ═══
+      الأصل: لا تُنال درجته إلا بإصابة المجموعة كلها — لا زيادةَ ولا
+      نقصان. لأن «اختاري ما ينطبق» إنما تُختبر به معرفةُ الحدّ، ومن
+      اختارت الكل نالت الصحيح بلا معرفة.
+
+      و partial: true في السؤال يفتح التجزئة: لكل صحيحةٍ اختيرت
+      سهمٌ، ولكل خاطئةٍ اختيرت سهمٌ يُطرح، ولا ينزل عن الصفر. تختارها
+      الدكتورة للسؤال الذي ترى فيه التجزئة عدلًا. */
+  function multiScore(q, a) {
+    var right = (q.answers || []).map(Number).sort();
+    var got = (Array.isArray(a) ? a : []).map(Number).sort();
+    if (!right.length) return 0;
+
+    if (!q.partial) {
+      var same = right.length === got.length &&
+                 right.every(function (v, i) { return v === got[i]; });
+      return same ? q.points : 0;
+    }
+    var hit = got.filter(function (v) { return right.indexOf(v) >= 0; }).length;
+    var miss = got.length - hit;
+    var share = q.points / right.length;
+    return Math.max(0, Math.round((hit - miss) * share * 100) / 100);
+  }
+
   /* ─── التصحيح ───
      «دلّل» لا يُصحَّح آليًّا: يُترك للدكتورة، ويُفصَل مجموعُه عن
      المجموع الآليّ حتى لا تُظنّ الدرجة تامّةً وهي ناقصة. */
@@ -171,6 +195,8 @@
         got = (a === true || a === false) && a === q.answer ? q.points : 0;
       } else if (q.kind === "mcq") {
         got = (a != null && +a === +q.answer) ? q.points : 0;
+      } else if (q.kind === "multi") {
+        got = multiScore(q, a);
       } else if (q.kind === "cloze") {
         var want = (q.accept || []).map(norm);
         got = want.indexOf(norm(a)) >= 0 ? q.points : 0;
@@ -183,10 +209,11 @@
                   got: got, answer: a });
     });
 
-    return { auto: auto, autoMax: autoMax, manualMax: manualMax,
-             max: autoMax + manualMax, rows: rows };
+    return { auto: Math.round(auto * 100) / 100, autoMax: autoMax,
+             manualMax: manualMax, max: autoMax + manualMax, rows: rows };
   }
 
   window.TPQuiz = { paper: paper, formOf: formOf, grade: grade,
+                    multiScore: multiScore,
                     norm: norm, spread: spread, need: need };
 })();

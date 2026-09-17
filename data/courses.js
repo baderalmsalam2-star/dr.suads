@@ -6,6 +6,7 @@
        worksheets.js   أوراق العمل المولَّدة من خطة المحاضرات
        activities.js   الأنشطة الصفّية واللاصفّية (تُحرَّر يدويًا)
        exams.js        الاختبارات الرسمية وبنوك أسئلتها
+       evidences.js    ملفّ الأدلة المختصرة
 
    لإضافة مقرر: انسخ مجلّد مقرر قائم، وغيّر ما فيه، ثم اكتب
    معرّفه في COURSE_FILES أدناه. لا يُعدَّل أي ملف آخر في المنصة،
@@ -65,6 +66,14 @@
       return c;
     },
 
+    /* تُستدعى من evidences.js — ملفّ الأدلة المختصرة للمقرر */
+    evidences: function (id, doc) {
+      var c = byId(id);
+      if (!c) throw new Error("أدلة لمقرر غير مسجَّل: " + id);
+      c.evidences = doc;
+      return doc;
+    },
+
     /*  تُستدعى من exams.js — الاختبارات الرسمية للمقرر.
         معرّف الاختبار يُوسَم بمقرره كما تُوسَم الأوراق، لأن تسليمه
         يُحفظ في الجدول نفسه (submissions) بمعرّفه هذا. */
@@ -109,6 +118,7 @@
     load("courses/" + id + "/worksheets.js");
     load("courses/" + id + "/activities.js");
     load("courses/" + id + "/exams.js");
+    load("courses/" + id + "/evidences.js");
   });
 
   /* يُنتخب المقرر العامل ويُبنى window.COURSE و window.TP */

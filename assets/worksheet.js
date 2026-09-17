@@ -183,6 +183,7 @@
       box.appendChild(mark(el("div", "prompt", it.prompt), W.id + "#" + it.id, "prompt"));
 
       if (it.kind === "mcq") buildMcq(box, it, locked);
+      else if (it.kind === "multi") buildMulti(box, it, locked);
       else if (it.kind === "file") buildFile(box, it, locked);
       else if (it.kind === "sort") buildSort(box, it, locked);
       else if (it.kind === "pair") buildPair(box, it, locked);
@@ -236,6 +237,43 @@
         if (oi === it.answer) lab.classList.add("correct");
         /* اختيار الطالبة الخاطئ يُعلَّم صراحةً حتى تعرف أين وقع اللبس */
         else if (sub.answers[it.id] === oi) lab.classList.add("yours");
+      }
+      li.appendChild(lab);
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  }
+
+  /*  متعدّد الإجابات — مربّعاتٌ لا دوائر. والتصحيح في assets/quiz.js
+      فلا يُكتب مرتين: الأصل ألّا تُنال الدرجة إلا بإصابة المجموعة
+      كلها، و partial تفتح التجزئة. */
+  function buildMulti(box, it, locked) {
+    box.appendChild(el("div", "multi-hint",
+      it.partial ? "اختاري كل ما ينطبق — لكل صحيحةٍ سهمٌ ولكل خاطئةٍ خصم."
+                 : "اختاري كل ما ينطبق — لا تُنال الدرجة إلا بإصابتها كلها."));
+    var ul = el("ul", "choices multi");
+    var picked = Array.isArray(sub.answers[it.id]) ? sub.answers[it.id].map(Number) : [];
+    it.options.forEach(function (opt, oi) {
+      var li = el("li"), lab = el("label");
+      var input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = oi;
+      input.checked = picked.indexOf(oi) >= 0;
+      input.disabled = locked;
+      input.addEventListener("change", function () {
+        sub.answers[it.id] = [].slice.call(ul.querySelectorAll("input:checked"))
+                               .map(function (x) { return +x.value; });
+        markPicked(ul);
+        autosave();
+      });
+      lab.appendChild(input);
+      lab.appendChild(el("span", "", "أبجد".charAt(oi) || String(oi + 1)));
+      lab.appendChild(mark(el("span", "", opt), W.id + "#" + it.id, "opt" + oi));
+      if (picked.indexOf(oi) >= 0) lab.classList.add("picked");
+      if (locked) {
+        var isRight = (it.answers || []).map(Number).indexOf(oi) >= 0;
+        if (isRight) lab.classList.add("correct");
+        else if (picked.indexOf(oi) >= 0) lab.classList.add("yours");
       }
       li.appendChild(lab);
       ul.appendChild(li);
@@ -552,6 +590,8 @@
       if (it.kind === "pair")  return !allFilled(v, it.pairs);
       if (it.kind === "order") return !allFilled(v, it.steps);
       if (it.kind === "table") return !tableFilled(v, it);
+      /* متعدّد الإجابات: مصفوفةٌ فارغة ليست إجابة */
+      if (it.kind === "multi") return !Array.isArray(v) || !v.length;
       return v === undefined || v === null || (typeof v === "string" && !v.trim());
     });
     if (missing.length) {

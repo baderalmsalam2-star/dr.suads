@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<title>ورقة عمل — منصة التدريس</title>
+<title>الأدلة المختصرة — منصة التدريس</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,37 +25,17 @@
 <div id="chrome"></div>
 
 <div class="control">
-  <label for="student">الطالبة:</label>
-  <select id="student" aria-label="اختيار الطالبة"></select>
-  <span class="hint" id="state"></span>
+  <span class="hint" id="note"></span>
   <span class="spacer"></span>
-  <button id="save" type="button" class="ghost">حفظ مسودة</button>
-  <button id="submit" type="button">تسليم</button>
-  <button id="send" type="button" class="gold" hidden>تنزيل ملف التسليم</button>
-  <button id="reopen" type="button" class="ghost" hidden>فتح للتعديل</button>
-  <button id="printBtn" type="button" class="ghost">طباعة</button>
-  <!-- لا يظهر إلا للدكتورة — يُكشف في worksheet.js بعد سؤال TPRole -->
-  <button id="editText" type="button" class="ghost" hidden>تحرير النصوص</button>
+  <button id="printBtn" type="button" class="ghost">طباعة الملف</button>
 </div>
 
-<!-- نافذة التسليم: بيانٌ للجميع، وضبطٌ للدكتورة وحدها -->
-<div id="window" class="win-box" hidden>
-  <span class="win-state" id="winState"></span>
-  <span class="win-set" id="winSet" hidden>
-    <label for="opensAt">يُفتح:</label>
-    <input type="datetime-local" id="opensAt">
-    <label for="dueAt">آخر موعد:</label>
-    <input type="datetime-local" id="dueAt">
-    <button id="winClear" type="button" class="ghost sm">بلا موعد</button>
-  </span>
-</div>
-
-<div id="intro" class="note-box"></div>
-<div id="items"></div>
-<div id="emptyBox"></div>
+<div id="groups"></div>
+<div class="section-title" id="extraTitle" hidden>أدلةٌ أخرى تُذكر في الدرس</div>
+<div id="extra"></div>
 
 <footer class="foot">
-  <div>البيانات محفوظة على هذا الجهاز — صدِّري نسخة احتياطية من صفحة الطالبات بين حين وآخر.</div>
+  <div id="foot"></div>
   <div id="credit"></div>
 </footer>
 
@@ -63,10 +43,8 @@
 <script src="assets/config.js"></script>
 <script src="assets/adapters/supabase.js"></script>
 <script src="assets/store.js"></script>
-<script src="assets/content.js"></script>
 <script src="assets/role.js"></script>
 <script src="assets/ui.js"></script>
-<script src="assets/quiz.js"></script>
-<script src="assets/worksheet.js"></script>
+<script src="assets/evidences.js"></script>
 </body>
 </html>

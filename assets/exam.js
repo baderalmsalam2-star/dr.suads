@@ -70,6 +70,18 @@
           (q.points === 1 ? " درجة" : " درجات")));
         box.appendChild(el("div", "prompt", q.prompt));
         if (q.kind === "tf") box.appendChild(el("div", "key", "الجواب: " + (q.answer ? "صواب" : "خطأ")));
+        else if (q.kind === "multi") {
+          var mu = el("ul", "choices multi");
+          (q.options || []).forEach(function (o, oi) {
+            var li = el("li");
+            var lab = el("label",
+              (q.answers || []).map(Number).indexOf(oi) >= 0 ? "correct" : "");
+            lab.appendChild(el("span", "", "أبجد".charAt(oi) || String(oi + 1)));
+            lab.appendChild(el("span", "", o));
+            li.appendChild(lab); mu.appendChild(li);
+          });
+          box.appendChild(mu);
+        }
         else if (q.kind === "mcq") {
           var ul = el("ul", "choices");
           (q.options || []).forEach(function (o, oi) {
@@ -189,6 +201,7 @@
 
       if (q.kind === "tf") buildTf(box, q, ans, locked);
       else if (q.kind === "mcq") buildMcq(box, q, ans, locked);
+      else if (q.kind === "multi") buildMulti(box, q, ans, locked);
       else if (q.kind === "cloze") buildCloze(box, q, ans, locked);
       else buildProof(box, q, ans, locked);
 
@@ -243,6 +256,42 @@
       if (locked) {
         if (oi === q.answer) lab.classList.add("correct");
         else if (ans[q.id] === oi) lab.classList.add("yours");
+      }
+      li.appendChild(lab); ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  }
+
+  /*  متعدّد الإجابات: مربّعاتٌ لا دوائر — الشكل نفسه يقول إن
+      المطلوب أكثر من واحد، فلا تُظنّ الواحدة كافية. */
+  function buildMulti(box, q, ans, locked) {
+    box.appendChild(el("div", "multi-hint",
+      q.partial ? "اختاري كل ما ينطبق — لكل صحيحةٍ سهمٌ ولكل خاطئةٍ خصم."
+                : "اختاري كل ما ينطبق — لا تُنال الدرجة إلا بإصابتها كلها."));
+    var ul = el("ul", "choices multi");
+    var picked = Array.isArray(ans[q.id]) ? ans[q.id].map(Number) : [];
+    (q.options || []).forEach(function (opt, oi) {
+      var li = el("li"), lab = el("label");
+      var input = document.createElement("input");
+      input.type = "checkbox"; input.value = oi;
+      input.checked = picked.indexOf(oi) >= 0;
+      input.disabled = locked;
+      input.addEventListener("change", function () {
+        var now = [].slice.call(ul.querySelectorAll("input:checked"))
+                    .map(function (x) { return +x.value; });
+        put(q.id, now);
+        [].slice.call(ul.querySelectorAll("label")).forEach(function (l) {
+          l.classList.toggle("picked", l.querySelector("input").checked);
+        });
+      });
+      lab.appendChild(input);
+      lab.appendChild(el("span", "", "أبجد".charAt(oi) || String(oi + 1)));
+      lab.appendChild(el("span", "", opt));
+      if (picked.indexOf(oi) >= 0) lab.classList.add("picked");
+      if (locked) {
+        var isRight = (q.answers || []).map(Number).indexOf(oi) >= 0;
+        if (isRight) lab.classList.add("correct");
+        else if (picked.indexOf(oi) >= 0) lab.classList.add("yours");
       }
       li.appendChild(lab); ul.appendChild(li);
     });
@@ -314,7 +363,7 @@
     if (!sub || sub.status === "submitted") return;
     var left = paper.filter(function (q) {
       var v = (sub.answers || {})[q.id];
-      return v == null || v === "";
+      return v == null || v === "" || (Array.isArray(v) && !v.length);
     }).length;
     if (!auto && left && !confirm("بقي " +
         TPUI.count(left, ["سؤال واحد", "سؤالان", "أسئلة", "سؤالًا"]) +

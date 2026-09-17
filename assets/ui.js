@@ -13,6 +13,7 @@
     { id: "worksheets", label: "أوراق العمل",  href: "worksheets.html" },
     { id: "grades",     label: "الدرجات",      href: "grades.html" },
     { id: "honors",     label: "لوحة الشرف",   href: "honors.html" },
+    { id: "evidences",  label: "الأدلة",        href: "evidences.html" },
     { id: "compose",    label: "مُنشئ المحاضرات",  href: "compose.html" },
     { id: "login",      label: "الحساب",       href: "login.html" },
     { id: "demo",       label: "عرض تجريبي",   href: "demo.html" },

@@ -44,6 +44,7 @@
   window.COURSE = COURSE;
   window.WORKSHEETS = COURSE.sheets || [];
   window.EXAMS = COURSE.exams || [];
+  window.EVIDENCES = COURSE.evidences || null;
 
 
   /* ═══ أدوات مشتركة تعتمد على بيانات المقرر ═══ */

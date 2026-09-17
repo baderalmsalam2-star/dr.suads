@@ -351,3 +351,34 @@ button.revert{margin-inline-start:.5em;vertical-align:middle;
 .demo-bar .db-text{color:var(--neutral);flex:1;min-width:14ch;line-height:1.7}
 .demo-bar .btn{margin-inline-start:auto}
 @media print{.demo-bar{display:none}}
+
+/* السؤال متعدّد الإجابات — مربّعاتٌ لا دوائر، وسطرٌ يقول ما المطلوب */
+.multi-hint{color:var(--student);font-size:clamp(.75rem,1.35vw,.9rem);
+  line-height:1.8}
+.choices.multi label{align-items:flex-start}
+
+/* ═══ ملفّ الأدلة المختصرة ═══ */
+.ev-list{list-style:none;display:grid;gap:clamp(11px,1.6vw,18px)}
+.ev{border:1px solid var(--line);border-inline-start:3px solid var(--faculty);
+  padding:clamp(14px,2.2vw,24px);display:flex;flex-direction:column;gap:.5em;
+  background:var(--navy-2)}
+.ev-head{display:flex;flex-wrap:wrap;align-items:center;gap:.5em .9em}
+.ev-no{font-family:var(--matn);font-weight:700;color:var(--student);
+  font-size:clamp(1.05rem,2vw,1.4rem);line-height:1;min-width:1.6em}
+.ev-kind{font-size:clamp(.66rem,1.1vw,.78rem);border:1px solid var(--line);
+  padding:.12em .7em;color:var(--neutral);white-space:nowrap}
+.ev-kind.k-quran{border-color:var(--student);color:var(--student)}
+.ev-kind.k-sunna{border-color:var(--faculty);color:var(--faculty)}
+.ev-src{color:rgba(var(--neutral-rgb),.62);font-size:clamp(.68rem,1.15vw,.8rem);
+  margin-inline-start:auto;white-space:nowrap}
+.ev-text{font-family:var(--matn);color:var(--surface);line-height:1.95;
+  font-size:clamp(1.05rem,2vw,1.4rem)}
+.ev-ref{color:var(--faculty);font-size:clamp(.75rem,1.3vw,.9rem)}
+.ev-why{color:var(--neutral);line-height:1.9;font-size:clamp(.82rem,1.45vw,.98rem);
+  border-top:1px solid var(--line);padding-top:.6em}
+.ev-why-k{color:var(--student)}
+.ev-list.extra .ev{border-inline-start-color:var(--line)}
+@media print{
+  .ev{break-inside:avoid;border-color:#999;background:#fff}
+  .ev-text,.ev-no{color:#000}
+}
