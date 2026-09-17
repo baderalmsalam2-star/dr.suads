@@ -20,9 +20,18 @@
   var REST = CFG.url.replace(/\/$/, "") + "/rest/v1/";
   var AUTH = CFG.url.replace(/\/$/, "") + "/auth/v1/";
   var STORAGE = CFG.url.replace(/\/$/, "") + "/storage/v1/";
-  var SESSION_KEY = "tp.sb.session";
-  var PKCE_KEY = "tp.sb.pkce";
-  var STATE_KEY = "tp.sb.state";
+  /*  مفاتيح الجلسة منطاقةٌ باسم الأستاذة: النشرة واحدة ومشاريع
+      Supabase متعددة، ولو بقي المفتاح واحدًا أُرسل رمزُ دخول
+      الأستاذة الأولى في ترويسة Authorization إلى خادم الثانية
+      لمجرّد أن الجهاز انتقل بينهما. الرمز لا يُقبل هناك — لكنه
+      يكون قد وصل.  */
+  var SCOPE = (function () {
+    var t = window.TPTenant && TPTenant.active && TPTenant.active();
+    return (t && t.id) ? String(t.id).replace(/[^a-z0-9-]/gi, "") : "solo";
+  })();
+  var SESSION_KEY = "tp.sb." + SCOPE + ".session";
+  var PKCE_KEY = "tp.sb." + SCOPE + ".pkce";
+  var STATE_KEY = "tp.sb." + SCOPE + ".state";
 
   /* base64url بلا حشو — ما يقبله معيار PKCE */
   function b64url(bytes) {

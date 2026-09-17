@@ -35,8 +35,45 @@
     } catch (e) { return q === "1"; }
   })();
 
-  var PREFIX = DEMO ? "tp.demo." : "tp.v1.";
-  var DB_NAME = DEMO ? "tp-files-demo" : "tp-files", DB_VER = 1, FILES = "files";
+  /*  ═══ نطاق التخزين المحلي: لكل أستاذةٍ نطاقها ═══
+      النشرة واحدة تخدم أكثر من أستاذة، والجهاز قد ينتقل بينهنّ.
+      فلو بقيت البادئة واحدة، رأت الأستاذةُ الثانية كشفَ الأولى
+      وحضورَها ودرجاتِها على الجهاز نفسه — عزلُ القواعد في الخادم
+      لا ينفع شيئًا إن كان المتصفّح يخلطها.  */
+  var SCOPE = (function () {
+    var t = window.TPTenant && TPTenant.active && TPTenant.active();
+    return (t && t.id) ? String(t.id).replace(/[^a-z0-9-]/gi, "") : "solo";
+  })();
+
+  var PREFIX = (DEMO ? "tp.demo." : "tp.v1.") + SCOPE + ".";
+  var DB_NAME = (DEMO ? "tp-files-demo-" : "tp-files-") + SCOPE, DB_VER = 1, FILES = "files";
+
+  /*  ترحيلٌ لمرّةٍ واحدة: ما كُتب قبل تقسيم النطاقات كان بلا اسم
+      أستاذة، وهو للأولى في السجلّ. يُنقل إليها ولا يُحذف الأصل،
+      فلو رجعت نسخةٌ قديمة من الملفات وجدت بياناتها كما تركتها.  */
+  (function migrate() {
+    try {
+      var first = window.TPTenant && TPTenant.all && TPTenant.all()[0];
+      if (!first || first.id !== SCOPE || DEMO) return;
+      var flag = PREFIX + "__migrated";
+      if (localStorage.getItem(flag)) return;
+      var old = DEMO ? "tp.demo." : "tp.v1.";
+      var moved = 0, i, k;
+      for (i = localStorage.length - 1; i >= 0; i--) {
+        k = localStorage.key(i);
+        if (!k || k.indexOf(old) !== 0) continue;
+        var rest = k.slice(old.length);
+        /*  المفاتيح المنطاقة تبدأ باسم الأستاذة، فلا تُرحَّل مرتين */
+        if (rest.indexOf(SCOPE + ".") === 0) continue;
+        if (localStorage.getItem(PREFIX + rest) === null) {
+          localStorage.setItem(PREFIX + rest, localStorage.getItem(k));
+          moved++;
+        }
+      }
+      localStorage.setItem(flag, "1");
+      if (moved && window.console) console.info("رُحّل " + moved + " مفتاحًا إلى نطاق " + SCOPE);
+    } catch (e) { /* تصفّح خاص أو ذاكرة ممتلئة: تبقى البيانات مكانها */ }
+  })();
 
   /* ─── أدوات ─── */
   function uid(p) {

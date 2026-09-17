@@ -22,10 +22,13 @@
 (function () {
   "use strict";
 
-  /* ═══ المقررات المسجَّلة — أضف معرّف المقرر هنا وحده ═══ */
-  var COURSE_FILES = [
-    "wilaya"
-  ];
+  /* ═══ المقررات المحمَّلة ═══
+     تُؤخذ من المستأجرة العاملة (data/tenants.js)، فلا تُحمَّل
+     مقرراتُ أستاذةٍ في نشرة أخرى. وإن لم يكن سجلُّ المستأجرات
+     محمَّلًا — كفتح ملفٍّ مفردٍ من القرص — رجعت إلى الافتراضي. */
+  var DEFAULT_FILES = ["wilaya"];
+  var t = window.TPTenant && TPTenant.active && TPTenant.active();
+  var COURSE_FILES = (t && t.courses && t.courses.length) ? t.courses : DEFAULT_FILES;
 
   var LIST = [];
   window.TP_COURSES = LIST;
@@ -113,7 +116,19 @@
     document.write('<script src="' + base + rel + '"><\/script>');
   }
 
-  COURSE_FILES.forEach(function (id) {
+  /*  معرّف المقرر يُبنى منه مسارُ سكربتٍ يُكتب بـ document.write،
+      وصار المعرّف يأتي من سجلّ المستأجرات لا من هذا الملف. فيُقيَّد
+      بحروفٍ لاتينية صغيرة وأرقامٍ وشَرطة: لا نقطة ولا شرطة مائلة
+      ولا علامة اقتباس — فلا يخرج المسار من مجلّد المقررات ولا
+      ينغلق وسمُ السكربت على غيره. دفاعٌ في العمق: السجلّ ملفٌّ في
+      المستودع لا مدخلُ مستخدم، لكنّ الثمن صفر. */
+  var SAFE_ID = /^[a-z0-9][a-z0-9-]{0,40}$/;
+
+  COURSE_FILES.filter(function (id) {
+    if (SAFE_ID.test(id)) return true;
+    if (window.console) console.warn("معرّف مقرر مرفوض: " + id);
+    return false;
+  }).forEach(function (id) {
     load("courses/" + id + "/course.js");
     load("courses/" + id + "/worksheets.js");
     load("courses/" + id + "/activities.js");

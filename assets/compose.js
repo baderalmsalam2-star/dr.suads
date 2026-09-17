@@ -312,6 +312,7 @@
 '    </div>\n' +
 '    <div class="keys">→ ← للتنقل · مسافة: الجواب · ر: المؤقت · م: رصد التفاعل · طباعة: تصدير</div>\n' +
 '    <div class="credit" id="credit"></div>\n  </div>\n</div>\n\n' +
+'<script src="' + assetPrefix + 'data/tenants.js"><\/script>\n' +
 '<script src="' + assetPrefix + 'data/courses.js"><\/script>\n' +
 '<script src="' + assetPrefix + 'assets/store.js"><\/script>\n' +
 '<script src="' + assetPrefix + 'assets/ui.js"><\/script>\n' +

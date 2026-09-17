@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<title>تنصيب أستاذة — منصة التدريس</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23002856%27/%3E%3Crect x=%273%27 y=%273%27 width=%2726%27 height=%2726%27 fill=%27none%27 stroke=%27%230DABE2%27 stroke-width=%271.5%27/%3E%3Ctext x=%2716%27 y=%2723%27 font-size=%2718%27 text-anchor=%27middle%27 fill=%27%23F8D81B%27 font-family=%27serif%27%3E%D9%88%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#002856">
+<script src="assets/theme.js"></script>
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/grades.css">
+<style>
+  /* صفحةٌ للتنصيب وحده، فأنماطها معها لا في ورقة المنصة. */
+  .grid2{display:grid;gap:.9em 1.4em;grid-template-columns:repeat(auto-fit,minmax(min(100%,22em),1fr))}
+  .grid2 label{display:flex;flex-direction:column;gap:.35em;color:var(--surface)}
+  .grid2 .hint{font-weight:400}
+  #out{width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem;
+       direction:ltr;text-align:left;background:var(--navy-2);color:var(--surface);
+       border:1px solid var(--line);padding:.8em}
+  #result .chk{margin-bottom:2px}
+</style>
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<div class="control">
+  <span class="hint">صفحة تنصيب: تُدخل مشروع الأستاذة، تفحصه، وتُخرج مدخلها في سجلّ المستأجرات.</span>
+</div>
+
+<section class="item">
+  <div class="prompt">١ — بيانات الأستاذة</div>
+  <div class="grid2">
+    <label>المعرّف <span class="hint">حروف لاتينية صغيرة بلا فراغ — يظهر في الرابط <code>?t=</code></span>
+      <input type="text" id="id" placeholder="مثال: fulana" autocomplete="off"></label>
+    <label>الاسم كما يُعرض
+      <input type="text" id="name" placeholder="مثال: د. فلانة بنت فلان" autocomplete="off"></label>
+    <label>الجهة
+      <input type="text" id="org" placeholder="مثال: كلية الشريعة · جامعة الكويت" autocomplete="off"></label>
+    <label>معرّفات مقرراتها <span class="hint">مفصولة بفاصلة — مجلّداتها في <code>data/courses/</code></span>
+      <input type="text" id="courses" placeholder="مثال: wilaya" autocomplete="off"></label>
+  </div>
+</section>
+
+<section class="item">
+  <div class="prompt">٢ — مشروع Supabase الخاصّ بها</div>
+  <p class="hint">لكل أستاذةٍ مشروعها: بيانات طالباتها لا تسكن قاعدةً مشتركة مع غيرها.
+     تجدين القيمتين في مشروعها تحت <b>Project Settings ← API</b>.</p>
+  <div class="grid2">
+    <label>عنوان المشروع
+      <input type="text" id="url" placeholder="https://xxxxxxxx.supabase.co" inputmode="url" autocomplete="off"></label>
+    <label>المفتاح العلني <span class="hint">anon / publishable — علنيٌّ بالقصد، والحارس هو RLS</span>
+      <input type="text" id="key" placeholder="eyJhbGciOi…" autocomplete="off"></label>
+  </div>
+  <div class="row">
+    <button id="check" type="button">افحصي الاتصال والجداول</button>
+    <a id="sqlLink" class="btn ghost" href="#" target="_blank" rel="noopener" hidden>افتحي محرّر SQL</a>
+    <button id="copySchema" type="button" class="ghost">انسخي schema.sql</button>
+  </div>
+</section>
+
+<section class="item" id="resultBox" hidden>
+  <div class="prompt">٣ — نتيجة الفحص</div>
+  <div id="result"></div>
+</section>
+
+<section class="item" id="outBox" hidden>
+  <div class="prompt">٤ — المدخل — الصقه في <code>LIST</code> داخل <code>data/tenants.js</code> وادفعه</div>
+  <textarea id="out" rows="12" readonly spellcheck="false"></textarea>
+  <div class="row">
+    <button id="copyOut" type="button" class="gold">انسخي المدخل</button>
+    <span class="hint">النشرة ساكنة بلا خادم، فالسجلّ ملفٌّ في المستودع — لا تُسجَّل الأستاذة من المتصفح.</span>
+  </div>
+</section>
+
+<div class="foot">
+  <div class="credit" id="credit"></div>
+</div>
+
+<script src="data/tenants.js"></script>
+<script src="data/courses.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/adapters/supabase.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/tenant.js"></script>
+</body>
+</html>

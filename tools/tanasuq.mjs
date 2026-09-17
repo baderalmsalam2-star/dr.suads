@@ -21,7 +21,7 @@ process.on('exit',back); process.on('uncaughtException',e=>{back();console.error
 
 const PAGES=['sessions/wilaya/04-wilaya.html','sessions/wilaya/15-wakala.html','sessions/wilaya/29-wisaya.html','index.html','students.html','attendance.html','worksheets.html','honors.html',
              'grades.html','evidences.html','exam.html','join.html','login.html','register.html',
-             'compose.html','demo.html','admin.html','student.html','worksheet.html','404.html'];
+             'compose.html','demo.html','tenant.html','admin.html','student.html','worksheet.html','404.html'];
 const THEMES=['جامعية','green','wine','indigo','slate','paper','snow','rose','aqua','lilac'];
 
 const AUDIT = `(() => {
