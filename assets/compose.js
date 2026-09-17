@@ -293,7 +293,7 @@
 '<title>المحاضرة ' + ar(meta.n) + ' — ' + esc(meta.title) + '</title>\n' +
 '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
 '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
-'<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">\n' +
+'<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">\n' +
 '<link rel="stylesheet" href="' + assetPrefix + 'assets/tokens.css">\n' +
 '<link rel="stylesheet" href="' + assetPrefix + 'assets/deck.css">\n' +
 '</head>\n<body data-session="' + esc(meta.n) + '">\n<div class="stage">\n\n' +
