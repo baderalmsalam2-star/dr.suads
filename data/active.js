@@ -43,6 +43,7 @@
 
   window.COURSE = COURSE;
   window.WORKSHEETS = COURSE.sheets || [];
+  window.EXAMS = COURSE.exams || [];
 
 
   /* ═══ أدوات مشتركة تعتمد على بيانات المقرر ═══ */

@@ -5,6 +5,7 @@
        course.js       بيانات المقرر ومحاضراته وتوزيعة درجاته
        worksheets.js   أوراق العمل المولَّدة من خطة المحاضرات
        activities.js   الأنشطة الصفّية واللاصفّية (تُحرَّر يدويًا)
+       exams.js        الاختبارات الرسمية وبنوك أسئلتها
 
    لإضافة مقرر: انسخ مجلّد مقرر قائم، وغيّر ما فيه، ثم اكتب
    معرّفه في COURSE_FILES أدناه. لا يُعدَّل أي ملف آخر في المنصة،
@@ -44,6 +45,7 @@
       if (!c || !c.id) throw new Error("مقرر بلا معرّف");
       if (byId(c.id)) throw new Error("معرّف مقرر مكرّر: " + c.id);
       c.sheets = [];
+      c.exams = [];
 
       /*  مفتاح الشعبة فريدٌ على مستوى المنصة كلّها: «المقرر:الشعبة».
           هذا هو أساس الفصل بين المقررات: كل سجلّ في المنصة —
@@ -61,6 +63,20 @@
       });
       LIST.push(c);
       return c;
+    },
+
+    /*  تُستدعى من exams.js — الاختبارات الرسمية للمقرر.
+        معرّف الاختبار يُوسَم بمقرره كما تُوسَم الأوراق، لأن تسليمه
+        يُحفظ في الجدول نفسه (submissions) بمعرّفه هذا. */
+    exams: function (id, list) {
+      var c = byId(id);
+      if (!c) throw new Error("اختبارات لمقرر غير مسجَّل: " + id);
+      (list || []).forEach(function (x) {
+        if (String(x.id).indexOf(id + ":") !== 0) x.id = id + ":" + x.id;
+        x.courseId = id;
+      });
+      c.exams = (c.exams || []).concat(list || []);
+      return c.exams;
     },
 
     /*  تُستدعى من worksheets.js و activities.js.
@@ -92,6 +108,7 @@
     load("courses/" + id + "/course.js");
     load("courses/" + id + "/worksheets.js");
     load("courses/" + id + "/activities.js");
+    load("courses/" + id + "/exams.js");
   });
 
   /* يُنتخب المقرر العامل ويُبنى window.COURSE و window.TP */

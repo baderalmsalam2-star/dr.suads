@@ -160,7 +160,8 @@
   var M_EVENT = { studentId: "student_id", sectionId: "section_id" };
   var M_ATT = { studentId: "student_id", sectionId: "section_id" };
   var M_SUB = { studentId: "student_id", worksheetId: "worksheet_id",
-                submittedAt: "submitted_at", updatedAt: "updated_at" };
+                submittedAt: "submitted_at", startedAt: "started_at",
+                updatedAt: "updated_at" };
 
   var M_GRADE = { studentId: "student_id", sectionId: "section_id",
                   itemId: "item_id", updatedAt: "updated_at" };
@@ -345,6 +346,10 @@
       s.id = s.id || uid("sub");
       var body = toDb(M_SUB, s);
       body.updated_at = new Date().toISOString();
+      /*  وقت البدء يملكه الخادم: يكتبه المطلِق عند الإنشاء ويحرسه
+          بعدها. فلا يُرسَل من هنا أصلًا — لا لأن إرساله يضرّ (المطلِق
+          يردّه) بل لئلا يُظنّ أن للمتصفّح فيه رأيًا. */
+      delete body.started_at;
       return req("submissions?on_conflict=student_id,worksheet_id", {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates,return=representation" },

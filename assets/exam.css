@@ -1,0 +1,59 @@
+/* ═══ صفحة الاختبار ═══ */
+
+/* الساعة — تكبر حمرةً في آخر خمس دقائق */
+.exam-clock{font-variant-numeric:tabular-nums;font-size:clamp(1rem,2vw,1.35rem);
+  color:var(--faculty);border:1px solid var(--faculty);padding:.15em .8em;
+  letter-spacing:.06em}
+.exam-clock.low{color:var(--danger);border-color:var(--danger)}
+
+/* صواب أو خطأ: خياران عريضان جنبًا إلى جنب */
+.choices.tf{grid-template-columns:1fr 1fr;display:grid;gap:.6em}
+.choices.tf label{justify-content:center;font-family:var(--matn);font-weight:700}
+
+.cloze-in{font:inherit;font-family:var(--matn);width:min(100%,26ch);
+  font-size:clamp(1.05rem,2vw,1.35rem);color:var(--surface);background:var(--navy);
+  border:1px solid var(--line);padding:.55em .8em}
+.cloze-in:focus{outline:none;border-color:var(--faculty)}
+.cloze-mark{font-size:clamp(.78rem,1.4vw,.92rem)}
+.cloze-mark.correct{color:var(--faculty)}
+.cloze-mark.yours{color:var(--student)}
+.hint-line{color:rgba(var(--neutral-rgb),.62);font-size:clamp(.72rem,1.3vw,.85rem)}
+.key{color:var(--student);font-family:var(--matn);
+  font-size:clamp(.95rem,1.7vw,1.15rem)}
+
+/* النتيجة بعد التسليم */
+.exam-result{border:1px solid var(--faculty);background:rgba(var(--faculty-rgb),.08);
+  padding:clamp(16px,2.4vw,26px);margin-bottom:clamp(12px,1.8vw,20px);
+  display:flex;flex-direction:column;gap:.3em}
+.er-k{color:var(--neutral);font-size:clamp(.75rem,1.3vw,.9rem)}
+.er-v{font-family:var(--matn);font-weight:700;color:var(--student);
+  font-size:clamp(1.6rem,3.4vw,2.4rem);line-height:1.2}
+.er-note{color:var(--neutral);font-size:clamp(.8rem,1.5vw,.95rem);line-height:1.8}
+.er-blur{color:var(--danger);font-size:clamp(.8rem,1.5vw,.95rem)}
+
+/* لوحة الدكتورة */
+.exam-teacher{border:1px solid var(--line);padding:clamp(13px,1.9vw,20px);
+  display:flex;flex-direction:column;gap:.5em;font-size:clamp(.8rem,1.4vw,.95rem)}
+.et-title{font-family:var(--matn);font-weight:700;color:var(--student);
+  font-size:clamp(1rem,1.9vw,1.25rem)}
+.et-line{color:var(--neutral);line-height:1.9}
+.et-need{list-style:none;color:var(--neutral);display:grid;gap:.2em;
+  padding-inline-start:1em}
+.et-need li::before{content:"— ";color:var(--faculty)}
+.et-forms{display:flex;flex-wrap:wrap;gap:.5em;margin-top:.3em}
+
+/* حارس المغادرة */
+.exam-guard{position:fixed;inset:0;z-index:80;
+  background:rgba(var(--shadow-rgb),.82);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;padding:clamp(14px,3vw,30px)}
+.eg-card{background:var(--navy-2);border:1px solid var(--danger);
+  padding:clamp(22px,4vw,40px);max-width:46ch;text-align:center;
+  display:flex;flex-direction:column;gap:1em}
+.eg-card h2{font-family:var(--matn);font-weight:700;color:var(--danger);
+  font-size:clamp(1.3rem,3vw,1.9rem)}
+.eg-card p{color:var(--surface);line-height:1.9;font-size:clamp(.9rem,1.7vw,1.05rem)}
+
+@media print{
+  .exam-teacher,.exam-guard,.exam-clock{display:none!important}
+  .item{break-inside:avoid}
+}

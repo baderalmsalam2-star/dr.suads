@@ -321,3 +321,9 @@ button.revert{margin-inline-start:.5em;vertical-align:middle;
 .win-chip.soon{border-color:var(--student);color:var(--student)}
 .win-chip.closed{border-color:var(--danger);color:var(--danger)}
 .win-chip.open{border-color:var(--line);color:var(--neutral)}
+
+/* بطاقة الاختبار الرسمي — تُميَّز عن بطاقات الأوراق */
+.exam-cards{margin-bottom:clamp(14px,2vw,22px)}
+.card.exam{border-color:var(--student)}
+.card.exam .no{color:var(--student)}
+.card.exam .badge{border-color:var(--student);color:var(--student)}

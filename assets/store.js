@@ -157,10 +157,18 @@
 
     saveSubmission: function (s) {
       var all = read("submissions", []);
+      var i = s.id ? indexById(all, s.id) : -1;
       s.id = s.id || uid("sub");
       s.updatedAt = Date.now();
-      var i = indexById(all, s.id);
-      if (i < 0) all.push(s); else all[i] = s;
+      /*  وقت البدء يُكتب مرةً ولا يُعاد — كما يصنع المطلِق في
+          الخادم. وعليه يُحسب زمن الاختبار. */
+      if (i < 0) {
+        if (!s.startedAt) s.startedAt = new Date().toISOString();
+        all.push(s);
+      } else {
+        s.startedAt = all[i].startedAt || s.startedAt;
+        all[i] = s;
+      }
       write("submissions", all);
       return Promise.resolve(s);
     },

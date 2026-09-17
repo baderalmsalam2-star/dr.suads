@@ -116,6 +116,11 @@ create table if not exists submissions (
 );
 create index if not exists submissions_student on submissions (student_id);
 
+--  وقت البدء — يكتبه الخادم ولا يُقبل من المتصفّح.
+--  عليه يُحسب زمن الاختبار: لو كان الوقت من الجهاز لأعادت الطالبة
+--  تحميل الصفحة فبدأ العدّ من جديد.
+alter table submissions add column if not exists started_at timestamptz;
+
 -- ─── جدول تواريخ المحاضرات ───
 create table if not exists schedule (
   section_id text not null,
@@ -369,8 +374,17 @@ create policy submissions_self_update on submissions for update
 --  تسليمٌ مقفل إلى مسودة.
 create or replace function stamp_submission() returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare v_opens timestamptz; v_due timestamptz;
+declare v_opens timestamptz; v_due timestamptz; v_min numeric;
 begin
+  --  ═══ وقت البدء ═══
+  --  يُكتب مرةً عند إنشاء الصفّ، ولا يُعدَّل بعدها مهما أرسل
+  --  المتصفّح. وعليه يُحسب زمن الاختبار.
+  if tg_op = 'INSERT' then
+    new.started_at := now();
+  else
+    new.started_at := old.started_at;
+  end if;
+
   if new.status = 'submitted'
      and (tg_op = 'INSERT' or old.status is distinct from 'submitted') then
 
@@ -395,6 +409,17 @@ begin
       if v_due is not null and now() > v_due then
         raise exception 'أُغلق التسليم — كان آخر موعد %',
           to_char(v_due at time zone 'Asia/Kuwait', 'YYYY-MM-DD HH24:MI');
+      end if;
+
+      --  ═══ زمن الاختبار ═══
+      --  حقل minutes في content يجعل الورقة مؤقَّتة: يُحسب الزمن من
+      --  started_at الذي كتبه الخادم، فلا يُمدَّد بإعادة التحميل.
+      --  ودقيقةٌ سماحٌ لبطء الشبكة عند الإرسال.
+      select (value)::numeric into v_min from content
+       where ref = new.worksheet_id and field = 'minutes';
+      if v_min is not null and new.started_at is not null
+         and now() > new.started_at + make_interval(secs => (v_min * 60 + 60)::int) then
+        raise exception 'انتهى وقت الاختبار — كان % دقيقة من بدايتك', v_min;
       end if;
     end if;
 

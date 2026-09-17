@@ -892,6 +892,69 @@ insert into rls_results select 'الطالبة ترى موعد التسليم',
   exists (select 1 from content where ref='wilaya:w-late' and field='dueAt');
 commit;
 
+-- ═══════════════════════════════════════════════════════════════
+--  زمن الاختبار
+--
+--  وقت البدء يكتبه الخادم ولا يُقبل من المتصفّح، وعليه يُحسب
+--  الزمن — فإعادة تحميل الصفحة لا تمدّده.
+-- ═══════════════════════════════════════════════════════════════
+insert into content(id,course_id,ref,field,value) values
+ ('wilaya:exam-t|minutes','wilaya','wilaya:exam-t','minutes','30');
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into submissions(id,student_id,worksheet_id,status,started_at)
+  values ('ex-1','t-sara','wilaya:exam-t','draft', now() - interval '10 years');
+commit;
+insert into rls_results select 'وقت البدء من الخادم لا من المتصفّح',
+  (select started_at from submissions where id='ex-1') > now() - interval '1 minute';
+
+-- وداخل الوقت يُقبل التسليم
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+update submissions set status='submitted' where id='ex-1';
+commit;
+insert into rls_results select 'وداخل الوقت يُقبل التسليم',
+  (select status from submissions where id='ex-1')='submitted';
+
+-- ولا يُمدَّد الوقت بإعادة الكتابة على started_at
+insert into content(id,course_id,ref,field,value) values
+ ('wilaya:exam-s|minutes','wilaya','wilaya:exam-s','minutes','1');
+begin; set local role authenticated; set local request.jwt.claim.sub = :'NOURA';
+insert into submissions(id,student_id,worksheet_id,status)
+  values ('ex-2','t-noura','wilaya:exam-s','draft');
+commit;
+-- يُزوَّر البدء إلى ما قبل ساعتين لمحاكاة اختبارٍ مضى وقته.
+-- ويُعطَّل المطلِق لحظةً لأنه يحرس العمود حتى من المالك — وهذا
+-- نفسُه دليلٌ على إحكامه.
+alter table submissions disable trigger on_submission_saved;
+update submissions set started_at = now() - interval '2 hours' where id='ex-2';
+alter table submissions enable trigger on_submission_saved;
+begin; set local role authenticated; set local request.jwt.claim.sub = :'NOURA';
+update submissions set started_at = now(), answers='{"a":1}' where id='ex-2';
+commit;
+insert into rls_results select 'الطالبة لا تُقدّم وقت بدئها',
+  (select started_at from submissions where id='ex-2') < now() - interval '1 hour';
+
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333333',true);
+    update submissions set status='submitted' where id='ex-2';
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('والتسليم بعد انتهاء الوقت يُرفض', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('والتسليم بعد انتهاء الوقت يُرفض', true);
+  end;
+end $$;
+
+-- والمالكة خارج الحدّ
+begin; set local role authenticated; set local request.jwt.claim.sub = :'OWNER';
+update submissions set status='submitted' where id='ex-2';
+commit;
+insert into rls_results select 'والمالكة تُدخل تسليمًا بعد الوقت',
+  (select status from submissions where id='ex-2')='submitted';
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;
