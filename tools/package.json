@@ -1,0 +1,7 @@
+{
+  "name": "dr-suads-tools",
+  "private": true,
+  "type": "module",
+  "description": "أدوات فحصٍ للمنصة — لا تدخل في تشغيلها. المنصة نفسها بلا تبعيّات.",
+  "devDependencies": { "playwright-core": "^1.55.0" }
+}

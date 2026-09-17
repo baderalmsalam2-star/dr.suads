@@ -97,12 +97,12 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 .marks{display:flex;gap:5px;flex-wrap:wrap;flex:1;min-width:0}
 .marks i{width:16px;height:2px;background:var(--line);display:block}
 .marks i.on{background:var(--faculty)}
-.keys{color:rgba(var(--neutral-rgb),.55);white-space:nowrap}
+.keys{color:var(--muted);white-space:nowrap}
 
 /* مفتاحا حجم الخط. العلامتان وحدهما مع اسم المفتاح ونسبته —
    جرّبنا «أ+» فصارت الألف عند هذا المقاس شرطةً لا تُقرأ. */
 .zoom{display:flex;align-items:center;gap:.35em;white-space:nowrap}
-.zoom .lbl{font-size:clamp(.66rem,1.1vw,.82rem);color:rgba(var(--neutral-rgb),.55);
+.zoom .lbl{font-size:clamp(.66rem,1.1vw,.82rem);color:var(--muted);
   margin-inline-end:.15em}
 .zoom button{font-family:var(--ui);font-weight:600;line-height:1;background:transparent;
   color:var(--neutral);border:1px solid var(--line);cursor:pointer;
@@ -144,9 +144,13 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 }
 
 /* ═══ لوحة رصد التفاعل داخل العرض ═══ */
+/*  الزرّ العائم خفيفٌ كي لا يزاحم الشريحة، لكن خفّته كانت
+    opacity:.55 فهبط تباينه إلى ٢.٥:١ في اللوحات الفاتحة. والخفّة
+    الآن في حدّه ولونه لا في شفافيته. */
 .rec-fab{position:fixed;inset-block-end:clamp(12px,2vw,22px);inset-inline-start:clamp(12px,2vw,22px);
-         z-index:40;background:var(--navy);opacity:.55;font-size:clamp(.7rem,1.2vw,.85rem)}
-.rec-fab:hover{opacity:1}
+         z-index:40;background:var(--navy);border-color:var(--line);color:var(--muted);
+         font-size:clamp(.7rem,1.2vw,.85rem)}
+.rec-fab:hover,.rec-fab:focus-visible{color:var(--faculty);border-color:var(--faculty)}
 
 .rec{position:fixed;inset-block:0;inset-inline-end:0;z-index:50;width:min(94vw,430px);
      background:var(--navy-2);border-inline-start:1px solid var(--faculty);
@@ -178,9 +182,9 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
           padding:.4em .8em;font-size:clamp(.7rem,1.15vw,.82rem)}
 .rec-kind:hover{background:rgba(var(--faculty-rgb),.15)}
 .rec-kind.undo{border-color:var(--line);color:var(--neutral)}
-.rec-hint{color:rgba(var(--neutral-rgb),.55);font-size:clamp(.72rem,1.2vw,.85rem)}
+.rec-hint{color:var(--muted);font-size:clamp(.72rem,1.2vw,.85rem)}
 .rec-foot{padding:.7em clamp(10px,1.5vw,15px);border-top:1px solid var(--line);
-          color:rgba(var(--neutral-rgb),.5);font-size:clamp(.62rem,1vw,.74rem)}
+          color:var(--muted);font-size:clamp(.62rem,1vw,.74rem)}
 
 .rec-flash{position:fixed;inset-block-end:22px;inset-inline-start:50%;
            transform:translateX(50%) translateY(160%);z-index:60;

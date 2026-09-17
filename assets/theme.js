@@ -71,6 +71,26 @@
      الأرضية وحدها تقرّر لون النصّ: فإن اختارت الدكتورة أرضيةً فاتحة
      انقلب الحبر داكنًا من نفسه. بلا هذا كان اختيارُ لونٍ فاتح يجعل
      المنصة بيضاء على بيضاء. */
+  /*  لون النصّ الثانوي في اللوحة المزاجية.
+      لا يكفي تخفيتُ الرمادي بنسبةٍ ثابتة: التخفيت على أرضيةٍ فاتحة
+      يُذيب النصّ فيها. فيُبدأ من الرمادي نفسه (وعلى الداكنة من
+      تخفيتٍ يشبه ما كان)، ثم يُدفع نحو لون الحبر خطوةً خطوة حتى
+      يبلغ ٤.٦:١ على الأرضية وعلى السطح المرتفع معًا. */
+  function contrast(a, b) {
+    var l1 = lum(a), l2 = lum(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+
+  function muted(neutral, bg, up, light) {
+    var ink = light ? [26, 23, 18] : [255, 255, 255];
+    var c = light ? neutral.slice() : mix(bg, neutral, 0.62);
+    for (var i = 0; i <= 50; i++) {
+      if (contrast(c, bg) >= 4.6 && contrast(c, up) >= 4.6) return c;
+      c = mix(c, ink, 0.06);
+    }
+    return c;
+  }
+
   function compose(m) {
     var bg = rgb(m.bg), light = lum(bg) > 0.4;
     var ink = light ? [26, 23, 18] : [255, 255, 255];
@@ -88,6 +108,7 @@
       "--neutral-rgb": mix(ink, bg, light ? 0.35 : 0.22).map(Math.round).join(",")
     };
     v["--line"] = "rgba(" + v["--neutral-rgb"] + ",.3)";
+    v["--muted"] = hex(muted(rgb(v["--neutral"]), bg, rgb(v["--navy-2"]), light));
     return v;
   }
 

@@ -45,6 +45,13 @@
   --faculty:#0DABE2;         /* أزرق: ما يصدر عن الدكتورة — العناوين، المؤقت، المصدر */
   --student:#F8D81B;         /* أصفر: ما يخص الطالبة — القارئة، الإجابة الصحيحة */
   --neutral:#DBD9DA;         /* رمادي: الحدود والنص الثانوي */
+  /* لون النصّ الثانوي. كان يُكتب في كل موضعٍ بصيغة
+     rgba(var(--neutral-rgb),.6) — وهي مقيسةٌ على اللوحات الداكنة
+     وحدها: تخفيتُ لونٍ فاتحٍ على أرضيةٍ داكنة يبقى مقروءًا، وتخفيتُ
+     لونٍ داكنٍ على أرضيةٍ فاتحة يذوب فيها. فهبط التلميح في اللوحات
+     الفاتحة إلى ٢.٥:١. وهذا اللون مقيسٌ لكل لوحةٍ على حدة: فوق
+     ٤.٦:١ على الأرضية وعلى السطح المرتفع معًا. */
+  --muted:#95A0B0;
   --surface:#FFFFFF;
   --matn:"Amiri","Scheherazade New","Traditional Arabic",Georgia,serif;
   --ui:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
@@ -79,6 +86,7 @@
 
 /* ١) خضراء ذهبية — خضرة داكنة وذهب المخطوطات */
 html[data-theme="green"]{
+  --muted:#A9B6AF;
   --navy:#14362A;  --navy-2:#1E4A39;
   --faculty:#6FD8B0;  --student:#E8C466;  --neutral:#D8DED9;
   --danger:#E8836B;   --ink:#0E2A20;
@@ -89,6 +97,7 @@ html[data-theme="green"]{
 
 /* ٢) عنّابية — نبيذ داكن ووردة ورملي */
 html[data-theme="wine"]{
+  --muted:#A89799;
   --navy:#361A22;  --navy-2:#4A2530;
   --faculty:#E9A8A0;  --student:#EFC96A;  --neutral:#E2D8D6;
   --danger:#FF8A75;   --ink:#2A1218;
@@ -99,6 +108,7 @@ html[data-theme="wine"]{
 
 /* ٣) ليلية بنفسجية — نيلي عميق وبنفسج وكهرمان */
 html[data-theme="indigo"]{
+  --muted:#9896AD;
   --navy:#1E1C45;  --navy-2:#2B2860;
   --faculty:#A99BF5;  --student:#F5C453;  --neutral:#DCDAE8;
   --danger:#F0806B;   --ink:#171634;
@@ -109,6 +119,7 @@ html[data-theme="indigo"]{
 
 /* ٤) فحمية — رمادي محايد بلا صبغة، لمن تريد الهدوء */
 html[data-theme="slate"]{
+  --muted:#A1A5AA;
   --navy:#242830;  --navy-2:#333841;
   --faculty:#79B8E8;  --student:#E5B94F;  --neutral:#D7DADE;
   --danger:#E27D65;   --ink:#1B1E22;
@@ -121,6 +132,7 @@ html[data-theme="slate"]{
    وهي اللوحة الوحيدة التي ينقلب فيها المعنى: surface صار داكنًا
    لأنه لون النصّ على الأرضية الفاتحة. */
 html[data-theme="paper"]{
+  --muted:#5A5347;
   --navy:#F6F1E6;  --navy-2:#FFFBF2;
   --faculty:#166149;  --student:#9A6212;  --neutral:#5A5347;
   --surface:#1A1712;  --danger:#B03A24;   --ink:#1A1712;
@@ -138,6 +150,7 @@ html[data-theme="paper"]{
 
 /* ٦) ثلجية — أبيض خالص وأزرقٌ سماويّ داكن */
 html[data-theme="snow"]{
+  --muted:#49545F;
   --navy:#FFFFFF;  --navy-2:#EFF3F8;
   --faculty:#0B5FA5;  --student:#8A5300;  --neutral:#49545F;
   --surface:#0D1520;  --danger:#B02418;   --ink:#0D1520;
@@ -149,6 +162,7 @@ html[data-theme="snow"]{
 
 /* ٧) ورديّة — ورديّ فاتح وعنّابٌ داكن */
 html[data-theme="rose"]{
+  --muted:#57474D;
   --navy:#FFF2F5;  --navy-2:#FFFFFF;
   --faculty:#A62A56;  --student:#7C5300;  --neutral:#57474D;
   --surface:#1E0F14;  --danger:#B02418;   --ink:#1E0F14;
@@ -160,6 +174,7 @@ html[data-theme="rose"]{
 
 /* ٨) فيروزية — أزرقٌ مائيّ فاتح وفيروزٌ داكن */
 html[data-theme="aqua"]{
+  --muted:#44565A;
   --navy:#EAF7F8;  --navy-2:#FFFFFF;
   --faculty:#08636F;  --student:#8A5300;  --neutral:#44565A;
   --surface:#08201F;  --danger:#A83224;   --ink:#08201F;
@@ -171,6 +186,7 @@ html[data-theme="aqua"]{
 
 /* ٩) ليلكية — بنفسجٌ فاتح وأرجوانٌ داكن */
 html[data-theme="lilac"]{
+  --muted:#4E4A5E;
   --navy:#F4F0FE;  --navy-2:#FFFFFF;
   --faculty:#5A3CA8;  --student:#8A5300;  --neutral:#4E4A5E;
   --surface:#171232;  --danger:#AC2B34;   --ink:#171232;
@@ -216,11 +232,16 @@ button:focus-visible,a:focus-visible,li:focus-visible,select:focus-visible{
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 /* ═══ مبدّل اللوحات ═══ */
-.theme-picker{display:flex;gap:.4em;align-items:center;flex-wrap:wrap}
+.theme-picker{display:flex;gap:.8em;align-items:center;flex-wrap:wrap;padding-block:.15em}
 .theme-dot{width:1.15em;height:1.15em;padding:0;border-radius:50%;
   border:1px solid var(--line);background:var(--dot);cursor:pointer;
   transition:transform .12s ease,box-shadow .12s ease}
 .theme-dot:hover{transform:scale(1.18)}
+/*  النقطة صغيرةٌ بالقصد — لكن الإصبع لا يصيب ١٩ بكسلًا. فتُوسَّع
+    مساحةُ اللمس وحدها بطبقةٍ شفّافة حولها، فتبلغ نحو ٣٣ بكسلًا بلا
+    أن تكبر النقطة ولا أن تزاحم جارتها (الفسحة بينهما ١٣). */
+.theme-dot::before{content:"";position:absolute;inset:-6px;border-radius:50%}
+.theme-dot{position:relative}
 /* اللوحة الفاتحة: أرضيتها في الوسط ولونها حلقةً حولها */
 .theme-dot.light{background:var(--dot-bg);border-color:var(--dot);border-width:3px}
 .theme-dot.on{border-color:var(--surface);

@@ -19,15 +19,20 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);
                font-size:clamp(1rem,2vw,1.55rem)}
 
 /* شريط الأقسام */
-.nav-main{display:flex;flex-wrap:wrap;gap:0}
+/* الشريط يلتفّ على أكثر من سطر في الشاشات الضيّقة، وروابطه تتلاصق
+   أفقيًّا بحدٍّ مشترك (margin-inline-start:-1px). فالفسحة المطلوبة
+   بين السطور لا بينها: بغير row-gap لصق مبدّل الألوان بالروابط فوقه
+   حتى بدت النقاط داخلة فيها. */
+.nav-main{display:flex;flex-wrap:wrap;gap:0;row-gap:.7em}
 .nav-main a{color:var(--neutral);text-decoration:none;padding:.6em 1.3em;
             border:1px solid var(--line);margin-inline-start:-1px;
             font-size:clamp(.78rem,1.3vw,.95rem);white-space:nowrap}
 .nav-main a:hover{color:var(--surface);background:var(--navy-2)}
 .nav-main a.on{color:var(--navy);background:var(--faculty);border-color:var(--faculty);font-weight:600}
 /* المبدّل يُدفع إلى طرف الشريط ولا يزاحم روابط الأقسام */
-.nav-main .theme-picker{margin-inline-start:auto;padding-inline-start:1.2em;position:relative}
-@media (max-width:640px){.nav-main .theme-picker{margin-inline-start:0;padding:.7em 0 0}}
+.nav-main .theme-picker{margin-inline-start:auto;padding-inline-start:1.2em;
+                        align-self:center;position:relative}
+@media (max-width:640px){.nav-main .theme-picker{margin-inline-start:0;padding-inline-start:0}}
 
 /* شريط أدوات */
 .control{display:flex;flex-wrap:wrap;align-items:center;gap:.7em 1.1em;
@@ -39,7 +44,7 @@ body{background:var(--navy);color:var(--surface);font-family:var(--ui);
   border:1px solid var(--faculty);padding:.4em .9em}
 .control select option{background:var(--navy-2);color:var(--surface)}
 .control .spacer{margin-inline-start:auto}
-.control .hint{color:rgba(var(--neutral-rgb),.62)}
+.control .hint{color:var(--muted)}
 
 button.ghost{border-color:var(--line);color:var(--neutral)}
 button.ghost:hover{color:var(--surface);border-color:var(--neutral)}
@@ -73,7 +78,14 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 .card a.open,.card .body{display:flex;flex-direction:column;flex:1;gap:.45em;
                          padding:clamp(16px,2.2vw,26px);text-decoration:none;color:inherit;border:0}
 .card.ready{border-color:var(--faculty)}
-.card.ready:hover,.card.ready:focus-within{background:var(--ink)}
+/*  المرور يُظلّل البطاقة بلون الدكتورة شفيفًا، لا بلونٍ ثابت.
+    كان هنا background:var(--ink)، و--ink في اللوحات الفاتحة هو لون
+    الحبر الداكن نفسه الذي يُكتب به نصّ البطاقة — فكان النص يختفي في
+    أرضيته: ١:١ في اللوحات الخمس الفاتحة. والتظليل المشتقّ من
+    --faculty-rgb يعمل في الداكنة والفاتحة سواء. */
+.card.ready:hover,.card.ready:focus-within{
+  background-image:linear-gradient(rgba(var(--faculty-rgb),.13),rgba(var(--faculty-rgb),.13));
+  box-shadow:inset 0 0 0 1px var(--faculty)}
 .card .no{color:var(--faculty);font-size:clamp(.7rem,1.15vw,.85rem);letter-spacing:.06em;
           font-variant-numeric:tabular-nums}
 .card h2{font-family:var(--matn);font-weight:700;line-height:1.65;
@@ -82,7 +94,12 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 .card .meta{margin-top:auto;padding-top:.8em;display:flex;justify-content:space-between;
             gap:.7em;flex-wrap:wrap;font-size:clamp(.68rem,1.1vw,.82rem);color:var(--neutral)}
 .card .readers{color:var(--student)}
-.card.soon{opacity:.72}
+/*  البطاقة «قريبًا»: حدٌّ متقطّع وحبرٌ خافت، لا تخفيتُ شفافية.
+    كان opacity:.72 يُنزل عنوانها وسطرها إلى ٢.٨:١ في اللوحات
+    الفاتحة — وهي تُقرأ لتُعرف المحاضرة القادمة. */
+.card.soon{border-style:dashed}
+.card.soon h2,.card.soon .sub,.card.soon .no,
+.card.soon .readers,.card.soon .meta{color:var(--muted)}
 .badge{position:absolute;top:-1px;left:clamp(14px,3vw,26px);transform:translateY(-50%);
        background:var(--navy);border:1px solid var(--neutral);color:var(--neutral);
        padding:.22em .95em;font-size:clamp(.64rem,1.05vw,.76rem);white-space:nowrap}
@@ -153,7 +170,7 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 /* حالات ورسائل */
 .empty{border:1px dashed var(--line);padding:clamp(22px,3.4vw,42px);text-align:center;
        color:var(--neutral);font-size:clamp(.85rem,1.5vw,1.05rem);line-height:1.9}
-.empty .hint{color:rgba(var(--neutral-rgb),.55);font-size:.88em;margin-top:.5em}
+.empty .hint{color:var(--muted);font-size:.88em;margin-top:.5em}
 .toast{position:fixed;inset-block-end:22px;inset-inline-start:50%;transform:translateX(50%) translateY(160%);
        background:var(--navy-2);border:1px solid var(--faculty);color:var(--surface);
        padding:.7em 1.4em;font-size:clamp(.8rem,1.35vw,.95rem);z-index:60;
@@ -171,7 +188,7 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 .row{display:flex;flex-wrap:wrap;gap:.6em;align-items:center}
 
 .foot{margin-top:auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:.8em;
-      font-size:clamp(.68rem,1.1vw,.82rem);color:rgba(var(--neutral-rgb),.7);
+      font-size:clamp(.68rem,1.1vw,.82rem);color:var(--muted);
       border-top:1px solid var(--line);padding-top:1em}
 
 @media print{
@@ -229,7 +246,7 @@ tr.exam-row td{background:rgba(var(--student-rgb),.09);color:var(--student);font
 .term-strip{display:flex;flex-wrap:wrap;gap:.5em .8em;margin:.8em 0 1em}
 .term-item{border:1px solid var(--line);padding:.4em .75em;font-size:.82rem;
   display:flex;flex-direction:column;gap:.15em}
-.term-item .k{color:var(--neutral);opacity:.8}
+.term-item .k{color:var(--muted)}
 .term-item .v{color:var(--faculty);font-weight:600;white-space:nowrap}
 .warn-box{border:1px solid var(--danger);border-inline-start-width:4px;
   background:rgba(var(--danger-rgb),.09);color:var(--surface);
@@ -372,7 +389,7 @@ button.revert{margin-inline-start:.5em;vertical-align:middle;
   padding:.12em .7em;color:var(--neutral);white-space:nowrap}
 .ev-kind.k-quran{border-color:var(--student);color:var(--student)}
 .ev-kind.k-sunna{border-color:var(--faculty);color:var(--faculty)}
-.ev-src{color:rgba(var(--neutral-rgb),.62);font-size:clamp(.68rem,1.15vw,.8rem);
+.ev-src{color:var(--muted);font-size:clamp(.68rem,1.15vw,.8rem);
   margin-inline-start:auto;white-space:nowrap}
 .ev-text{font-family:var(--matn);color:var(--surface);line-height:1.95;
   font-size:clamp(1.05rem,2vw,1.4rem)}

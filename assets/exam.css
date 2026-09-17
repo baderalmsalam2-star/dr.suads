@@ -17,7 +17,7 @@
 .cloze-mark{font-size:clamp(.78rem,1.4vw,.92rem)}
 .cloze-mark.correct{color:var(--faculty)}
 .cloze-mark.yours{color:var(--student)}
-.hint-line{color:rgba(var(--neutral-rgb),.62);font-size:clamp(.72rem,1.3vw,.85rem)}
+.hint-line{color:var(--muted);font-size:clamp(.72rem,1.3vw,.85rem)}
 .key{color:var(--student);font-family:var(--matn);
   font-size:clamp(.95rem,1.7vw,1.15rem)}
 

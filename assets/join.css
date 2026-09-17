@@ -38,7 +38,7 @@
 .join-card select option{background:var(--navy-2)}
 .join-card>button#go{margin-top:1em;padding:.75em;font-size:clamp(1rem,2vw,1.1rem);
   background:var(--faculty);color:var(--navy);border-color:var(--faculty);font-weight:600}
-.join-note{color:rgba(var(--neutral-rgb),.62);font-size:clamp(.72rem,1.4vw,.85rem);line-height:1.8}
+.join-note{color:var(--muted);font-size:clamp(.72rem,1.4vw,.85rem);line-height:1.8}
 .code-line{font-family:ui-monospace,Menlo,Consolas,monospace;direction:ltr;text-align:left;
   font-size:.7rem;color:var(--neutral);background:var(--navy);border:1px solid var(--line);
   padding:.6em;word-break:break-all;user-select:all}
@@ -50,7 +50,7 @@
 .scan-log li{border:1px solid var(--line);padding:.4em .7em;font-size:.85rem;
              display:flex;gap:.6em;align-items:baseline}
 .scan-log li.new{border-color:var(--student);color:var(--student)}
-.scan-log li.dup{opacity:.55}
+.scan-log li.dup{color:var(--muted)}
 
 @media print{
   body{background:#fff}
@@ -82,7 +82,10 @@
   background:rgba(var(--neutral-rgb),.12)}
 .att-row.absent{border-color:rgba(var(--danger-rgb),.55)}
 .att-row.absent .states button.on{border-color:var(--danger);color:var(--danger);background:rgba(var(--danger-rgb),.14)}
-.att-row.unset{opacity:.75;border-style:dashed}
+/*  الصفّ غير المعلَّم: الحدّ المتقطّع وحده علامته. وكان معه
+    opacity:.75 يخفض تباين الاسم والأزرار إلى ٣.٨:١ في اللوحات
+    الفاتحة — والاسم يُقرأ ليُعلَّم، فلا يصحّ تخفيته. */
+.att-row.unset{border-style:dashed}
 
 td .bar{display:block;height:4px;background:var(--line);min-width:60px;position:relative}
 td .bar i{display:block;height:100%;background:var(--faculty)}
@@ -97,12 +100,12 @@ tr.deny td{color:var(--danger)}
 
 /* فاصل «أو» بين الدخول الجامعي والدخول بالبريد */
 .or{display:flex;align-items:center;gap:.7rem;margin:1.1rem 0 .3rem;
-    color:var(--neutral);opacity:.75;font-size:.82rem}
+    color:var(--muted);font-size:.82rem}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
 
 /* تفصيل مطوي: الطرق الأقل استعمالًا لا تزاحم الطريق الأول */
 .more{margin-top:1rem;border-top:1px solid var(--line);padding-top:.8rem}
-.more summary{color:var(--neutral);opacity:.8;font-size:.85rem;cursor:pointer}
+.more summary{color:var(--muted);font-size:.85rem;cursor:pointer}
 .more summary:hover{opacity:1;color:var(--faculty)}
 .more[open] summary{margin-bottom:.4rem}
 
