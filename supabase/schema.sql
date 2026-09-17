@@ -172,6 +172,29 @@ create table if not exists attend_codes (
 );
 create unique index if not exists attend_codes_nonce on attend_codes (nonce);
 
+-- ─── تحرير النصوص ───
+--  نصوص المقرر (عناوين الأوراق وأسئلتها وتعليقاتها) تعيش في ملفات
+--  data/courses/<المقرر>/. وهي ملفاتٌ لا تُكتب من المتصفّح: المنصة
+--  تُقدَّم من GitHub Pages، فلا سبيل للدكتورة أن تصحّح خطأً مطبعيًّا
+--  إلا بفتح الملف وتعديله ورفعه.
+--
+--  فهذا الجدول تصحيحاتٌ تُطبَّق فوق الملفات عند العرض: صفٌّ لكل
+--  (موضع، حقل). الملفّ يبقى هو الأصل، وما هنا يعلو عليه. وحذفُ
+--  الصفّ يُرجع الأصل — فلا يضيع النصّ الأول أبدًا.
+--
+--  العنوان: ref مثل «wilaya:h1» للورقة، أو «wilaya:h1#h1q1» لسؤالٍ
+--  فيها. و field اسم الحقل: title · subtitle · intro · prompt ·
+--  why · opt0 … optN.
+create table if not exists content (
+  id         text primary key,        -- ref || '|' || field
+  course_id  text not null,
+  ref        text not null,
+  field      text not null,
+  value      text,
+  updated_at timestamptz not null default now()
+);
+create index if not exists content_course on content (course_id);
+
 -- ═══ تفعيل حماية الصفوف ═══
 alter table owners      enable row level security;
 alter table grades      enable row level security;
@@ -182,6 +205,7 @@ alter table attendance  enable row level security;
 alter table submissions enable row level security;
 alter table schedule    enable row level security;
 alter table attend_codes enable row level security;
+alter table content     enable row level security;
 
 --  صفوف الطالبة الحالية — صفٌّ في كل مقرر تدرسه، لا صفٌّ واحد.
 --  (كانت my_student_id() تُرجع صفًّا واحدًا مهما كثرت المقررات،
@@ -391,6 +415,21 @@ create policy schedule_read on schedule for select
 
 drop policy if exists schedule_write on schedule;
 create policy schedule_write on schedule for all
+  using (is_owner()) with check (is_owner());
+
+-- ─── content: المالكة تكتب، وطالبات المقرر يقرأن ───
+--  تقرأ الطالبة نصوص مقررها لأنها تراها في الورقة على كل حال.
+--  ولا تقرأ نصوص مقرر لا تدرسه — ومفتاح الشعبة «المقرر:الشعبة»
+--  فمنه يُعرف مقررها.
+drop policy if exists content_read on content;
+create policy content_read on content for select
+  using (is_owner() or exists (
+    select 1 from students s
+     where s.auth_uid = auth.uid()
+       and split_part(s.section_id, ':', 1) = content.course_id));
+
+drop policy if exists content_write on content;
+create policy content_write on content for all
   using (is_owner()) with check (is_owner());
 
 -- ─── attend_codes: المالكة وحدها، ولا أحد غيرها ───

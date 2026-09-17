@@ -165,6 +165,8 @@
   var M_GRADE = { studentId: "student_id", sectionId: "section_id",
                   itemId: "item_id", updatedAt: "updated_at" };
 
+  var M_CONTENT = { courseId: "course_id", updatedAt: "updated_at" };
+
   function mapAll(map, rows) { return (rows || []).map(function (r) { return fromDb(map, r); }); }
 
   function uid(p) {
@@ -393,6 +395,29 @@
         method: "POST",
         body: { p_nonce: String(nonce) }
       });
+    },
+
+    /* تصحيحات النصوص ------------------------------------------ */
+    content: function (courseId) {
+      var q = "content?select=*";
+      if (courseId != null) q += "&course_id=eq." + enc(courseId);
+      return req(q).then(function (rows) { return mapAll(M_CONTENT, rows); });
+    },
+
+    /*  قيمةٌ فارغة تحذف الصفّ فيعود نصّ الملفّ الأصلي */
+    saveContent: function (rec) {
+      var key = rec.ref + "|" + rec.field;
+      if (rec.value == null || rec.value === "") {
+        return req("content?id=eq." + enc(key), { method: "DELETE" })
+               .then(function () { return null; });
+      }
+      return req("content?on_conflict=id", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: [{ id: key, course_id: String(rec.courseId), ref: rec.ref,
+                 field: rec.field, value: rec.value,
+                 updated_at: new Date().toISOString() }]
+      }).then(function () { return rec; });
     },
 
     /* الدرجات اليدوية ----------------------------------------- */

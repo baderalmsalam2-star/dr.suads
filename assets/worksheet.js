@@ -17,18 +17,29 @@
   var stateEl = document.getElementById("state");
   var picker = document.getElementById("student");
 
-  TPUI.chrome("worksheets", W ? W.title : "ورقة عمل", W ? W.subtitle : null);
   TPUI.credit("credit");
 
   if (!W) {
+    TPUI.chrome("worksheets", "ورقة عمل", null);
     document.getElementById("emptyBox").appendChild(
       TPUI.empty("لم أجد هذه الورقة.", "ارجعي إلى صفحة أوراق العمل واختاري منها."));
     document.querySelector(".control").hidden = true;
     return;
   }
-  document.getElementById("intro").textContent = W.intro || "";
+
+  /*  تصحيحات النصوص تُجلب من الخادم، فأول رسمٍ ينتظرها. وبلا هذا
+      الانتظار يُرى النصّ الأصلي لحظةً ثم ينقلب إلى المصحَّح. */
+  TPContent.ready().then(start).catch(start);
+
+  function start() {
+    TPUI.chrome("worksheets", W.title, W.subtitle);
+    document.getElementById("intro").textContent = W.intro || "";
+    editSetup();
+    loadStudents();
+  }
 
   /* ─── اختيار الطالبة ─── */
+  function loadStudents() {
   Store.students(section.id).then(function (list) {
     students = list.slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
     if (!students.length) {
@@ -47,6 +58,7 @@
       ? want : students[0].id;
     pick();
   }).catch(fail);
+  }
 
   picker.addEventListener("change", pick);
 
@@ -73,7 +85,7 @@
       var box = el("div", "item");
       box.appendChild(el("div", "qno",
         "السؤال " + ar(idx + 1) + (it.optional ? " · اختياري" : "")));
-      box.appendChild(el("div", "prompt", it.prompt));
+      box.appendChild(mark(el("div", "prompt", it.prompt), W.id + "#" + it.id, "prompt"));
 
       if (it.kind === "mcq") buildMcq(box, it, locked);
       else if (it.kind === "file") buildFile(box, it, locked);
@@ -84,7 +96,7 @@
       else buildText(box, it, locked);
 
       if (locked && it.why) {
-        box.appendChild(el("div", "why", it.why));
+        box.appendChild(mark(el("div", "why", it.why), W.id + "#" + it.id, "why"));
       }
       itemsBox.appendChild(box);
     });
@@ -97,6 +109,8 @@
     document.getElementById("save").hidden = locked;
     document.getElementById("send").hidden = !locked;
     document.getElementById("reopen").hidden = !locked;
+
+    applyEdit();                    /* الأسئلة بُنيت من جديد */
   }
 
   function buildMcq(box, it, locked) {
@@ -117,7 +131,7 @@
       });
       lab.appendChild(input);
       lab.appendChild(el("span", "", "أبجد".charAt(oi) || String(oi + 1)));
-      lab.appendChild(el("span", "", opt));
+      lab.appendChild(mark(el("span", "", opt), W.id + "#" + it.id, "opt" + oi));
       if (sub.answers[it.id] === oi) lab.classList.add("picked");
       if (locked) {
         if (oi === it.answer) lab.classList.add("correct");
@@ -526,6 +540,108 @@
                  " — أرسليه للدكتورة.", "good");
     });
   });
+
+  /* ═══════════════════════════════════════════════════════════
+     تحرير النصوص — للدكتورة وحدها
+
+     نصوص الأوراق في ملفات المقرر، والمنصة تُقدَّم من GitHub Pages
+     فلا تُكتب الملفات من المتصفّح. فالتصحيح يُخزَّن في الخادم
+     ويُطبَّق فوق الملفّ عند العرض (assets/content.js) — والملفّ
+     يبقى الأصل، و«إرجاع الأصل» يحذف التصحيح لا يكتب فوقه.
+
+     والتحرير في موضعه: تُنقر الكلمة حيث تُرى، لا في نموذجٍ آخر.
+     ═══════════════════════════════════════════════════════════ */
+  var editing = false;
+
+  /* يُعلَّم العنصر بعنوانه فيعرفه وضعُ التحرير حين يُفتح */
+  function mark(node, ref, field) {
+    node.dataset.ref = ref;
+    node.dataset.field = field;
+    if (TPContent.has(ref, field)) node.classList.add("edited");
+    return node;
+  }
+
+  function editSetup() {
+    var btn = document.getElementById("editText");
+    if (!btn || !window.TPRole) return;
+
+    TPRole.get().then(function (r) {
+      if (r !== "teacher" && r !== "admin") return;
+      btn.hidden = false;
+      btn.addEventListener("click", function () {
+        editing = !editing;
+        btn.textContent = editing ? "إنهاء التحرير" : "تحرير النصوص";
+        btn.classList.toggle("gold", editing);
+        applyEdit();
+      });
+    });
+  }
+
+  /*  يُستدعى بعد كل رسم: الأسئلة تُبنى من جديد عند تبديل الطالبة،
+      فلا بدّ من إعادة تعليق المحرِّرات. */
+  function applyEdit() {
+    var live = [].slice.call(document.querySelectorAll("[data-ref][data-field]"));
+    /* عنوان الورقة ومقدّمتها ليسا داخل الأسئلة، فيُعنونان هنا */
+    [["intro", W.id, "intro"]].forEach(function (t) {
+      var n = document.getElementById(t[0]);
+      if (n && n.textContent) { n.dataset.ref = t[1]; n.dataset.field = t[2];
+        if (TPContent.has(t[1], t[2])) n.classList.add("edited");
+        live.push(n); }
+    });
+
+    document.body.classList.toggle("editing", editing);
+
+    live.forEach(function (n) {
+      n.contentEditable = editing ? "true" : "false";
+      n.classList.toggle("editable", editing);
+      if (editing && !n.dataset.bound) {
+        n.dataset.bound = "1";
+        n.addEventListener("blur", function () { commit(n); });
+        n.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") { n.textContent = TPContent.get(n.dataset.ref, n.dataset.field); n.blur(); }
+          /* Enter يُنهي التحرير بدل أن يُدخل سطرًا — النصوص سطرٌ واحد */
+          if (e.key === "Enter") { e.preventDefault(); n.blur(); }
+        });
+      }
+      /* زرّ «الأصل» يظهر على المصحَّح وحده */
+      var old = n.parentNode && n.parentNode.querySelector(":scope > .revert");
+      if (old) old.remove();
+      if (editing && TPContent.has(n.dataset.ref, n.dataset.field)) {
+        var r = el("button", "revert sm ghost", "الأصل");
+        r.type = "button";
+        r.title = "إرجاع نصّ الملفّ: " + TPContent.original(n.dataset.ref, n.dataset.field);
+        r.addEventListener("click", function () {
+          TPContent.set(n.dataset.ref, n.dataset.field, "").then(function () {
+            n.textContent = TPContent.original(n.dataset.ref, n.dataset.field);
+            n.classList.remove("edited");
+            TPUI.toast("رجع نصّ الملفّ.", "good");
+            applyEdit();
+          }).catch(fail);
+        });
+        n.parentNode.insertBefore(r, n.nextSibling);
+      }
+    });
+  }
+
+  function commit(n) {
+    var ref = n.dataset.ref, field = n.dataset.field;
+    var now = n.textContent.trim();
+    if (now === String(TPContent.get(ref, field) || "").trim()) return;
+    if (!now) {
+      /* فراغٌ ليس تصحيحًا — يُرجَع الأصل ويُقال ذلك */
+      n.textContent = TPContent.original(ref, field) || "";
+      TPUI.toast("النصّ لا يُترك فارغًا — رجع الأصل.", "bad");
+      return;
+    }
+    TPContent.set(ref, field, now).then(function () {
+      n.classList.toggle("edited", TPContent.has(ref, field));
+      TPUI.toast("حُفظ النصّ.", "good");
+      applyEdit();
+    }).catch(function (e) {
+      n.textContent = TPContent.get(ref, field);
+      fail(e);
+    });
+  }
 
   function fail(e) {
     console.error(e);

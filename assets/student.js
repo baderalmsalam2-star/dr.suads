@@ -29,6 +29,7 @@
 
     return Promise.all([
       Store.events({ studentId: st.id }),
+      TPContent.ready(),
       Store.submissions({ studentId: st.id }),
       Store.ranking({ sectionId: st.sectionId }),
       Store.ranking({ sectionId: st.sectionId, month: Store.monthKey(Store.dayKey()) }),
@@ -36,9 +37,10 @@
       Store.attendance({ sectionId: st.sectionId }),
       Store.gradebook(st.sectionId)
     ]).then(function (r) {
-      paint(st, r[0], r[1], r[2], r[3]);
-      paintAttendance(st, r[4], r[5]);
-      paintGrades(st, r[6]);
+      /* r[1] تصحيحات النصوص — تُطبَّق على WORKSHEETS ولا تُقرأ هنا */
+      paint(st, r[0], r[2], r[3], r[4]);
+      paintAttendance(st, r[5], r[6]);
+      paintGrades(st, r[7]);
     });
   }).catch(function (e) {
     console.error(e);

@@ -230,6 +230,30 @@
       return Promise.resolve(map);
     },
 
+    /* تصحيحات النصوص: صفٌّ لكل (موضع، حقل) ------------------- */
+    content: function (courseId) {
+      var all = read("content", []);
+      if (courseId == null) return Promise.resolve(all);
+      return Promise.resolve(all.filter(function (c) {
+        return String(c.courseId) === String(courseId);
+      }));
+    },
+
+    /*  قيمةٌ فارغة تحذف التصحيح فيعود نصّ الملفّ الأصلي. وهذا هو
+        «إرجاع الأصل» — لا نصٌّ فارغ يُكتب فوقه. */
+    saveContent: function (rec) {
+      var all = read("content", []);
+      var key = rec.ref + "|" + rec.field;
+      var rest = all.filter(function (c) { return (c.ref + "|" + c.field) !== key; });
+      if (rec.value != null && rec.value !== "") {
+        rest.push({ id: key, courseId: rec.courseId, ref: rec.ref,
+                    field: rec.field, value: rec.value,
+                    updatedAt: new Date().toISOString() });
+      }
+      write("content", rest);
+      return Promise.resolve(rec);
+    },
+
     /* الدرجات اليدوية: سجل واحد لكل (طالبة، بند) ------------- */
     grades: function (f) {
       f = f || {};
@@ -440,6 +464,9 @@
       if (A.unmarkAttendance) return A.unmarkAttendance(st, ses);
       return Local.unmarkAttendance(st, ses);
     },
+
+    content: function (courseId) { return A.content(courseId); },
+    saveContent: function (rec) { return A.saveContent(rec); },
 
     /*  رمز الحضور الدوّار — للخادم وحده.
         في الوضع المحلي لا شيء يجمع جهاز الدكتورة بجهاز الطالبة،

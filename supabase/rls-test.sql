@@ -735,6 +735,77 @@ insert into rls_results select 'المالكة تكتب الرمز وتقرؤه'
   (select count(*) from attend_codes where nonce='OWNER-CODE')=1;
 commit;
 
+-- ═══════════════════════════════════════════════════════════════
+--  تصحيحات النصوص
+--
+--  المطلوب: أن تكتبها المالكة وحدها، وأن تقرأها طالبات المقرر
+--  نفسه لا غيرهنّ، وأن يعود الأصل بحذف الصفّ.
+-- ═══════════════════════════════════════════════════════════════
+insert into content(id,course_id,ref,field,value) values
+ ('wilaya:h1|title','wilaya','wilaya:h1','title','عنوانٌ مصحَّح'),
+ ('mirath:m1|title','mirath','mirath:m1','title','عنوان الميراث');
+
+-- سارة في المقررين (صفّاها أُدخلا في كتلة تعدّد المقررات)
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into rls_results select 'طالبة المقررين ترى تصحيحاتهما', (select count(*) from content)=2;
+commit;
+
+-- ومن تدرس مقررًا واحدًا لا ترى تصحيحات الآخر
+insert into auth.users(id,email) values
+ ('c1c1c1c1-0000-0000-0000-000000000001','one@test') on conflict do nothing;
+insert into students(id,section_id,no,name,uid,auth_uid) values
+ ('c-one','wilaya:9',40,'أمل','2202144444','c1c1c1c1-0000-0000-0000-000000000001');
+begin; set local role authenticated;
+set local request.jwt.claim.sub = 'c1c1c1c1-0000-0000-0000-000000000001';
+insert into rls_results select 'طالبة مقرر واحد ترى تصحيحاته وحدها',
+  (select count(*) from content)=1;
+insert into rls_results select 'والذي تراه تصحيح مقررها',
+  (select course_id from content)='wilaya';
+commit;
+
+-- وغريبٌ بحساب لا يرى شيئًا، وبلا حساب كذلك
+begin; set local role authenticated;
+set local request.jwt.claim.sub = 'ffffffff-0000-0000-0000-000000000001';
+insert into rls_results select 'غريبٌ بحساب لا يرى التصحيحات', (select count(*) from content)=0;
+commit;
+begin; set local role anon;
+insert into rls_results select 'وبلا حساب لا يرى التصحيحات', (select count(*) from content)=0;
+commit;
+
+-- والطالبة لا تكتب تصحيحًا ولا تعدّله ولا تحذفه
+do $$
+begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into content(id,course_id,ref,field,value)
+      values ('x|y','wilaya','x','y','نصّي أنا');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('الطالبة لا تكتب تصحيحًا', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('الطالبة لا تكتب تصحيحًا', true);
+  end;
+end $$;
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+with u as (update content set value='مبدَّل' where id='wilaya:h1|title' returning 1)
+  insert into rls_results select 'ولا تعدّل تصحيح الدكتورة', count(*)=0 from u;
+with d as (delete from content where id='wilaya:h1|title' returning 1)
+  insert into rls_results select 'ولا تحذفه', count(*)=0 from d;
+commit;
+insert into rls_results select 'والتصحيح باقٍ كما كتبته الدكتورة',
+  (select value from content where id='wilaya:h1|title')='عنوانٌ مصحَّح';
+
+-- والمالكة تكتب وتحذف
+begin; set local role authenticated; set local request.jwt.claim.sub = :'OWNER';
+insert into content(id,course_id,ref,field,value)
+  values ('wilaya:h1#h1q1|prompt','wilaya','wilaya:h1#h1q1','prompt','سؤالٌ مصحَّح');
+insert into rls_results select 'المالكة تكتب التصحيح', (select count(*) from content)=3;
+delete from content where id='wilaya:h1#h1q1|prompt';
+insert into rls_results select 'وتحذفه فيعود الأصل', (select count(*) from content)=2;
+commit;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

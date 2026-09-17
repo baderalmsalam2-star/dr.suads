@@ -170,16 +170,19 @@
   function render() {
     document.getElementById("sub").textContent = section.name;
 
+    /*  تصحيحات نصوص الأوراق تُجلب مرةً واحدة وتُطبَّق على
+        window.WORKSHEETS، فتُقرأ هنا وفي بقية الصفحات بلا فرق. */
     Promise.all([
+      TPContent.ready(),
       Store.students(section.id),
       Store.submissions({}),
       sched ? Promise.resolve(sched) : Store.schedule(section.id)
     ]).then(function (r) {
-      sched = r[2] || {};
-      var students = r[0].slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
+      sched = r[3] || {};
+      var students = r[1].slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
       var ids = {};
       students.forEach(function (st) { ids[st.id] = true; });
-      data = { students: students, subs: r[1].filter(function (x) { return ids[x.studentId]; }) };
+      data = { students: students, subs: r[2].filter(function (x) { return ids[x.studentId]; }) };
       fillLessons();
       paint();
     }).catch(fail);

@@ -277,3 +277,22 @@ tr.exam-row td{background:rgba(var(--student-rgb),.09);color:var(--student);font
 table.grid th.sheet{white-space:normal;min-width:7.5em;max-width:11em;
                     vertical-align:bottom;line-height:1.35}
 table.grid td.name{width:auto}
+
+/* ═══ تحرير النصوص في موضعه — للدكتورة وحدها ═══
+   الحقل المحرَّر يُحاط بخطٍّ متقطّع فيُعرف أنه قابلٌ للنقر، والنصّ
+   المصحَّح يُعلَّم بعلامةٍ صغيرة فتُميَّز تصحيحاتها من نصّ الملفّ. */
+body.editing [contenteditable="true"]{outline:1px dashed var(--faculty);
+  outline-offset:3px;cursor:text;border-radius:2px}
+body.editing [contenteditable="true"]:focus{outline:2px solid var(--faculty);
+  background:rgba(var(--faculty-rgb),.08)}
+.edited{position:relative}
+.edited::after{content:"مصحَّح";font-family:var(--ui);font-size:.62em;
+  color:var(--student);border:1px solid var(--student);padding:0 .4em;
+  margin-inline-start:.5em;white-space:nowrap;vertical-align:middle}
+/*  زرّ «الأصل» يُدرَج شقيقًا للنصّ المصحَّح. وقد يقع في حاويةٍ
+    عمودية (body نفسه للمقدّمة) فيتمدّد على العرض كلّه — يُقيَّد. */
+button.revert{margin-inline-start:.5em;vertical-align:middle;
+  align-self:flex-start;width:max-content;flex:none}
+@media print{
+  .edited::after,button.revert,#editText{display:none!important}
+}
