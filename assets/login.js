@@ -28,8 +28,10 @@
              });
   }
 
-  /* زر الجامعة لا يظهر إلا إذا كان المحوّل يعرفه */
-  if (TPAuth.signInWithUniversity) document.getElementById("uniBox").hidden = false;
+  /*  لا زرَّ «الدخول بحساب الجامعة» بعد اليوم.
+      كان يتطلّب ربط هوية الجامعة (Entra) بالمشروع، وهو إذنٌ من مركز
+      النظم لا يُنتظر. وطريقٌ واحدٌ يعمل خيرٌ من طريقين أحدهما يخذل.
+      والدالّة باقيةٌ في المحوّل لمن أراد تفعيلها لاحقًا. */
 
   function show(id) {
     ["form", "who", "migrate", "offline"].forEach(function (k) {
@@ -105,30 +107,47 @@
              schedule: obj("schedule") };
   }
 
-  document.getElementById("go").addEventListener("click", function () {
+  /*  زرٌّ واحد لا زرّان.
+      الطالبة لا تعرف أَلَها حسابٌ أم لا، ولا ينبغي أن تُسأل. فيُجرَّب
+      الدخول أولًا، فإن قال الخادم «بياناتٌ غير صحيحة» فأحد أمرين:
+      لا حساب لها — فيُنشأ ويُدخل به في النفس ذاته — أو كلمة السر
+      خطأ، وحينئذٍ يردّ إنشاءُ الحساب بأن البريد مسجَّل، فنقولها لها
+      صريحة. وهكذا لا تُرسَل رسالةُ بريدٍ واحدة. */
+  function enter() {
     var email = document.getElementById("email").value.trim();
     var pass = document.getElementById("pass").value;
     if (!email || !pass) return TPUI.toast("اكتبي البريد وكلمة السر.", "bad");
+    if (pass.length < 6) return TPUI.toast("كلمة السر ستّة أحرف فأكثر.", "bad");
+
+    var btn = document.getElementById("go");
+    btn.disabled = true;
     state.textContent = "جارٍ الدخول…";
-    TPAuth.signIn(email, pass).then(refresh).catch(function (e) {
-      state.textContent = "";
-      TPUI.toast(e.message || "تعذّر الدخول.", "bad");
-    });
-  });
 
-  document.getElementById("link").addEventListener("click", function () {
-    var email = document.getElementById("email").value.trim();
-    if (!email) return TPUI.toast("اكتبي بريدك أولًا.", "bad");
-    var back = location.href.split("#")[0];
-    TPAuth.sendLink(email, back).then(function () {
-      TPUI.toast("أُرسل رابط الدخول إلى بريدك.", "good");
-      state.textContent = "افتحي بريدك واضغطي الرابط، ثم ارجعي إلى هذه الصفحة.";
-    }).catch(function (e) { TPUI.toast(e.message || "تعذّر الإرسال.", "bad"); });
-  });
+    function done() { btn.disabled = false; }
+    function fail(msg) { done(); state.textContent = ""; TPUI.toast(msg, "bad"); }
 
-  document.getElementById("uni").addEventListener("click", function () {
-    state.textContent = "جارٍ التحويل إلى صفحة الجامعة…";
-    TPAuth.signInWithUniversity(location.href.split("#")[0].split("?")[0]);
+    TPAuth.signIn(email, pass)
+      .then(function () { done(); refresh(); })
+      .catch(function (e) {
+        var m = e && e.message || "";
+        /*  ليست «بيانات غير صحيحة»؟ عطلٌ آخر — لا يُنشأ حسابٌ عليه. */
+        if (!/Invalid login|invalid_grant|غير صحيح/i.test(m)) {
+          return fail(m || "تعذّر الدخول.");
+        }
+        state.textContent = "أول مرة — جارٍ إنشاء حسابك…";
+        TPAuth.signUp(email, pass)
+          .then(function () { done(); refresh(); })
+          .catch(function (e2) {
+            if (e2 && e2.exists) return fail("كلمة السر غير صحيحة.");
+            fail(e2 && e2.message || "تعذّر إنشاء الحساب.");
+          });
+      });
+  }
+
+  document.getElementById("go").addEventListener("click", enter);
+  /*  «إنتر» من حقل كلمة السر يدخل — أسرع على الجوال من تحسّس الزر. */
+  document.getElementById("pass").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") enter();
   });
 
   document.getElementById("out").addEventListener("click", function () {

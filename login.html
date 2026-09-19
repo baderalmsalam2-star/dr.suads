@@ -41,27 +41,23 @@
         <code>supabase/الإعداد.md</code>.</p>
     </div>
 
+    <!--  طريقٌ واحد: بريدٌ جامعيّ وكلمة سر.
+          لا رابطَ بريدٍ ولا رمزَ تحقّق — لا رسالة تُرسل أصلًا، فلا
+          يوقفنا حدُّ البريد في الخادم ولا تنتظر طالبةٌ رسالةً لا
+          تصل. وزرٌّ واحد: يدخل إن كان لها حساب، ويُنشئه إن لم يكن. -->
     <div id="form" hidden>
-      <div id="uniBox" hidden>
-        <button id="uni" type="button" class="gold">الدخول بحساب الجامعة</button>
-        <p class="join-note">نفس حساب تيمز وبريد الجامعة. لا كلمة سر جديدة،
-          وصفّك يُربط بحسابك من رقمك الجامعي تلقائيًا.</p>
-        <div class="or"><span>أو</span></div>
-      </div>
-
       <label for="email">البريد الجامعي</label>
       <input type="email" id="email" autocomplete="username"
              inputmode="email" placeholder="مثال: s0000000000@ku.edu.kw">
-      <button id="link" type="button" class="gold">أرسلي لي رابط الدخول</button>
-      <p class="join-note">للطالبات: اكتبي بريدك الجامعي واضغطي الزر — يصلك
-        رابط دخول، وصفّك يرتبط بحسابك من رقمك الجامعي تلقائيًا. لا كلمة سر.</p>
 
-      <details class="more">
-        <summary>دخول بكلمة سر</summary>
-        <label for="pass">كلمة السر</label>
-        <input type="password" id="pass" autocomplete="current-password">
-        <button id="go" type="button">دخول</button>
-      </details>
+      <label for="pass">كلمة السر</label>
+      <input type="password" id="pass" autocomplete="current-password"
+             placeholder="ستّة أحرف فأكثر">
+
+      <button id="go" type="button" class="gold">دخول</button>
+      <p class="join-note">اكتبي بريدك الجامعي وكلمة سر من عندك. أول مرة
+        يُنشأ حسابك، وبعدها تدخلين بها. وصفّك يرتبط بحسابك من رقمك
+        الجامعي تلقائيًا.</p>
     </div>
 
     <div id="who" hidden>

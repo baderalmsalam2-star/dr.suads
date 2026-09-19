@@ -648,6 +648,42 @@
       });
     },
 
+    /*  إنشاء حساب ببريدٍ وكلمة سر.
+        بلا رسالة بريدٍ إطلاقًا — بشرط إطفاء «Confirm email» في
+        إعدادات المشروع. وإلا ردّ الخادم بأن الحساب يحتاج تأكيدًا،
+        فنقولها صريحة بدل «تعذّر» غامضة.
+        والحساب وحده لا يفتح شيئًا: الطالبة لا ترى إلا صفًّا في كشف
+        الدكتورة مربوطًا ببريدها، والربط يقع في الخادم من رقمها
+        الجامعي. فمن سجّل ببريدٍ غير جامعيّ فتح حسابًا فارغًا. */
+    signUp: function (email, password) {
+      return fetch(AUTH + "signup", {
+        method: "POST",
+        headers: { apikey: CFG.anonKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, password: password })
+      }).then(function (r) {
+        return r.json().then(function (d) {
+          if (!r.ok) {
+            var m = d.msg || d.error_description || d.message || "";
+            if (/already registered|already been registered/i.test(m)) {
+              var e = new Error("هذا البريد له حساب — اكتبي كلمة سره.");
+              e.exists = true; throw e;
+            }
+            if (/password/i.test(m) && /least|short/i.test(m)) {
+              throw new Error("كلمة السر قصيرة — ستّة أحرف فأكثر.");
+            }
+            throw new Error(m || "تعذّر إنشاء الحساب.");
+          }
+          if (!d.access_token) {
+            var ce = new Error("المشروع يطلب تأكيد البريد. أطفئي "
+              + "«Confirm email» في إعدادات Supabase ثم أعيدي المحاولة.");
+            ce.needsConfirm = true; throw ce;
+          }
+          setSession(stamp(d));
+          return d;
+        });
+      });
+    },
+
     /* رابط الدخول بالبريد — لا كلمة سر للطالبات */
     sendLink: function (email, redirect) {
       /* GoTrue يقرأ عنوان العودة من معامل الاستعلام redirect_to.

@@ -5,6 +5,8 @@ const DB = { students: [], events: [], attendance: [], submissions: [], schedule
              grades: [], scheme: [], attend_codes: [], content: [], owners: [{uid:'owner-1'}] };
 // من هو الداخل؟ يُضبط من الاختبار عبر /__as/<uid>
 let WHO = 'owner-1';
+// حسابات GoTrue: البريد ← كلمة السر
+const USERS = new Map();
 const FILES = new Map();
 const PK = { students:['id'], events:['id'], attendance:['id'], submissions:['id'],
              grades:['id'], scheme:['section_id'], schedule:['section_id','session'],
@@ -52,9 +54,30 @@ const server = http.createServer((req,res)=>{
   let body=''; req.on('data',d=>body+=d); req.on('end',()=>{
     const json = body?JSON.parse(body):null;
 
-    // ── auth ──
-    if (u.pathname.startsWith('/auth/v1/token'))
+    // ── auth: يحاكي GoTrue بكلمة السر ──
+    //  الحسابات في الذاكرة. و CONFIRM=1 يحاكي مشروعًا لم يُطفأ فيه
+    //  «Confirm email»، فيردّ التسجيلُ بلا رمز دخول.
+    if (u.pathname.startsWith('/auth/v1/signup')) {
+      const em = (json && json.email || '').toLowerCase();
+      const pw = json && json.password || '';
+      if (USERS.has(em)) return send(res,422,{msg:'User already registered'});
+      if (pw.length < 6) return send(res,422,{msg:'Password should be at least 6 characters'});
+      USERS.set(em, pw);
+      if (process.env.CONFIRM === '1')
+        return send(res,200,{id:'u-'+USERS.size, email:em});      /* بلا access_token */
+      return send(res,200,{access_token:'tok-'+em, refresh_token:'r', expires_in:3600,
+                           user:{id:'u-'+USERS.size, email:em}});
+    }
+    if (u.pathname.startsWith('/auth/v1/token')) {
+      if (/grant_type=password/.test(u.search)) {
+        const em = (json && json.email || '').toLowerCase();
+        const pw = json && json.password || '';
+        if (!USERS.has(em) || USERS.get(em) !== pw)
+          return send(res,400,{error:'invalid_grant', error_description:'Invalid login credentials'});
+        return send(res,200,{access_token:'tok-'+em, refresh_token:'r', expires_in:3600});
+      }
       return send(res,200,{access_token:'tok-owner', refresh_token:'r', expires_in:3600});
+    }
     if (u.pathname==='/auth/v1/user')
       return send(res,200,{id:WHO, email:WHO+'@example.com'});
     if (u.pathname.startsWith('/__as/')) {
