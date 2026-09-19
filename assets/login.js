@@ -49,7 +49,7 @@
     }
     Promise.all([TPAuth.me(), TPAuth.isOwner()]).then(function (r) {
       var me = r[0], owner = r[1];
-      if (!me) { TPAuth.signOut(); return refresh(); }
+      if (!me) { TPRole.forget(); TPAuth.signOut(); return refresh(); }
       state.textContent = "";
       document.getElementById("form").hidden = true;
       document.getElementById("who").hidden = false;
@@ -132,6 +132,9 @@
   });
 
   document.getElementById("out").addEventListener("click", function () {
+    /*  يُنسى الدور مع الجلسة: لو خرجت الدكتورة ودخلت طالبةٌ على
+        الجهاز نفسه، لم يبقَ ظنُّ الجهاز أنه لمدرِّسة. */
+    TPRole.forget();
     TPAuth.signOut().then(refresh);
   });
 

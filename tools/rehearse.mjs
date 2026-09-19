@@ -23,9 +23,20 @@ const srv=http.createServer((q,r)=>{const f=path.join(ROOT,decodeURIComponent(q.
 await new Promise(r=>srv.listen(8961,r));
 
 // ٢) خادم البيانات
+const API='http://127.0.0.1:8910';
+
+/*  محاكٍ قديمٌ ما زال حيًّا يحمل بيانات تشغيلٍ سابق، فتفشل البروفة
+    بأرقامٍ لا تفسير لها — أو أسوأ: تنجح على بياناتٍ ليست منها.
+    فيُتأكَّد أن المنفذ خالٍ قبل البدء. */
+const busy = await fetch(API + '/rest/v1/students?select=*', { signal: AbortSignal.timeout(1200) })
+  .then(() => true).catch(() => false);
+if (busy) {
+  console.error('✗ المنفذ ٨٩١٠ مشغول بمحاكٍ سابق. أوقفه أولًا:  pkill -f mock-supabase');
+  back(); process.exit(1);
+}
+
 const mock=spawn('node',['mock-supabase.mjs'],{cwd:process.cwd(),stdio:['ignore','pipe','pipe']});
 await new Promise(r=>setTimeout(r,900));
-const API='http://127.0.0.1:8910';
 const as=u=>fetch(API+'/__as/'+encodeURIComponent(u));
 
 // ٣) اربط السجلّ بالخادم الوهمي (يُرجَع في النهاية)

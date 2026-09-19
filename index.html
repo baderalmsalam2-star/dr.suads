@@ -29,13 +29,16 @@
   <div class="control">
     <label for="section">الشعبة:</label>
     <select id="section" aria-label="اختيار الشعبة"></select>
-    <span class="hint" id="hint"></span>
+    <span class="hint" id="hint" data-staff hidden></span>
     <span class="spacer"></span>
-    <a class="btn" href="honors.html">لوحة الشرف كاملة</a>
+    <a class="btn" href="honors.html" data-staff hidden>لوحة الشرف كاملة</a>
   </div>
 
-  <div class="section-title">لوحة شرف اليوم <span class="sub" id="todayLabel"></span></div>
-  <div class="podium" id="today"></div>
+  <!-- لوحة شرف اليوم: رصدُ الدكتورة أثناء الشرح. والطالبة لا ترى
+       تفاعل زميلاتها (يمنعه RLS)، فتظهر لها فارغةً أبدًا مع تعليمةٍ
+       موجَّهةٍ إلى غيرها. فتُخفى عنها. -->
+  <div class="section-title" data-staff hidden>لوحة شرف اليوم <span class="sub" id="todayLabel"></span></div>
+  <div class="podium" id="today" data-staff hidden></div>
 
   <div class="section-title">المحاضرات <span class="sub" id="sessionsSub"></span></div>
   <div class="row"><button id="toggleAll" type="button" class="ghost sm"></button></div>

@@ -95,12 +95,10 @@
     }
   });
 
-  document.getElementById("again").addEventListener("click", function () {
-    document.getElementById("done").hidden = true;
-    document.getElementById("form").hidden = false;
-    document.getElementById("name").value = "";
-    document.getElementById("uid").value = "";
-    me = null;
-    document.getElementById("name").focus();
-  });
+  /*  لا «تسجيل طالبة أخرى على هذا الجهاز».
+      الجهاز لواحدة: بريدها الجامعي يربط حسابها بصفّها، وحضورها
+      يُمسح من جهازها، وتسليمها يُنسب إليها. ولو سجّلت اثنتان على
+      جهازٍ واحد اختلط الأمران، ولا يظهر الخلط إلا في الدرجات آخر
+      الفصل. فمن أخطأت في اسمها أو رقمها تراجع الدكتورة — تصحيحُ
+      صفٍّ في الكشف أهون من كشف الخلط. */
 })();

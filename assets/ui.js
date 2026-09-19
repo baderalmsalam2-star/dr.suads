@@ -5,20 +5,30 @@
   var COURSE = window.COURSE || {};
   var ar = window.TP.ar;
 
+  /*  الشريط بحسب من ينظر.
+      كانت الطالبة ترى كشف الطالبات والدرجات ومُنشئ المحاضرات وصفحة
+      الفحص — أبوابًا لا تخصّها، ولا تفتح لها شيئًا لأن RLS يردّها،
+      لكنها تُشغل نظرها وتوحي أن ثمّ ما تفوته.
+      staff: للدكتورة والمشرف. admin: للمشرف وحده.
+      وما دونهما يراه الجميع — الطالبةُ لا ترى غيره.
+
+      وهذا ترتيبُ واجهةٍ لا حاجزُ أمان: الحاجز في الخادم، وقد قيس
+      بمئةٍ وسبعةٍ وأربعين محاولةَ اختراق. فلو كتبت الطالبة عنوان
+      صفحةٍ بيدها فُتحت لها فارغةً، لأن السياسات تمنع بياناتها لا
+      القائمة. */
   var PAGES = [
     { id: "home",       label: "الرئيسية",     href: "index.html" },
-    { id: "students",   label: "الطالبات",     href: "students.html" },
-    { id: "register",   label: "الباركود",     href: "register.html" },
-    { id: "attendance", label: "الحضور",       href: "attendance.html" },
+    { id: "students",   label: "الطالبات",     href: "students.html",  staff: true },
+    { id: "register",   label: "الباركود",     href: "register.html",  staff: true },
+    { id: "attendance", label: "الحضور",       href: "attendance.html", staff: true },
     { id: "worksheets", label: "أوراق العمل",  href: "worksheets.html" },
-    { id: "grades",     label: "الدرجات",      href: "grades.html" },
-    { id: "honors",     label: "لوحة الشرف",   href: "honors.html" },
+    { id: "grades",     label: "الدرجات",      href: "grades.html",    staff: true },
+    { id: "honors",     label: "لوحة الشرف",   href: "honors.html",    staff: true },
     { id: "evidences",  label: "الأدلة",        href: "evidences.html" },
-    { id: "compose",    label: "مُنشئ المحاضرات",  href: "compose.html" },
+    { id: "compose",    label: "مُنشئ المحاضرات",  href: "compose.html", staff: true },
     { id: "login",      label: "الحساب",       href: "login.html" },
-    { id: "demo",       label: "عرض تجريبي",   href: "demo.html" },
-    /* لا يظهر إلا للمشرف — يُضاف في chrome() بعد سؤال TPRole */
-    { id: "admin",      label: "الفحص",        href: "admin.html", admin: true }
+    { id: "demo",       label: "عرض تجريبي",   href: "demo.html",      staff: true },
+    { id: "admin",      label: "الفحص",        href: "admin.html",     admin: true }
   ];
 
   var AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
@@ -83,6 +93,41 @@
   }
 
   /* ترويسة موحّدة: العنوان + شريط التنقل */
+  /*  كتلٌ في جسم الصفحة تخصّ الدكتورة وحدها — تُوسم data-staff
+      في HTML فتُخفى حتى يُعرف الدور. والشريط وحده لا يكفي: الطالبة
+      كانت ترى «لوحة شرف اليوم» فارغةً وتعليمةً تقول «افتحي عرض
+      المحاضرة واضغطي م» وهي ليست لها. */
+  function revealStaff() {
+    var nodes = document.querySelectorAll("[data-staff]");
+    if (!nodes.length) return;
+    var hint = window.TPRole ? TPRole.hint() : "teacher";
+    function apply(role) {
+      var show = role === "admin" || role === "teacher";
+      for (var i = 0; i < nodes.length; i++) nodes[i].hidden = !show;
+    }
+    if (hint) apply(hint);
+    (window.TPRole ? TPRole.get() : Promise.resolve("teacher")).then(function (r) {
+      if (r !== "unknown") apply(r);
+    });
+  }
+
+  /*  شريطُ أدواتٍ خلا من أدواته يبقى إطارًا فارغًا على الشاشة.
+      يقع هذا عند الطالبة: قائمةُ الشعب تُخفى بشعبةٍ واحدة، وبقيةُ
+      ما فيه للدكتورة. فيُطوى الشريط نفسه متى لم يبقَ فيه ظاهر. */
+  function tidyBars() {
+    var bars = document.querySelectorAll(".control");
+    for (var i = 0; i < bars.length; i++) {
+      var bar = bars[i], live = false;
+      var kids = bar.children;
+      for (var j = 0; j < kids.length; j++) {
+        var k = kids[j];
+        if (k.hidden || k.classList.contains("spacer")) continue;
+        if (k.offsetWidth || k.offsetHeight || (k.textContent || "").trim()) { live = true; break; }
+      }
+      bar.hidden = !live;
+    }
+  }
+
   function chrome(activeId, title, subtitle) {
     var head = document.getElementById("chrome");
     if (!head) return;
@@ -105,17 +150,30 @@
 
     var nav = el("nav", "nav-main");
     nav.setAttribute("aria-label", "أقسام المنصة");
+    /*  الدور يُسأل مرةً واحدة لكل الروابط، لا مرةً لكلٍّ منها. */
+    var hint = window.TPRole ? TPRole.hint() : "teacher";
+    var asked = window.TPRole ? TPRole.get() : Promise.resolve("teacher");
+
+    function allowed(p, role) {
+      if (p.admin) return role === "admin";
+      if (p.staff) return role === "admin" || role === "teacher";
+      return true;
+    }
+
     PAGES.forEach(function (p) {
       var a = el("a", p.id === activeId ? "on" : "", p.label);
       a.href = p.href;
       if (p.id === activeId) a.setAttribute("aria-current", "page");
-      /* رابط المشرف مخفي حتى يُعرف الدور — والسؤال غير متزامن،
-         فيُخفى أولًا ثم يُكشف، لا العكس. */
-      if (p.admin) {
-        a.hidden = true;
-        if (window.TPRole) {
-          TPRole.isAdmin().then(function (yes) { a.hidden = !yes; });
-        }
+
+      if (p.admin || p.staff) {
+        /*  أول رسمٍ على آخر دورٍ عُرف على هذا الجهاز. وإن لم يُعرف
+            بعد — أول زيارة — فالأصل الإخفاء: أن ينكشف للدكتورة بعد
+            لحظة أهونُ من أن ينكشف للطالبة ثم يُسحب. */
+        a.hidden = !(hint && allowed(p, hint));
+        asked.then(function (role) {
+          if (role === "unknown") return;   /* تعذّر السؤال: يبقى الظنّ */
+          a.hidden = !allowed(p, role);
+        });
       }
       nav.appendChild(a);
     });
@@ -126,6 +184,11 @@
     /*  شارة العرض التجريبي — تُلازم كل صفحة ما دام الوضع قائمًا،
         فلا تُظنّ الأرقامُ أرقامَ الشعبة. */
     if (window.Store && Store.demo) head.appendChild(demoBar());
+
+    revealStaff();
+    /*  بعد أن يستقرّ الدور، لا قبله: الطيّ يقاس على ما بقي ظاهرًا. */
+    (window.TPRole ? TPRole.get() : Promise.resolve("teacher"))
+      .then(tidyBars, tidyBars);
   }
 
   function demoBar() {

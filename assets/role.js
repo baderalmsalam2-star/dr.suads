@@ -13,7 +13,14 @@
   "use strict";
 
   var KEY = "tp.role";
+  var SEEN = "tp.role.seen";          /* آخر دورٍ أكّده الخادم */
   var cached = null;
+
+  function seen() { try { return localStorage.getItem(SEEN); } catch (e) { return null; } }
+  function remember(r) {
+    try { if (r === "admin" || r === "teacher" || r === "student") localStorage.setItem(SEEN, r); }
+    catch (e) { /* تصفّح خاص */ }
+  }
 
   function local() {
     try { return localStorage.getItem(KEY) || "teacher"; }
@@ -31,6 +38,7 @@
       }
       return TPAuth.role().then(function (r) {
         cached = r || "student";              /* نتيجة مؤكَّدة: تُخزَّن */
+        remember(cached);
         return cached;
       }).catch(function () {
         /* تعذّر التحقق ≠ ليست مالكة. لا يُخزَّن شيء، فتُعاد المحاولة
@@ -47,6 +55,24 @@
     setLocal: function (r) {
       try { localStorage.setItem(KEY, r); } catch (e) { /**/ }
       cached = null;
+    },
+
+    /* عند الخروج: يُنسى الدور فلا يبقى ظنُّ جهازٍ على حساب غيره */
+    forget: function () {
+      try { localStorage.removeItem(SEEN); } catch (e) { /**/ }
+      cached = null;
+    },
+
+    /*  تخمينٌ فوريّ لأول رسم: آخر دورٍ أكّده الخادم على هذا الجهاز.
+        سؤال الخادم رحلةُ شبكة، ولا يصحّ أن تُرسم القائمة كاملةً ثم
+        تنكمش أمام الطالبة — ولا أن تنكمش أمام الدكتورة ثم تتمدّد.
+        فيُرسم على الظنّ ويُصحَّح على اليقين. وهذا ترتيبُ واجهة لا
+        حاجزُ أمان: الحاجز في الخادم (RLS)، ولو زوّرت الطالبة هذا
+        المفتاح لم تُغنِ عنها شيئًا. */
+    hint: function () {
+      if (cached) return cached;
+      if (!window.TPAuth) return local();
+      return seen();                  /* null: لم يُعرف بعد */
     },
 
     /* هل الدور مُحكَم بالخادم أم مجرّد ترتيب واجهة؟ */
