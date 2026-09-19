@@ -335,8 +335,25 @@
     return ar((n / 1048576).toFixed(1)) + " م.ب";
   }
 
+  /*  لافتةُ انقطاع.
+      الصفحة تُرسم من بياناتٍ ساكنة ومن الخادم معًا. فإن تعذّر
+      الخادم — وشبكةُ القاعة تتعثّر — وجب أن يظهر الساكنُ وأن
+      يُقال ما غاب. وأسوأ ما يكون: صفحةٌ فارغةٌ صامتة تُفهَم
+      «لا توجد أوراق» وهي موجودة.  */
+  function offlineNote(host, text) {
+    if (!host) return;
+    var id = "tp-offline-note";
+    var old = document.getElementById(id);
+    if (!text) { if (old) old.remove(); return; }
+    if (old) { old.textContent = text; return; }
+    var d = el("div", "warn-box", text);
+    d.id = id;
+    host.insertBefore(d, host.firstChild);
+  }
+
   window.TPUI = {
     el: el, chrome: chrome, sectionPicker: sectionPicker,
+    offlineNote: offlineNote,
     coursePicker: coursePicker, toast: toast,
     credit: credit,
     empty: empty, download: download, readAsText: readAsText,

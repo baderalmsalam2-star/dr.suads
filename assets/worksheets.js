@@ -172,19 +172,36 @@
 
     /*  تصحيحات نصوص الأوراق تُجلب مرةً واحدة وتُطبَّق على
         window.WORKSHEETS، فتُقرأ هنا وفي بقية الصفحات بلا فرق. */
+    /*  الأوراق نفسها ساكنة في data/courses/…، وإنما يأتي من الخادم
+        ما يزيّنها: الكشف والتسليمات وتواريخ المحاضرات. وكان
+        Promise.all يجعلها كلًّا أو لا شيء — فسقوطُ نداءٍ واحد
+        يُخفي أربعًا وعشرين ورقةً موجودة، بلا رسالة. فصار كلُّ نداءٍ
+        يسقط وحده إلى قيمةٍ فارغة، وتُرسم الصفحة، ويُقال ما غاب.  */
+    var lost = 0;
+    function soft(promise, fallback) {
+      return Promise.resolve(promise).catch(function (e) {
+        lost++; if (window.console) console.warn("تعذّر جلبه من الخادم:", e);
+        return fallback;
+      });
+    }
+
     Promise.all([
-      TPContent.ready(),
-      Store.students(section.id),
-      Store.submissions({}),
-      sched ? Promise.resolve(sched) : Store.schedule(section.id)
+      soft(TPContent.ready(), null),
+      soft(Store.students(section.id), []),
+      soft(Store.submissions({}), []),
+      soft(sched ? Promise.resolve(sched) : Store.schedule(section.id), {})
     ]).then(function (r) {
       sched = r[3] || {};
-      var students = r[1].slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
+      var students = (r[1] || []).slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
       var ids = {};
       students.forEach(function (st) { ids[st.id] = true; });
-      data = { students: students, subs: r[2].filter(function (x) { return ids[x.studentId]; }) };
+      data = { students: students, subs: (r[2] || []).filter(function (x) { return ids[x.studentId]; }) };
       fillLessons();
       paint();
+      TPUI.offlineNote(document.body, lost
+        ? "تعذّر الوصول إلى الخادم. الأوراق معروضةٌ كاملة، لكن ما سُلِّم "
+          + "لا يظهر ولا يصحّ التسليم الآن — أعيدي المحاولة عند عودة الشبكة."
+        : "");
     }).catch(fail);
   }
 

@@ -39,8 +39,13 @@ window.TPTenant = (function () {
       org: "كلية الشريعة والدراسات الإسلامية · جامعة الكويت",
       /* معرّفات المقررات التي تُحمَّل لها من data/courses/ */
       courses: ["wilaya"],
-      /* يُملأ من tenant.html بعد لصق supabase/schema.sql في مشروعها */
-      supabase: { url: "", anonKey: "" }
+      /*  مشروعها وحدها. والمفتاح anon علنيٌّ بالقصد — تحقّقتُ من
+          حمولته قبل وضعه: الدور anon لا service_role، والمشروع
+          kmebjzwcqvevycpreebp، وصالحٌ إلى ٢٠٣٦. والحارس RLS. */
+      supabase: {
+        url: "https://kmebjzwcqvevycpreebp.supabase.co",
+        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttZWJqendjcXZldnljcHJlZWJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1NzE4NjEsImV4cCI6MjEwNTE0Nzg2MX0.-XheRxv983OYVKarXtFyO77DWdwKC0QTIVjW2iAkwMQ"
+      }
     }
   ];
 

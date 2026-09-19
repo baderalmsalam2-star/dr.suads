@@ -30,8 +30,13 @@ const as=u=>fetch(API+'/__as/'+encodeURIComponent(u));
 
 // ٣) اربط السجلّ بالخادم الوهمي (يُرجَع في النهاية)
 const TEN=ROOT+'/data/tenants.js'; const ORIG=fs.readFileSync(TEN,'utf8');
-fs.writeFileSync(TEN, ORIG.replace('supabase: { url: "", anonKey: "" }',
-  `supabase: { url: "${API}", anonKey: "test-anon-key" }`));
+/*  تُستبدل كتلةُ supabase كاملةً أيًّا كان ما فيها — لا نصٌّ بعينه.
+    كانت تبحث عن الكتلة الفارغة، فلمّا رُبط المشروع الحقيقي لم تجدها
+    ومضت بصمت، فذهبت البروفة تطرق خادمًا حقيقيًّا. والفشل الصامت في
+    أداة الفحص أسوأ من فشل المفحوص.  */
+const RE = /supabase:\s*\{[\s\S]*?\}/;
+if (!RE.test(ORIG)) { console.error('✗ لم أجد كتلة supabase في data/tenants.js'); process.exit(1); }
+fs.writeFileSync(TEN, ORIG.replace(RE, `supabase: { url: "${API}", anonKey: "test-anon-key" }`));
 const back=()=>{try{fs.writeFileSync(TEN,ORIG)}catch(e){}};
 process.on('exit',back); process.on('uncaughtException',e=>{back();console.error(e);process.exit(1)});
 
