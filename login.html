@@ -25,14 +25,20 @@
 
 <div class="join-wrap">
   <div class="join-card" id="box">
+    <a class="join-back" href="index.html">→ المنصة</a>
     <div class="join-kicker" id="kicker"></div>
     <h2 id="title">الدخول</h2>
     <div id="state" class="join-note"></div>
 
     <div id="offline" hidden>
-      <div class="note-box">المنصة تعمل الآن <b>محليًا على هذا الجهاز</b> بلا خادم.
-        لتفعيل الخادم املئي <code>assets/config.js</code> — الخطوات في
-        <code>supabase/الإعداد.md</code>.</div>
+      <div class="note-box">المنصة تعمل الآن <b>على هذا الجهاز وحده</b>،
+        فلا حاجة إلى تسجيل دخول. ما تكتبينه يبقى هنا ولا يصل إلى أحد:
+        المحاضرات وأوراق العمل تعمل كما هي، أمّا الحضور والدرجات
+        والتسليمات فلا تُجمع حتى يُربط الخادم.</div>
+      <p class="join-note">للمطوّر: يُملأ <code>supabase</code> في مدخل
+        الأستاذة داخل <code>data/tenants.js</code> — أو من صفحة
+        <a href="tenant.html">التنصيب</a>. والخطوات في
+        <code>supabase/الإعداد.md</code>.</p>
     </div>
 
     <div id="form" hidden>

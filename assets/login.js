@@ -11,7 +11,7 @@
   /* بلا إعداد خادم: المنصة محلية */
   if (!window.TPAuth) {
     document.getElementById("offline").hidden = false;
-    document.getElementById("title").textContent = "بلا خادم";
+    document.getElementById("title").textContent = "المنصة محليّة الآن";
     state.textContent = "";
     return;
   }
