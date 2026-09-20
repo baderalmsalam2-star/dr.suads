@@ -125,6 +125,29 @@ BAD_HEAD = re.compile('^(و|ف|قال|لأن|لما|وقد|وقال|ثم|كما|
 BARE = re.compile('^(?:(?:%s)\\s+(?:%s)|(?:%s)|[أ-ي]\\s*[-–ـ])$' % (NOUN, ORD, SEQ))
 
 
+#  مُدخِلاتُ النقل والاستدلال: تدلّ على أن ثَمّ نقلًا، لا على ما فيه.
+#  فلا تصلح عنوانًا يُكتب في أعلى الشريحة وحده.
+NOT_HEADING = (
+    re.compile(r'^و?ل?قوله\s*(تعالى|عز\s+وجل|سبحانه|صلى\s+الله\s+عليه\s+وسلم'
+               r'|عليه\s+(الصلاة\s+و)?السلام)'),
+    re.compile(r'^(و?قالوا|وروي\s+عن|واستدل)'),
+    #  وقد يقع المُدخِل في آخر السطر لا أوله: «والأصل في ذلك قوله
+    #  تعالى:» — صدرُه تمهيدٌ وعجزُه هو المُدخِل.
+    re.compile(r'\bو?ل?قوله\s*(تعالى|عز\s+وجل|سبحانه'
+               r'|صلى\s+الله\s+عليه\s+وسلم|عليه\s+(الصلاة\s+و)?السلام)\s*$'),
+    re.compile(r'\b(قال|قالت|قالوا)\s*$'),
+    #  «وبناء على هذا الأصل قال الزركشي» — نسبةُ قولٍ إلى قائله في
+    #  آخر السطر: ما بعد النقطتين قولُه هو، لا شرحُ موضوعٍ جديد.
+    re.compile(r'\bقال\s+\S+\s*$'),
+)
+
+
+def not_heading(t):
+    t = re.sub(r'[\u064B-\u0652\u0670\u0640]', '', t)
+    t = re.sub(r'^[٠-٩0-9]+\s*[-ـ.]\s*', '', t).strip()
+    return any(r.search(t) for r in NOT_HEADING)
+
+
 def head_of(seg):
     """يأخذ العنوان من أول المقطع حتى النقطتين.
 
@@ -140,6 +163,12 @@ def head_of(seg):
         return None, seg
     head = m.group(1).strip(' -–—ـ.،')
     if len(head) < 3 or head.count(' ') > 10:
+        return None, seg
+    #  ما قبل النقطتين ليس عنوانًا دائمًا: «وقوله صلى الله عليه
+    #  وسلم:» مُدخِلُ نقلٍ لا عنوانُ مقطع. ولو جُعل عنوانًا لنُسبت
+    #  إليه الجملةُ التالية — وهي ليست له. ويُنظر فيه بعد تجريد
+    #  التشكيل لأن العناوين تُشكَّل بعد البناء.
+    if not_heading(head):
         return None, seg
     return head, seg[m.end():].strip()
 
@@ -192,14 +221,43 @@ def build_units(paras, a, b, default_rubric):
     return units
 
 
+MIN_SLIDE = 120          # دون هذا تبدو الشريحة فارغةً على الشاشة
+
+
 def slides_for(units):
+    """يقسّم ما طال ويضمّ ما قصر.
+
+    القسمة وحدها لا تكفي: المذكرة فيها فقرات من أربعين حرفًا، فكانت
+    كلُّ واحدةٍ شريحةً — سطرًا في وسط شاشةٍ فارغة. فبلغت الشرائح
+    القصيرة أربعين بالمئة، وتكرّر العنوان الواحد على ستَّ عشرةَ
+    شريحةً متتالية.
+
+    فتُضمّ المتجاورةُ تحت العنوان الواحد ما لم تُجاوز MAX_SLIDE.
+    والعنوانُ كلُّه شرطٌ لا صدرُه: «الوصي · القول الأول» و«الوصي ·
+    القول الثاني» عنوانُهما يشترك في صدره ولا يُضمّان، وإلا ابتلع
+    أحدُ القولين الآخر تحت عنوانه."""
     out = []
     for u in units:
-        parts = chunks(u['body'])
-        for k, part in enumerate(parts):
-            out.append({'rubric': u['rubric'] + ('' if k == 0 else ' — تتمة'),
-                        'body': part})
-    return out
+        for k, part in enumerate(chunks(u['body'])):
+            out.append({'rubric': u['rubric'], 'body': part,
+                        'cont': k > 0, 'parts': [part]})
+
+    packed = []
+    for s in out:
+        if (packed and packed[-1]['rubric'] == s['rubric']
+                and len(packed[-1]['body']) + 1 + len(s['body']) <= MAX_SLIDE):
+            packed[-1]['body'] += ' ' + s['body']
+            packed[-1]['parts'].append(s['body'])
+            continue
+        packed.append(dict(s))
+
+    #  «— تتمة» لا تُعلَّق إلا على شريحةٍ قبلها شريحةٌ من عنوانها.
+    prev = None
+    for s in packed:
+        if s['cont'] and s['rubric'] == prev:
+            s['rubric'] = s['rubric'] + ' — تتمة'
+        prev = s['rubric'].replace(' — تتمة', '')
+    return packed
 
 
 def question_slide(q, idx):
@@ -231,10 +289,11 @@ def build_session(sp, paras, nxt):
     qi = 0
     for k, s in enumerate(body_slides):
         readers += 1
+        body = '\n'.join('          <p>%s</p>' % highlight(x) for x in s.get('parts', [s['body']]))
         parts.append('      <section class="slide" data-reader data-src="%s">\n'
                      '        <div class="rubric">%s</div>\n'
-                     '        <div class="matn flow">\n          <p>%s</p>\n        </div>\n'
-                     '      </section>' % (esc(sp['src']), esc(s['rubric']), highlight(s['body'])))
+                     '        <div class="matn flow">\n%s\n        </div>\n'
+                     '      </section>' % (esc(sp['src']), esc(s['rubric']), body))
         if (k + 1) in at:
             qi += 1
             parts.append(question_slide(at[k + 1], qi))
