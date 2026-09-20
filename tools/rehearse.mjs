@@ -32,10 +32,13 @@ const busy = await fetch(API + '/rest/v1/students?select=*', { signal: AbortSign
   .then(() => true).catch(() => false);
 if (busy) {
   console.error('✗ المنفذ ٨٩١٠ مشغول بمحاكٍ سابق. أوقفه أولًا:  pkill -f mock-supabase');
-  back(); process.exit(1);
+  /*  لا شيء بُدّل بعد — السجلّ لم يُقرأ ولم يُكتب. وكان هنا نداءُ
+      back() قبل تعريفه، فيُطبع التشخيص الصحيح ثم يُتبَع بانهيارٍ
+      يُنسيه.  */
+  process.exit(1);
 }
 
-const mock=spawn('node',['mock-supabase.mjs'],{cwd:process.cwd(),stdio:['ignore','pipe','pipe']});
+let mock=spawn('node',['mock-supabase.mjs'],{cwd:process.cwd(),stdio:['ignore','pipe','pipe']});
 await new Promise(r=>setTimeout(r,900));
 const as=u=>fetch(API+'/__as/'+encodeURIComponent(u));
 
@@ -48,7 +51,11 @@ const TEN=ROOT+'/data/tenants.js'; const ORIG=fs.readFileSync(TEN,'utf8');
 const RE = /supabase:\s*\{[\s\S]*?\}/;
 if (!RE.test(ORIG)) { console.error('✗ لم أجد كتلة supabase في data/tenants.js'); process.exit(1); }
 fs.writeFileSync(TEN, ORIG.replace(RE, `supabase: { url: "${API}", anonKey: "test-anon-key" }`));
-const back=()=>{try{fs.writeFileSync(TEN,ORIG)}catch(e){}};
+/*  يُرجَع السجلّ ويُقتل المحاكي في كل طريقٍ للخروج لا في الناجح
+    وحده: فمحاكٍ يبقى حيًّا بعد فشلٍ يُفشل التشغيلة التالية — أو
+    أسوأ، يُنجحها على بيانات تشغيلةٍ سابقة.  */
+const back=()=>{try{fs.writeFileSync(TEN,ORIG)}catch(e){}
+                try{mock&&mock.kill()}catch(e){}};
 process.on('exit',back); process.on('uncaughtException',e=>{back();console.error(e);process.exit(1)});
 
 const b=await chromium.launch({executablePath: process.env.PW_CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});

@@ -13,11 +13,16 @@ const API='http://127.0.0.1:8910';
 const busy=await fetch(API+'/rest/v1/students?select=*',{signal:AbortSignal.timeout(1200)}).then(()=>true).catch(()=>false);
 if(busy){console.error('✗ المنفذ ٨٩١٠ مشغول:  pkill -f mock-supabase');process.exit(1);}
 
+let mock=null;
 const TEN=ROOT+'/data/tenants.js'; const ORIG=fs.readFileSync(TEN,'utf8');
 fs.writeFileSync(TEN, ORIG.replace(/supabase:\s*\{[\s\S]*?\}/, `supabase: { url: "${API}", anonKey: "k" }`));
-const back=()=>{try{fs.writeFileSync(TEN,ORIG)}catch(e){}}; process.on('exit',back);
+/*  المحاكي يُقتل في كل طريقٍ للخروج لا في الناجح وحده: فبقاؤه حيًّا
+    بعد فشلٍ يردّ التشغيلة التالية بـ«المنفذ مشغول».  */
+const back=()=>{try{fs.writeFileSync(TEN,ORIG)}catch(e){}
+                try{mock&&mock.kill()}catch(e){}};
+process.on('exit',back);
 
-let mock=spawn('node',[ROOT+'/tools/mock-supabase.mjs'],{stdio:'ignore'});
+mock=spawn('node',[ROOT+'/tools/mock-supabase.mjs'],{stdio:'ignore'});
 await new Promise(r=>setTimeout(r,900));
 const b=await chromium.launch({executablePath:process.env.PW_CHROME||'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const step=[]; const ok=(t,v,note)=>{step.push(v);console.log((v?'✓ ':'✗ ')+t+(note?'   ← '+note:''));};
