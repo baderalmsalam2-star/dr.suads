@@ -51,6 +51,14 @@
       return TPRole.get().then(function (r) { return r === "admin"; });
     },
 
+    /*  الدكتورة والمشرف: من يملك التحرير والرصد. وما لم يُتحقّق
+        بعد ليس منهما — الأصلُ الإخفاء حتى يؤكّد الخادم. */
+    staff: function () {
+      return TPRole.get().then(function (r) {
+        return r === "admin" || r === "teacher";
+      });
+    },
+
     /* الوضع المحلي وحده — على الخادم يقرّره جدول owners */
     setLocal: function (r) {
       try { localStorage.setItem(KEY, r); } catch (e) { /**/ }

@@ -268,3 +268,57 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 .att-qr{padding:.3em .8em;font-size:clamp(.72rem,1.2vw,.85rem);
   border-color:var(--student);color:var(--student)}
 @media print{.att-code{display:none!important}}
+
+/* ═══ الكتابة بالقلم على الشريحة ═══
+   اللوح شفّافٌ فوق المسرح، ولا يعترض اللمس إلا والقلمُ مفتوح —
+   فبقيّةُ الوقت تعمل الشريحةُ كما كانت: نقرٌ يقلّب، وسحبٌ ينتقل. */
+.folio{position:relative}
+.ink{position:absolute;inset:0;pointer-events:none;touch-action:none;z-index:3}
+body.ink-on .ink{pointer-events:auto;cursor:crosshair}
+body.ink-on .ink.erasing{cursor:cell}
+
+.inkbar{position:absolute;inset-inline-start:50%;transform:translateX(50%);
+  bottom:calc(100% + .5em);display:flex;gap:.4em;align-items:center;
+  background:var(--navy-2);border:1px solid var(--line);border-radius:999px;
+  padding:.35em .6em;z-index:5;box-shadow:0 6px 22px rgba(0,0,0,.28)}
+.inkbar button{font:inherit;font-size:.82rem;cursor:pointer;
+  background:transparent;color:var(--surface);border:1px solid transparent;
+  border-radius:999px;padding:.25em .7em;line-height:1.6}
+.inkbar button:hover{border-color:var(--line)}
+.inkbar button.on{background:var(--faculty);color:var(--navy);font-weight:600}
+.inkbar .hues{display:flex;gap:.3em;padding-inline:.35em;
+  border-inline:1px solid var(--line)}
+.inkbar .hue{width:1.25em;height:1.25em;padding:0;border-radius:50%;
+  border:2px solid transparent}
+.inkbar .hue.on{border-color:var(--surface)}
+
+/* الشريط لا يُطبع، والخطُّ يُطبع مع الشريحة */
+@media print{.inkbar{display:none}}
+@media (max-width:640px){
+  .inkbar{gap:.25em;padding:.3em .45em}
+  .inkbar button{font-size:.76rem;padding:.2em .5em}
+}
+
+/* ═══ تحرير نصّ الشريحة ═══ */
+.tahrirbar{position:absolute;inset-inline-end:0;bottom:calc(100% + .5em);
+  display:flex;gap:.4em;align-items:center;background:var(--navy-2);
+  border:1px solid var(--line);border-radius:999px;padding:.35em .6em;z-index:5;
+  box-shadow:0 6px 22px rgba(0,0,0,.28)}
+.tahrirbar button{font:inherit;font-size:.82rem;cursor:pointer;background:transparent;
+  color:var(--surface);border:1px solid transparent;border-radius:999px;
+  padding:.25em .7em;line-height:1.6}
+.tahrirbar button:hover:not(:disabled){border-color:var(--line)}
+.tahrirbar button.on{background:var(--gold,#F8D81B);color:var(--navy);font-weight:600}
+.tahrirbar button:disabled{opacity:.45;cursor:default}
+
+/* النصّ تحت التحرير يُرى أنه تحت التحرير */
+body.tahrir-on [contenteditable]{outline:1px dashed var(--faculty);
+  outline-offset:.35em;border-radius:4px}
+body.tahrir-on [contenteditable]:focus{outline-style:solid}
+body.tahrir-on .ink{pointer-events:none}
+
+@media print{.tahrirbar{display:none}}
+@media (max-width:640px){
+  .tahrirbar{gap:.25em;padding:.3em .45em}
+  .tahrirbar button{font-size:.76rem;padding:.2em .5em}
+}

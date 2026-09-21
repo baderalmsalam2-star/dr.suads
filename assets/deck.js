@@ -42,7 +42,7 @@
   }
 
   slides.forEach(function () { marks.insertAdjacentHTML("beforeend", "<i></i>"); });
-  var dots = [].slice.call(marks.children);
+  var dots = [].slice.call(marks.children);   /* تُعاد بناؤها في rescan */
 
   /* ─── توزيع القارئات ─── */
   var seat = TP.seatMaker(roster, startAt);
@@ -185,6 +185,19 @@
     markMore();
     dispatchEvent(new CustomEvent("tp:slide", { detail: { index: i, slide: s } }));
   }
+  /*  «تحرير النصّ» يحذف شريحةً ويضيف أخرى بعد أن تُقرأ القائمة،
+      فتُعاد قراءتُها بنداءٍ واحد بدل أن يُستنسخ منطقُ العرض هناك. */
+  window.TPDeck = {
+    rescan: function () {
+      slides = [].slice.call(document.querySelectorAll(".slide"));
+      marks.textContent = "";
+      slides.forEach(function () { marks.appendChild(document.createElement("i")); });
+      dots = [].slice.call(marks.children);
+      show(Math.min(i, slides.length - 1));
+    },
+    at: function () { return i; }
+  };
+
 
   function reveal() {
     var s = slides[i];

@@ -95,12 +95,28 @@ await p.evaluate(async(id)=>{const s=(await Store.students('wilaya:1')).find(x=>
 await p.evaluate(async()=>{ await Store.saveSchedule('wilaya:1',[{session:1,day:new Date().toISOString().slice(0,10)}]); }).catch(()=>{});
 await p.close();
 
-// ═══ الطالبة: تفتح المنصة وترى محاضراتها ═══
+// ═══ الدكتورة تفتح محاضرة اليوم للطالبات ═══
+//  المحاضرات مغلقةٌ حتى تفتحها، فلا تقرأ الطالبةُ درسَ الأسبوع
+//  القادم قبل أوانه. وكانت هذه الخطوةُ تقول «ترى الثلاثين» —
+//  وصارت تقول «ترى ما فُتح وحده»، وهو المقصود.
+p=await page();
+await p.goto(U+'index.html?section=wilaya:1',{waitUntil:'networkidle'});
+await p.waitForTimeout(600);
+const all=await p.evaluate(()=>document.querySelectorAll('#sessions li.card').length);
+ok('الدكتورة ترى محاضرات الفصل كلَّها ('+all+')', all>=30);
+await p.evaluate(async()=>{
+  await TPContent.ready();
+  await TPContent.set('wilaya:s1','released','1');
+});
+await p.waitForTimeout(400);
+await p.close();
+
+// ═══ الطالبة: تفتح المنصة فترى ما فُتح لها وحده ═══
 await as('sara-uid');
 p=await page();
-await p.goto(U+'index.html?section=wilaya:1',{waitUntil:'networkidle'}); await p.waitForTimeout(500);
-const cards=await p.evaluate(()=>document.querySelectorAll('.card').length);
-ok('الطالبة ترى المحاضرات الثلاثين ('+cards+')', cards>=30);
+await p.goto(U+'index.html?section=wilaya:1',{waitUntil:'networkidle'}); await p.waitForTimeout(700);
+const cards=await p.evaluate(()=>document.querySelectorAll('#sessions li.card').length);
+ok('الطالبة ترى ما فُتح لها وحده ('+cards+' من '+all+')', cards===1);
 
 // ═══ الطالبة: تحلّ ورقة عمل وتسلّمها ═══
 await p.goto(U+'worksheet.html?w=wilaya:h1&section=wilaya:1',{waitUntil:'networkidle'});

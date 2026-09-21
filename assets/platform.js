@@ -19,6 +19,23 @@
   var list = document.getElementById("sessions");
   var today = document.getElementById("today");
 
+  var staff = false;
+  function REF_OF(s) { return (COURSE.id || "course") + ":s" + s.n; }
+
+  /*  الدور يُسأل مرةً واحدة، والأصلُ الإخفاء حتى يؤكّد الخادم: أن
+      ينكشف للدكتورة بعد لحظة أهونُ من أن ينكشف للطالبة ثم يُسحب. */
+  function boot() {
+    return TPRole.staff().then(function (ok) {
+      staff = !!ok;
+      return window.TPContent ? TPContent.ready() : null;
+    }).then(function () {
+      if (!window.TPContent) return;
+      (COURSE.sessions || []).forEach(function (s) {
+        opened[String(s.n)] = TPContent.get(REF_OF(s), "released") || "";
+      });
+    }).catch(function () { /* بلا خادم: تبقى كما هي */ });
+  }
+
   function render() {
     Store.students(section.id).then(function (list) {
       var n = list.length || section.roster;
@@ -67,11 +84,36 @@
     });
   }
 
+  /* ═══ المحاضرة لا تُفتح للطالبة إلا بإذن الدكتورة ═══
+     كانت المحاضرات كلُّها معروضةً للجميع، فتقرأ الطالبةُ درسَ
+     الأسبوع القادم قبل أوانه. فصارت كلُّ محاضرةٍ مغلقةً حتى تفتحها
+     الدكتورة بزرٍّ في بطاقتها.
+
+     وهذا ترتيبُ عرضٍ لا حاجزُ أمان، وقد كُتب صراحةً حتى لا يُظنّ
+     به ما ليس فيه: ملفّ المحاضرة ساكنٌ على نشرةٍ علنيّة، فمن حفظ
+     رابطه فتحه. والمقصود ألّا يُعرض ما لم يحن وقتُه، لا منعُ من
+     قصد. وما يُحرَس حقًّا — الكشف والدرجات والحضور — محروسٌ في
+     الخادم بـRLS. */
+  var opened = {};
+  function isOpen(s) { return opened[String(s.n)] === "1"; }
+
   function renderSessions(rosterSize) {
     var all = COURSE.sessions || [];
+    if (!staff) {
+      all = all.filter(function (s) { return isOpen(s); });
+      if (toggle) toggle.hidden = true;
+    }
     var ready = all.filter(function (s) { return s.status === "ready" && s.file; });
     var pending = all.filter(function (s) { return !(s.status === "ready" && s.file); });
     var shown = showAll ? all : ready.concat(pending.filter(function (s) { return s.title; }));
+
+    if (!all.length && !staff) {
+      document.getElementById("sessionsSub").textContent = "";
+      list.textContent = "";
+      list.appendChild(TPUI.empty("لم تُفتح محاضرةٌ بعد.",
+        "تفتحها الدكتورة قبل كل درس، فتظهر هنا."));
+      return;
+    }
 
     if (toggle) {
       toggle.textContent = showAll
@@ -104,9 +146,34 @@
       }
       body.appendChild(meta);
       li.appendChild(body);
+
+      if (staff && isReady) {
+        var open = isOpen(s);
+        var b = el("button", "sm " + (open ? "ghost" : "gold"),
+                   open ? "مفتوحة للطالبات — أغلقيها" : "افتحيها للطالبات");
+        b.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          b.disabled = true;
+          var next = open ? "" : "1";
+          TPContent.set(REF_OF(s), "released", next).then(function () {
+            opened[String(s.n)] = next;
+            renderSessions(rosterSize);
+            TPUI.toast(next ? "فُتحت المحاضرة للطالبات."
+                            : "أُغلقت — لم تعد تظهر لهنّ.", "good");
+          }).catch(function (e) {
+            b.disabled = false;
+            TPUI.toast(e.message || "تعذّر الحفظ.", "bad");
+          });
+        });
+        li.appendChild(b);
+      }
+
       list.appendChild(li);
     });
   }
 
-  render();
+  /*  الدور وحالةُ الفتح قبل أول رسم: الرسمُ قبلهما يُظهر للطالبة
+      ما لم يُفتح لها ثم يسحبه، وهو أسوأ من تأخّرٍ يسير. */
+  boot().then(render);
 })();
