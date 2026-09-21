@@ -955,6 +955,100 @@ commit;
 insert into rls_results select 'والمالكة تُدخل تسليمًا بعد الوقت',
   (select status from submissions where id='ex-2')='submitted';
 
+-- ═══════════════════════════════════════════════════════════════
+--  إعادة تعيين كلمة سرّ طالبة
+--
+--  الدالّة تعمل بصلاحية مالك القاعدة، فحرّاسُها هي كلُّ ما يفصل
+--  بين «الدكتورة تساعد طالبةً نسيت» و«أيُّ حسابٍ يستولي على أيّ
+--  حساب». فتُختبر واحدًا واحدًا.
+-- ═══════════════════════════════════════════════════════════════
+--  معرّفاتٌ لا تصطدم بما قبلها. وأولُ صياغةٍ استعملت 4444… وهو
+--  مأخوذٌ في اختبار الربط التلقائي أعلاه، فرفض الفهرسُ الفريد
+--  (auth_uid, section_id) الصفَّ الجديد، و«on conflict do nothing»
+--  ابتلع الرفض بلا صوت — فخرجت ثلاثُ خطواتٍ «✗ ثغرة» وليست ثغرة،
+--  وإنما تهيئةٌ لم تقع. ولهذا يلي الإدخالَ تحقّقٌ صريح.
+insert into auth.users(id,email,encrypted_password) values
+ ('9a9a9a9a-0000-0000-0000-0000000000a1','pw@test',
+  extensions.crypt('QadeemaAAA1', extensions.gen_salt('bf'))) on conflict do nothing;
+update auth.users set encrypted_password = extensions.crypt('OwnerAAAA1', extensions.gen_salt('bf'))
+ where id='11111111-1111-1111-1111-111111111111';
+insert into students(id,section_id,no,name,uid,auth_uid) values
+ ('t-pw','wilaya:9',44,'من نسيت','900004','9a9a9a9a-0000-0000-0000-0000000000a1'),
+ ('t-nolink','wilaya:9',45,'بلا حساب','900005',null),
+ ('t-isowner','wilaya:9',46,'صفٌّ بحساب المالكة','900006',
+  '11111111-1111-1111-1111-111111111111') on conflict do nothing;
+insert into auth.refresh_tokens(user_id,token)
+ values ('9a9a9a9a-0000-0000-0000-0000000000a1','rt-pw');
+
+--  التهيئةُ وقعت فعلًا؟ بلا هذا يُقرأ فشلُ التهيئة ثغرةً في الدالّة.
+do $$ begin
+  if not exists (select 1 from students
+                  where id='t-pw'
+                    and auth_uid='9a9a9a9a-0000-0000-0000-0000000000a1') then
+    raise exception 'تهيئةُ اختبار كلمة السر لم تقع — راجع تصادم المعرّفات';
+  end if;
+  if not exists (select 1 from students where id='t-isowner') then
+    raise exception 'تهيئةُ اختبار كلمة السر ناقصة: t-isowner';
+  end if;
+end $$;
+
+--  يُجرَّب ما يجب أن يُردّ: النجاحُ هنا ثغرة.
+do $$
+declare cases text[][] := array[
+  ['المجهول لا يعيد تعيين كلمة سرّ أحد',            '',                                     't-pw'],
+  ['والطالبة لا تعيد تعيين كلمة سرّ زميلتها',        '22222222-2222-2222-2222-222222222222', 't-noura'],
+  ['ولا كلمة سرّ نفسها من هنا',                     '22222222-2222-2222-2222-222222222222', 't-sara'],
+  ['والمالكة لا تعيد تعيين كلمة سرّ صفٍّ بلا حساب',  '11111111-1111-1111-1111-111111111111', 't-nolink'],
+  ['ولا كلمة سرّ حسابِ مالكة',                      '11111111-1111-1111-1111-111111111111', 't-isowner']
+];
+  c text[];
+begin
+  foreach c slice 1 in array cases loop
+    begin
+      perform set_config('role','authenticated',true);
+      perform set_config('request.jwt.claim.sub', c[2], true);
+      perform reset_student_password(c[3], 'IqtihamAAA1');
+      perform set_config('role','postgres',true);
+      insert into rls_results values (c[1], false);
+    exception when others then
+      perform set_config('role','postgres',true);
+      insert into rls_results values (c[1], true);
+    end;
+  end loop;
+end $$;
+
+--  وكلمةٌ قصيرة تُردّ ولو كانت المستدعية مالكة
+do $$ begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111',true);
+    perform reset_student_password('t-pw','قصيرة');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('وكلمةٌ قصيرة تُردّ ولو من المالكة', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('وكلمةٌ قصيرة تُردّ ولو من المالكة', true);
+  end;
+end $$;
+
+--  والحالة الصحيحة تنجح، ويُقاس أثرُها لا مجرّد عدم الخطأ
+begin; set local role authenticated; set local request.jwt.claim.sub = :'OWNER';
+select reset_student_password('t-pw','JadeedaAAA1');
+commit;
+
+insert into rls_results select 'والمالكة تُصدر كلمةً مؤقّتة فتعمل',
+  (select encrypted_password = extensions.crypt('JadeedaAAA1', encrypted_password)
+     from auth.users where id='9a9a9a9a-0000-0000-0000-0000000000a1');
+insert into rls_results select 'والقديمة لم تعد تعمل',
+  not (select encrypted_password = extensions.crypt('QadeemaAAA1', encrypted_password)
+         from auth.users where id='9a9a9a9a-0000-0000-0000-0000000000a1');
+insert into rls_results select 'وجلساتها القائمة أُبطلت',
+  (select count(*) from auth.refresh_tokens
+    where user_id='9a9a9a9a-0000-0000-0000-0000000000a1') = 0;
+insert into rls_results select 'وحسابُ المالكة لم يُمسّ',
+  (select encrypted_password = extensions.crypt('OwnerAAAA1', encrypted_password)
+     from auth.users where id='11111111-1111-1111-1111-111111111111');
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

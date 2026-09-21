@@ -64,7 +64,20 @@
       <div class="note-box" id="whoText"></div>
       <div class="row">
         <a class="btn" href="index.html">إلى المنصة</a>
+        <button id="pwToggle" type="button" class="ghost">تغيير كلمة السر</button>
         <button id="out" type="button" class="ghost">خروج</button>
+      </div>
+
+      <div id="pwBox" hidden>
+        <label for="pw1">كلمة السر الجديدة</label>
+        <input type="password" id="pw1" autocomplete="new-password"
+               placeholder="ثمانية أحرف فأكثر">
+        <label for="pw2">أعيدي كتابتها</label>
+        <input type="password" id="pw2" autocomplete="new-password">
+        <div class="row">
+          <button id="pwGo" type="button" class="gold">احفظي</button>
+          <span class="hint" id="pwState"></span>
+        </div>
       </div>
     </div>
 

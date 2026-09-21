@@ -48,6 +48,13 @@ function match(row, params) {
   return true;
 }
 
+//  من هو داخلٌ الآن، وبريده، ومن المالكات. تُضبط من /__as/ ومن
+//  /__owner/ في أدوات الفحص.
+let WHO_EMAIL = '';
+const OWNERS = new Set(['owner']);
+const EMAIL_OF = new Map();
+const SESSIONS = new Set();
+
 const server = http.createServer((req,res)=>{
   if (req.method==='OPTIONS') return send(res,204,null);
   const u = new URL(req.url, 'http://x');
@@ -78,11 +85,44 @@ const server = http.createServer((req,res)=>{
       }
       return send(res,200,{access_token:'tok-owner', refresh_token:'r', expires_in:3600});
     }
-    if (u.pathname==='/auth/v1/user')
-      return send(res,200,{id:WHO, email:WHO+'@example.com'});
+    if (u.pathname==='/auth/v1/user') {
+      //  PUT /user = تغيير كلمة السر بالرمز الذاتي. GoTrue يردّ خطأً
+      //  إن كانت الجديدة كالقديمة، فيُحاكى ليُقاس الردّ عند الطالبة.
+      if (req.method==='PUT') {
+        const pw = json && json.password || '';
+        const em = (WHO_EMAIL || (WHO+'@example.com')).toLowerCase();
+        if (pw.length < 6) return send(res,422,{msg:'Password should be at least 6 characters'});
+        if (USERS.get(em) === pw) return send(res,422,{msg:'New password should be different from the old password.'});
+        USERS.set(em, pw);
+        return send(res,200,{id:WHO, email:em});
+      }
+      return send(res,200,{id:WHO, email:(WHO_EMAIL || WHO+'@example.com')});
+    }
+
+    // ── rpc: reset_student_password — يطبّق حرّاس الدالة نفسها ──
+    if (u.pathname === '/rest/v1/rpc/reset_student_password') {
+      if (!OWNERS.has(WHO)) return send(res,403,{message:'لا صلاحية لهذا الإجراء'});
+      const pw = json && json.p_new || '';
+      if (pw.length < 8) return send(res,400,{message:'كلمة السر ثمانية أحرف فأكثر'});
+      const st = DB.students.find(x => x.id === (json && json.p_student));
+      if (!st || !st.auth_uid)
+        return send(res,400,{message:'هذا الصفّ غير مربوطٍ بحساب. تدخل الطالبة ببريدها فيُنشأ حسابها.'});
+      if (OWNERS.has(st.auth_uid))
+        return send(res,400,{message:'هذا الحساب حسابُ مالكة، ولا يُبدَّل من هنا'});
+      const em = (EMAIL_OF.get(st.auth_uid) || (st.auth_uid+'@example.com')).toLowerCase();
+      USERS.set(em, pw);
+      SESSIONS.delete(st.auth_uid);        // تُبطَل جلساتها القائمة
+      return send(res,204,null);
+    }
     if (u.pathname.startsWith('/__as/')) {
       WHO = decodeURIComponent(u.pathname.replace('/__as/',''));
+      WHO_EMAIL = u.searchParams.get('email') || '';
+      if (WHO_EMAIL) EMAIL_OF.set(WHO, WHO_EMAIL);
       return send(res,200,{who:WHO});
+    }
+    if (u.pathname.startsWith('/__owner/')) {
+      OWNERS.add(decodeURIComponent(u.pathname.replace('/__owner/','')));
+      return send(res,200,{owners:[...OWNERS]});
     }
 
     // ── rpc: mark_attendance — يطبّق شروط الدالة نفسها ──

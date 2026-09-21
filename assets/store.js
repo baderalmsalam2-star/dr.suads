@@ -635,6 +635,17 @@
         الزرّ بدل أن تعرضه ثم تعتذر. */
     codesReady: function () { return !!(A.issueCode && A.markByCode); },
 
+    /*  كلمات السر — للخادم وحده كذلك. في الوضع المحلي لا حساباتِ
+        أصلًا: البيانات على الجهاز، ولا شيء يُحرَس بكلمة سر. */
+    passwordsReady: function () { return !!A.resetStudentPassword; },
+
+    resetStudentPassword: function (studentId, next) {
+      if (!A.resetStudentPassword) {
+        return Promise.reject(new Error("كلمات السر تعمل مع الخادم فقط."));
+      }
+      return A.resetStudentPassword(studentId, next);
+    },
+
     issueCode: function (sectionId, session, nonce, ttlSec) {
       if (!A.issueCode) {
         return Promise.reject(new Error("رمز الحضور يعمل مع الخادم فقط."));

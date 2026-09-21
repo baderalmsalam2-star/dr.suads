@@ -150,6 +150,44 @@
     if (ev.key === "Enter") enter();
   });
 
+  /* ─── تغيير كلمة السر وهي داخلة ───
+     لا رسالةَ بريدٍ ولا رابط: الحساب مفتوحٌ أمامها، ورمزُها يكفي
+     لتبديل كلمتها. وهذا هو الطريق الذي تسلكه من أعادت الدكتورة
+     تعيين كلمتها: تدخل بالمؤقّتة ثم تكتب واحدةً من عندها. */
+  var pwBox = document.getElementById("pwBox");
+  document.getElementById("pwToggle").addEventListener("click", function () {
+    pwBox.hidden = !pwBox.hidden;
+    if (!pwBox.hidden) document.getElementById("pw1").focus();
+  });
+
+  function savePassword() {
+    var a = document.getElementById("pw1").value;
+    var b = document.getElementById("pw2").value;
+    var st = document.getElementById("pwState");
+    if (a.length < 8) return TPUI.toast("كلمة السر ثمانية أحرف فأكثر.", "bad");
+    if (a !== b) return TPUI.toast("الكلمتان غير متطابقتين.", "bad");
+    var btn = document.getElementById("pwGo");
+    btn.disabled = true;
+    st.textContent = "جارٍ الحفظ…";
+    TPAuth.changePassword(a).then(function () {
+      btn.disabled = false;
+      st.textContent = "";
+      document.getElementById("pw1").value = "";
+      document.getElementById("pw2").value = "";
+      pwBox.hidden = true;
+      TPUI.toast("بُدّلت كلمة السر. استعمليها في الدخول القادم.", "good");
+    }).catch(function (e) {
+      btn.disabled = false;
+      st.textContent = "";
+      TPUI.toast(e.message || "تعذّر تغيير كلمة السر.", "bad");
+    });
+  }
+
+  document.getElementById("pwGo").addEventListener("click", savePassword);
+  document.getElementById("pw2").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") savePassword();
+  });
+
   document.getElementById("out").addEventListener("click", function () {
     /*  يُنسى الدور مع الجلسة: لو خرجت الدكتورة ودخلت طالبةٌ على
         الجهاز نفسه، لم يبقَ ظنُّ الجهاز أنه لمدرِّسة. */

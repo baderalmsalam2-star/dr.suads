@@ -10,6 +10,8 @@
 import { chromium } from 'playwright-core';
 import http from 'http'; import fs from 'fs'; import path from 'path';
 import { fileURLToPath } from 'url';
+import { take } from './qufl.mjs';
+take('فحص التباين');
 const ROOT=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const T={'.html':'text/html;charset=utf-8','.css':'text/css;charset=utf-8','.js':'text/javascript;charset=utf-8','.woff2':'font/woff2','.json':'application/json','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json','.txt':'text/plain;charset=utf-8'};
 const srv=http.createServer((q,r)=>{const f=path.join(ROOT,decodeURIComponent(q.url.split('?')[0]));try{r.writeHead(200,{'content-type':T[path.extname(f)]||'application/octet-stream'});r.end(fs.readFileSync(f));}catch(e){r.writeHead(404);r.end('no');}});

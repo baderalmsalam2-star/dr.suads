@@ -798,6 +798,75 @@ begin
   if n > 0 then raise notice 'رُقّي submissions: % تسليمًا', n; end if;
 end $$;
 
+-- ═══════════════════════════════════════════════════════════════
+--  إعادة تعيين كلمة سرّ طالبة — بيد الدكتورة، بلا رسالة بريد
+--
+--  المشكلة: أطفأنا رسائل البريد بالقصد (خدمة Supabase المدمجة
+--  محدودةٌ بعددٍ صغير في الساعة، فلو طلبت عشرون طالبةً في محاضرةٍ
+--  واحدة لم يصل أكثرهنّ شيء). فمن نسيت كلمتها لم يكن لها طريق.
+--
+--  والطريق الخاطئ: مفتاح service_role في المتصفّح. هو مفتاحٌ يتخطّى
+--  RLS كلَّه، ومن نسخه من مصدر الصفحة ملك القاعدة كلَّها. فلا يوضع
+--  في متصفّحٍ أبدًا، ولا في ملفٍّ علنيّ.
+--
+--  والطريق الصحيح هنا: دالّةٌ تعمل بصلاحية مالك القاعدة في الخادم،
+--  والطالبة لا تملك استدعاءها — كما في join_class وmark_attendance.
+--  فالصلاحية في الخادم لا في المفتاح.
+--
+--  ═══ ما تحرسه ═══
+--    • المالكة وحدها تستدعيها (is_owner)، وغيرُها يُردّ.
+--    • ولا تُعيد تعيين كلمة سرّ مالكةٍ أخرى — فلا يصير المشرفُ
+--      التقنيّ طريقًا إلى حساب الدكتورة، ولا العكس.
+--    • ولا تعمل إلا على صفٍّ في الكشف مربوطٍ بحساب.
+--    • وتُبطل الجلسات القائمة لذلك الحساب: من كان داخلًا بكلمة السر
+--      القديمة خرج. بلا هذا تبقى جلسةُ جهازٍ ضائعٍ حيّةً بعد
+--      التبديل، والتبديلُ إنما كان لأجلها أحيانًا.
+--    • ولا تُرجع شيئًا عن الحساب — لا بريده ولا معرّفه.
+--
+--  والتعمية bcrypt هي نفسها التي يستعملها GoTrue، فالكلمةُ
+--  المكتوبة بها تعمل في الدخول كأنها كُتبت منه.
+-- ═══════════════════════════════════════════════════════════════
+create extension if not exists pgcrypto with schema extensions;
+
+create or replace function reset_student_password(p_student text, p_new text)
+returns void
+language plpgsql security definer
+set search_path = public, auth, extensions, pg_temp as $$
+declare v_uid uuid;
+begin
+  if not is_owner() then
+    raise exception 'لا صلاحية لهذا الإجراء';
+  end if;
+  if p_new is null or length(p_new) < 8 then
+    raise exception 'كلمة السر ثمانية أحرف فأكثر';
+  end if;
+
+  select auth_uid into v_uid from students where id = p_student;
+
+  if v_uid is null then
+    raise exception 'هذا الصفّ غير مربوطٍ بحساب. تدخل الطالبة ببريدها فيُنشأ حسابها.';
+  end if;
+
+  --  حسابُ مالكةٍ لا يُمسّ من هنا. ولولا هذا لصار الإجراءُ طريقًا
+  --  جانبيًّا إلى حسابٍ أعلى: يُربط صفٌّ في الكشف بحساب الدكتورة،
+  --  ثم «يُعاد تعيين كلمة سرّ الطالبة».
+  if exists (select 1 from owners where uid = v_uid) then
+    raise exception 'هذا الحساب حسابُ مالكة، ولا يُبدَّل من هنا';
+  end if;
+
+  update auth.users
+     set encrypted_password = extensions.crypt(p_new, extensions.gen_salt('bf')),
+         updated_at = now()
+   where id = v_uid;
+
+  --  الجلساتُ القائمة تُبطَل: تبديلُ الكلمة وحده لا يُخرج من كان
+  --  داخلًا، ورمزُ التجديد يبقى صالحًا شهورًا.
+  delete from auth.refresh_tokens where user_id = v_uid::text;
+end $$;
+
+revoke all on function reset_student_password(text, text) from public;
+grant execute on function reset_student_password(text, text) to authenticated;
+
 -- PostgREST يخزّن شكل المخطّط في ذاكرته، فلا يرى دالةً أُضيفت بعد
 -- إقلاعه حتى يُطلب منه إعادة القراءة. بلا هذا السطر تردّ المنصة:
 --   Could not find the function ... in the schema cache

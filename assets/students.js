@@ -325,6 +325,14 @@
         });
         tdAct.appendChild(ren);
         tdAct.appendChild(document.createTextNode(" "));
+        /*  إعادة تعيين كلمة السر — تظهر مع الخادم وحده. وفي الوضع
+            المحلي لا حسابات أصلًا، فلا يُعرض زرٌّ ثم يُعتذر عنه. */
+        if (Store.passwordsReady && Store.passwordsReady()) {
+          var pw = el("button", "sm ghost", "كلمة السر");
+          pw.addEventListener("click", function () { resetPassword(s); });
+          tdAct.appendChild(pw);
+          tdAct.appendChild(document.createTextNode(" "));
+        }
         tdAct.appendChild(del);
         tr.appendChild(tdAct);
 
@@ -413,6 +421,47 @@
 
     setTimeout(function () { nameIn.focus(); }, 0);
     return tr;
+  }
+
+  /* ═══ إعادة تعيين كلمة سرّ طالبة ═══
+     من نسيت كلمتها لم يكن لها طريق: أطفأنا رسائل البريد بالقصد —
+     خدمة Supabase المدمجة محدودةٌ بعددٍ صغير في الساعة، فلو طلبت
+     عشرون طالبةً في محاضرةٍ واحدة لم يصل أكثرهنّ شيء.
+
+     فصار الطريق: الدكتورة تُصدر لها كلمةً مؤقّتة تقولها لها
+     مشافهةً، ثم تبدّلها الطالبة من صفحة حسابها. ولا يمرّ ذلك
+     بمفتاحٍ أعلى في المتصفّح، بل بدالّةٍ في الخادم تتحقّق أن
+     المستدعية مالكةٌ وأن الصفّ في كشفها. */
+  function newPassword() {
+    /*  حروفٌ لا تلتبس عند النطق: لا صفر ولا O، ولا واحد ولا l.
+        تُقال مشافهةً في قاعةٍ فيها ضجيج، فاشتباهُ حرفٍ يُعيد
+        الطالبة من حيث بدأت. */
+    var A = "ABCDEFGHJKMNPQRSTUVWXYZ", D = "23456789";
+    var r = new Uint32Array(10);
+    (window.crypto || window.msCrypto).getRandomValues(r);
+    var out = "";
+    for (var i = 0; i < 6; i++) out += A[r[i] % A.length];
+    for (var j = 6; j < 10; j++) out += D[r[j] % D.length];
+    return out;
+  }
+
+  function resetPassword(s) {
+    if (!s.uid) {
+      return TPUI.toast("لا رقم جامعيّ لهذا الصفّ، فلا حساب مرتبط به.", "bad");
+    }
+    if (!confirm("إصدار كلمة سرٍّ مؤقّتة لـ«" + s.name + "»؟\n\n" +
+                 "ستخرج من كل الأجهزة التي هي داخلةٌ منها، ولن تدخل " +
+                 "إلا بالكلمة الجديدة.")) return;
+    var next = newPassword();
+    Store.resetStudentPassword(s.id, next).then(function () {
+      /*  تُعرض مرةً واحدة ولا تُحفظ في شيء: prompt يُظهرها في حقلٍ
+          تُنسخ منه، فتقولها الدكتورة للطالبة ثم تُغلق. */
+      window.prompt("كلمة السر المؤقّتة لـ«" + s.name + "» — انسخيها الآن، " +
+                    "فلن تظهر مرةً أخرى.\n" +
+                    "وقولي لها أن تبدّلها من صفحة «الحساب» بعد دخولها.", next);
+    }).catch(function (e) {
+      TPUI.toast(e.message || "تعذّرت إعادة التعيين.", "bad");
+    });
   }
 
   function fail(e) {

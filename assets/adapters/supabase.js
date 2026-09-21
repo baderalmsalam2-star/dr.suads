@@ -372,6 +372,18 @@
     },
 
     /* الملفات -------------------------------------------------- */
+    /*  إعادة تعيين كلمة سرّ طالبة — بيد الدكتورة.
+        تمرّ من دالةٍ في الخادم لا من كتابةٍ مباشرة: تبديلُ كلمة سرّ
+        حسابٍ آخر يحتاج صلاحيةً أعلى من المفتاح العلنيّ، والحارسُ
+        (مالكةٌ؟ الصفُّ في كشفها؟ أليس حسابَ مالكةٍ أخرى؟) في
+        الخادم حيث لا يُتحايل عليه. */
+    resetStudentPassword: function (studentId, next) {
+      return req("rpc/reset_student_password", {
+        method: "POST",
+        body: { p_student: String(studentId), p_new: String(next) }
+      });
+    },
+
     /* التسجيل بالباركود — يمرّ من دالة في الخادم لا من كتابة مباشرة */
     joinClass: function (sectionId, name, uid) {
       return fetch(REST + "rpc/join_class", {
@@ -655,6 +667,40 @@
         والحساب وحده لا يفتح شيئًا: الطالبة لا ترى إلا صفًّا في كشف
         الدكتورة مربوطًا ببريدها، والربط يقع في الخادم من رقمها
         الجامعي. فمن سجّل ببريدٍ غير جامعيّ فتح حسابًا فارغًا. */
+    /*  تغيير كلمة السر وهي داخلة — برمزها هي لا بمفتاحٍ أعلى.
+        GoTrue يقبل PUT على /user من صاحب الحساب نفسه، فلا يُحتاج
+        إلى صلاحيةٍ زائدة ولا إلى رسالة بريد. */
+    changePassword: function (next) {
+      var s = session();
+      if (!s) return Promise.reject(new Error("سجّلي الدخول أولًا."));
+      if (!next || next.length < 8) {
+        return Promise.reject(new Error("كلمة السر ثمانية أحرف فأكثر."));
+      }
+      return fresh().then(function () {
+        return fetch(AUTH + "user", {
+          method: "PUT",
+          headers: {
+            apikey: CFG.anonKey,
+            Authorization: "Bearer " + token(),
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ password: next })
+        }).then(function (r) {
+          return r.json().then(function (d) {
+            if (!r.ok) {
+              var m = d.msg || d.error_description || d.message || "";
+              /*  «كلمةٌ كالسابقة» رسالةٌ إنجليزيّةٌ خام تُربك القارئة. */
+              if (/same.*password|should be different/i.test(m)) {
+                throw new Error("اكتبي كلمةً غير التي تستعملينها الآن.");
+              }
+              throw new Error(m || "تعذّر تغيير كلمة السر.");
+            }
+            return d;
+          });
+        });
+      });
+    },
+
     signUp: function (email, password) {
       return fetch(AUTH + "signup", {
         method: "POST",

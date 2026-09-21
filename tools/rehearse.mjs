@@ -12,6 +12,8 @@
 import { chromium } from 'playwright-core';
 import http from 'http'; import fs from 'fs'; import path from 'path';
 import { spawn } from 'child_process';
+import { take } from './qufl.mjs';
+take('بروفة اليوم الدراسي');
 
 const ROOT=path.dirname(path.dirname(new URL(import.meta.url).pathname));
 const T={'.html':'text/html;charset=utf-8','.css':'text/css;charset=utf-8','.js':'text/javascript;charset=utf-8','.woff2':'font/woff2','.json':'application/json','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json','.sql':'text/plain;charset=utf-8'};
