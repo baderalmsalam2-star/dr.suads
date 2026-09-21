@@ -170,7 +170,7 @@ TPCourse.add({
     { n: 7, title: "الْوِلَايَةُ عَلَى الْمَالِ فِي الْقَانُونِ الْكُوَيْتِيِّ", subtitle: "مواد ١١٠–١١٨ وما يجوز للولي من التصرفات", pages: "قانون الأحوال الشخصية الكويتي",
       file: "sessions/wilaya/07-wilaya.html", readers: 26, status: "ready" },
     { n: 8, title: "الْوِلَايَةُ عَلَى النَّفْسِ", subtitle: "التربية والتأديب وضوابط الضرب، وأسباب الولاية الثلاثة", pages: "النوع الثاني: الولاية على النفس",
-      file: "sessions/wilaya/08-wilaya.html", readers: 19, status: "ready" },
+      file: "sessions/wilaya/08-wilaya.html", readers: 20, status: "ready" },
     { n: 9, title: "وِلَايَةُ الْمَرْأَةِ فِي تَزْوِيجِ نَفْسِهَا", subtitle: "الأقوال الثلاثة وأدلة الجمهور والحنفية والترجيح", pages: "ولاية المرأة في تزويج نفسها",
       file: "sessions/wilaya/09-wilaya.html", readers: 11, status: "ready" },
     { n: 10, title: "الزَّوَاجُ فِي الْقَانُونِ · نَاظِرُ الْوَقْفِ · انْتِهَاءُ الْوِلَايَةِ", subtitle: "مواد ٢٩–٣٣ ونظارة الوقف وما تنتهي به الولاية", pages: "قانون الأحوال الشخصية · ولاية ناظر الوقف",

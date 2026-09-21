@@ -195,13 +195,39 @@ def is_heading(t):
             and len(t) > 2 and not BAD_HEAD.match(t))
 
 
+LINE_END = re.compile(r'[.؟!:؛"»﴾\)\]]\s*$')
+LINE_ITEM = re.compile(r'^\s*(?:[٠-٩0-9]+\s*[-–ـ]|[أ-ي]\s*[-–ـ]\s|﴿|«|\()')
+LINE_NEW = re.compile(r'^\s*(?:و|ف|ثم|أما|بل|لكن|غير\s+أن)')
+
+
+def weld(lines):
+    """يصل السطر بسابقه إذا كان تتمّةَ جملته.
+
+    المذكرة مكتوبةٌ في Word بأسطرٍ مقطوعةٍ باليد، فالسطرُ الواحد
+    فقرةٌ مستقلّة وإن كان نصفَ جملة. ولولا الوصل لخرجت الجملةُ
+    الواحدة على شريحتين — «تأمر الوالدين بالقيام على تعليم وتأديب»
+    ثم «أولادهم، وتحثهم على الاضطلاع بهذه المهمة العظيمة».
+
+    وشرطُ الوصل أن تخلو الأولى من علامة تمام، وألّا تبتدئ الثانية
+    بما يبتدئ به كلامٌ جديد: رقمُ بندٍ، أو آية، أو واوٌ أو فاء أو
+    «ثم». فـ«…والله أعلم ⏎ وقد استعمل جل الفقهاء» لا تُوصل."""
+    out = []
+    for t in lines:
+        if (out and not LINE_END.search(out[-1])
+                and not LINE_ITEM.match(t) and not LINE_NEW.match(t)):
+            out[-1] = out[-1].rstrip() + ' ' + t.lstrip()
+            continue
+        out.append(t)
+    return out
+
+
 def build_units(paras, a, b, default_rubric):
     """السياق يبقى مع الترقيم: «القول الأول» وحده لا يدل على موضوعه،
     فيُعرض مسبوقًا بآخر عنوان موضوعي: «الوصاية إلى المرأة · القول الأول»."""
     units, pending = [], None
     context = current = default_rubric
-    for i in range(a, b + 1):
-        t = clean(paras[i]) if i < len(paras) else ''
+    raw = [clean(paras[i]) for i in range(a, b + 1) if i < len(paras)]
+    for t in weld([x for x in raw if x]):
         if not t:
             continue
         if is_heading(t):
@@ -213,7 +239,16 @@ def build_units(paras, a, b, default_rubric):
                 pending = None
             if rub and not BAD_HEAD.match(rub):
                 if BARE.match(rub):
-                    current = (context + ' · ' + rub) if context and context != rub else rub
+                    #  «ثالثًا» بعد «ثانيًا: الدليل من السنة» ليس فرعًا
+                    #  لها بل تاليها في العدّ. فتعليقُه عليها يُخرج
+                    #  شريحةً في أقوال الصحابة عنوانُها «الدليل من
+                    #  السنة» — عنوانٌ كاذبٌ لا ناقص.
+                    same_series = (re.match('(?:%s)' % SEQ, rub)
+                                   and context and re.match('(?:%s)' % SEQ, context))
+                    current = (rub if same_series or not context or context == rub
+                               else context + ' · ' + rub)
+                    if same_series:
+                        context = rub
                 else:
                     context = current = rub
             if body.strip():

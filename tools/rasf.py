@@ -187,33 +187,127 @@ def demote(slides):
     return moved, order
 
 
-def pack(slides):
-    """يضمّ الشرائح المتجاورة تحت عنوانٍ واحد ما لم تُجاوز الحدّ.
+#  علاماتُ تمامِ الجملة، وعلاماتُ ابتداءِ جملةٍ جديدة.
+SENT_END = re.compile(r'[.؟!:؛"»﴾\)\]]\s*$')
+NEW_ITEM = re.compile(r'^\s*(?:[٠-٩0-9]+\s*[-–ـ]|[أ-ي]\s*[-–ـ]\s|﴿|«|\()')
+#  الواو والفاء وثمّ تبتدئ جملةً في العربية، فلا يُوصَل بها ما قبلها.
+NEW_SENT = re.compile(r'^\s*(?:و|ف|ثم|أما|بل|لكن|غير\s+أن)')
 
-    ولا يُتخطّى سؤالٌ ولا غلافٌ ولا ختام: موضع السؤال مقصود — وُزّع
-    على شرائح القراءة بالتساوي — فضمُّ ما قبله بما بعده يزحزحه."""
+
+def weld(paras):
+    """يصل الفقرتين إذا كانت الثانية تتمّةَ جملةِ الأولى.
+
+    مذكرةُ الدكتورة مكتوبةٌ في Word بأسطرٍ مقطوعةٍ باليد: السطرُ
+    الواحد فقرةٌ مستقلّة وإن كان نصفَ جملة. فصار المولّد يقرأ
+    «وردت أحاديث كثيرة تأمر الوالدين بالقيام على تعليم وتأديب»
+    فقرةً، و«أولادهم، وتحثهم على الاضطلاع بهذه المهمة العظيمة»
+    فقرةً أخرى — فتُعرضان شريحتين، والجملةُ واحدة.
+
+    والوصلُ بشرطين: ألّا تنتهي الأولى بعلامةِ تمام، وألّا تبتدئ
+    الثانيةُ بما يبتدئ به كلامٌ جديد — رقمُ بندٍ، أو آيةٌ، أو واوٌ
+    أو فاءٌ أو «ثم». فـ«…والله أعلم ⏎ وقد استعمل جل الفقهاء» لا
+    تُوصل، وإن خلت الأولى من نقطة."""
+    out = []
+    for para in paras:
+        if (out and not SENT_END.search(plain(out[-1]))
+                and not NEW_ITEM.match(plain(para))
+                and not NEW_SENT.match(plain(para))):
+            out[-1] = out[-1].rstrip() + ' ' + para.lstrip()
+            continue
+        out.append(para)
+    return out
+
+
+def pack(slides):
+    """يجمع المتجاور تحت العنوان الواحد، يصل جُمَله، ثم يعيد قسمته.
+
+    الجمعُ وحده لا يكفي: لو ضُمّت شريحتان بقيت فقرتاهما فقرتين،
+    والجملةُ المقطوعةُ بينهما مقطوعةٌ كما كانت — وإنما انتقل القطعُ
+    من بين شريحتين إلى بين فقرتين. فتُجمع الفقراتُ أولًا، وتُوصل
+    جُمَلُها، ثم تُقسَم من جديد عند حدود الفقرات لا وسط الجُمَل.
+
+    ولا يُتخطّى سؤالٌ ولا شريحةٌ لا تعرفها الأداة: موضع السؤال
+    مقصود — وُزّع على شرائح القراءة بالتساوي — فالجمعُ عبره يزحزحه.
+
+    والعنوانُ كلُّه شرطٌ لا صدرُه: «الوصي · القول الأول» و«الوصي ·
+    القول الثاني» يشتركان في صدرهما ولا يُجمعان، وإلا ابتلع أحدُ
+    القولين الآخر تحت عنوانه."""
     out, merged = [], 0
+    runs = []
     for s in slides:
-        if not s.ok or not out or not out[-1].ok:
-            out.append(s)
+        if (s.ok and runs and runs[-1] and runs[-1][-1].ok
+                and split_rubric(runs[-1][-1].rubric or '')[:2]
+                == split_rubric(s.rubric or '')[:2]):
+            runs[-1].append(s)
+        else:
+            runs.append([s])
+
+    for run in runs:
+        if not run[0].ok:
+            out.extend(run)
             continue
-        prev = out[-1]
-        ph, pr, _ = split_rubric(prev.rubric or '')
-        ch, cr, _ = split_rubric(s.rubric or '')
-        #  السياقُ والفرعُ كلاهما، لا السياقُ وحده: «الوصي · القول
-        #  الأول» و«الوصي · القول الثاني» سياقهما واحدٌ ولا يُضمّان —
-        #  فيبتلع أحدُ القولين الآخر تحت عنوانه. و«— تتمة» وحدها
-        #  تُتجاوَز، فهي علامةُ قطعٍ لا فرقٍ في الموضوع.
-        if (ph, pr) != (ch, cr):
-            out.append(s)
-            continue
-        if len(prev.text()) + 1 + len(s.text()) > LIMIT:
-            out.append(s)
-            continue
-        prev.paras += s.paras
-        prev.absorbed = getattr(prev, 'absorbed', []) + [s.rubric]
-        merged += 1
+        paras = weld([q for x in run for q in x.paras])
+        #  قسمةٌ عند حدود الفقرات: الفقرةُ لا تُشقّ ولو طالت وحدها.
+        groups, cur, n = [], [], 0
+        for q in paras:
+            ln = len(plain(q))
+            if cur and n + 1 + ln > LIMIT:
+                groups.append(cur)
+                cur, n = [q], ln
+            else:
+                cur.append(q)
+                n += (1 if cur[:-1] else 0) + ln
+        if cur:
+            groups.append(cur)
+
+        head = run[0]
+        for k, g in enumerate(groups):
+            if k == 0:
+                head.paras = g
+                head.absorbed = [x.rubric for x in run[1:]]
+                out.append(head)
+            else:
+                nxt = Slide(head.indent, head.attr, head.inner, '\n\n')
+                nxt.ok, nxt.reader = True, head.reader
+                nxt.rubric, nxt.paras = head.rubric, g
+                out.append(nxt)
+        merged += len(run) - len(groups)
     return out, merged
+
+
+SEQ = r'(?:أولا|ثانيا|ثالثا|رابعا|خامسا|سادسا|سابعا|ثامنا|تاسعا|عاشرا)ً?'
+
+
+def unnest(slides):
+    """يفكّ ترتيبًا عُلِّق على ترتيب: «ثانيًا: … · ثالثًا».
+
+    المذكرة تعدّ الأدلة: أولًا من القرآن، ثانيًا من السنة، ثالثًا من
+    أقوال الصحابة. والمولّد يحسب «ثالثًا» فرعًا لما قبله فيعلّقه
+    عليه، فتخرج شريحةٌ متنُها في أقوال الصحابة وعنوانُها «ثانيًا:
+    الدليل من السنة النبوية». وهذا عنوانٌ كاذب لا ناقص: تقرؤه
+    الدكتورة فتظنّ نفسها في بابٍ وهي في غيره.
+
+    فيُفكّ التعليق. وإن كانت أولُ فقرةٍ عنوانًا في نفسها — تنتهي
+    بنقطتين وتقصر — رُفعت لتكون عنوانَ الشريحة. وإلا بقي الترتيبُ
+    وحده: «ثالثًا» أقلُّ دلالةً من عنوانٍ تامّ، لكنه صادق."""
+    fixed = 0
+    for s_ in slides:
+        if not s_.ok or not s_.rubric:
+            continue
+        head, rest, tail = split_rubric(s_.rubric)
+        if not rest:
+            continue
+        b_head, b_rest = bare(head), bare(rest)
+        if not (re.match('^' + SEQ, b_head) and re.match('^' + SEQ + '$', b_rest)):
+            continue
+        lead = plain(s_.paras[0]) if s_.paras else ''
+        if lead.endswith(':') and len(lead) <= 90:
+            s_.rubric = rest + ': ' + lead[:-1].strip() + tail
+            s_.paras = s_.paras[1:]
+        else:
+            s_.rubric = rest + tail
+        fixed += 1
+    return fixed
 
 
 def tidy(slides):
@@ -262,7 +356,11 @@ def process(path, dry):
         want_one = (x.injected + ': ' if getattr(x, 'injected', None) else '') + orig[id(x)]
         if x.text() != want_one:
             raise SystemExit('✗ %s: اختلّ ردُّ عنوانٍ إلى متنه' % os.path.basename(path))
-    want = [s.text() for s in slides if s.ok]      # بعد الردّ، قبل الضمّ
+
+    #  بعد حارسِ الردّ: فكُّ التعليق قد يرفع فقرةً إلى العنوان، فينقص
+    #  المتنُ بمقدارها — وهو نقصٌ مقصود، والفقرةُ لم تُحذف بل صعدت.
+    unnested = unnest(slides)
+    want = [s.text() for s in slides if s.ok]   # بعد الردّ وفكّ التعليق      # بعد الردّ، قبل الضمّ
     slides, merged = pack(slides)
     fixed = tidy(slides)
     after = [s.text() for s in slides if s.ok]
@@ -280,7 +378,13 @@ def process(path, dry):
     #  الحارس: لا كلمةَ تُفقد ولا تُزحزح. يُقارن المتنُ كلُّه موصولًا.
     if ' '.join(want) != ' '.join(after):
         raise SystemExit('✗ %s: تبدّل المتن عند الضمّ' % os.path.basename(path))
-    lost = [w for w in ' '.join(before).split() if w not in ' '.join(after)]
+    #  العناوين تدخل الميزان: فكُّ التعليق قد يرفع فقرةً من المتن إلى
+    #  العنوان، فتُعدّ ضائعةً وهي صاعدة.
+    pool = ' '.join(after) + ' ' + ' '.join(plain(x.rubric or '') for x in slides if x.ok)
+    #  والنقطتان تسقطان عند الرفع — عنوانٌ لا ينتهي بنقطتين — فتُطرح
+    #  من الميزان في الجهتين.
+    pool = pool.replace(':', '')
+    lost = [w for w in ' '.join(before).replace(':', '').split() if w not in pool]
     if lost:
         raise SystemExit('✗ %s: ضاع من المتن: %s' % (os.path.basename(path), lost[:5]))
 
@@ -306,24 +410,25 @@ def process(path, dry):
     if not dry:
         open(path, 'w', encoding='utf-8').write(out)
     return (sum(1 for x in slides0 if x.reader), sum(1 for x in slides if x.reader),
-            moved, merged, fixed)
+            moved, merged, fixed, unnested)
 
 
 def main(course='wilaya', dry=False):
     files = sorted(glob.glob(os.path.join(ROOT, 'sessions', course, '*.html')))
     if not files:
         raise SystemExit('لا محاضرات للمقرر %s' % course)
-    tot = [0, 0, 0, 0, 0]
+    tot = [0, 0, 0, 0, 0, 0]
     counts = {}
     for p in files:
-        b, a, mo, me, fx = process(p, dry)
+        b, a, mo, me, fx, un = process(p, dry)
         num = int(re.match(r'(\d+)-', os.path.basename(p)).group(1))
         counts[num] = a
-        for i, v in enumerate((b, a, mo, me, fx)):
+        for i, v in enumerate((b, a, mo, me, fx, un)):
             tot[i] += v
     print('شرائح القراءة: %d ← %d' % (tot[0], tot[1]))
     print('رُدّ إلى المتن: %d عنوانًا · ضُمّ: %d شريحة · صُحّح: %d «تتمة»'
           % (tot[2], tot[3], tot[4]))
+    print('فُكّ تعليقُ ترتيبٍ على ترتيب: %d عنوانًا' % tot[5])
 
     #  عدد القارئات في course.js يتبع عدد الشرائح، فيُصحَّح معه.
     cj = os.path.join(ROOT, 'data', 'courses', course, 'course.js')
