@@ -21,6 +21,40 @@
 
   var staff = false;
   function REF_OF(s) { return (COURSE.id || "course") + ":s" + s.n; }
+  function REF_X(x) { return (COURSE.id || "course") + ":x" + x.id; }
+  var openX = {};
+
+  /*  الاختبار المفتوح يظهر هنا للطالبة، لا في أوراق العمل ولا في
+      صفحة الاختبارات — تلك للدكتورة. فتجده في المكان الذي تفتحه
+      كلَّ يوم، ولا تُدلّ على بابٍ ليس لها. */
+  function renderExams() {
+    var host = document.getElementById("examsHere");
+    if (!host) return;
+    host.textContent = "";
+    if (staff) return;                    /* للدكتورة صفحتُها */
+    var live = (window.EXAMS || []).filter(function (x) { return openX[x.id] === "1"; });
+    if (!live.length) return;
+
+    host.appendChild(el("div", "section-title", "الاختبارات"));
+    var ul = el("ul", "cards exam-cards");
+    live.forEach(function (x) {
+      var li = el("li", "card ready exam");
+      li.appendChild(el("span", "badge", "مفتوح الآن"));
+      var a = el("a", "open");
+      a.href = "exam.html?x=" + encodeURIComponent(x.id) +
+               "&section=" + encodeURIComponent(section.id);
+      a.appendChild(el("span", "no", "اختبار رسميّ"));
+      a.appendChild(el("h2", "", x.title));
+      if (x.scope) a.appendChild(el("div", "sub", x.scope));
+      var meta = el("div", "meta");
+      meta.appendChild(el("span", "", x.date ? TPUI.arDate(x.date) : ""));
+      meta.appendChild(el("span", "readers", ar(x.minutes) + " دقيقة"));
+      a.appendChild(meta);
+      li.appendChild(a);
+      ul.appendChild(li);
+    });
+    host.appendChild(ul);
+  }
 
   /*  الدور يُسأل مرةً واحدة، والأصلُ الإخفاء حتى يؤكّد الخادم: أن
       ينكشف للدكتورة بعد لحظة أهونُ من أن ينكشف للطالبة ثم يُسحب. */
@@ -33,6 +67,9 @@
       (COURSE.sessions || []).forEach(function (s) {
         opened[String(s.n)] = TPContent.get(REF_OF(s), "released") || "";
       });
+      (window.EXAMS || []).forEach(function (x) {
+        openX[x.id] = TPContent.get(REF_X(x), "released") || "";
+      });
     }).catch(function () { /* بلا خادم: تبقى كما هي */ });
   }
 
@@ -43,6 +80,7 @@
         "القارئات تُوزَّع على " + TPUI.students(n) + " في الشعبة";
       renderSessions(n);
     }).catch(function () { renderSessions(section.roster); });
+    renderExams();
     renderToday();
   }
 

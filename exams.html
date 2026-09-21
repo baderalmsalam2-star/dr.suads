@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+<title>الاختبارات — منصة التدريس</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>منصة التدريس</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
@@ -22,36 +22,19 @@
 </head>
 <body>
 
-  <!-- الترويسة والتنقل يُبنيان في assets/ui.js كبقية الصفحات، فلا
-       يتخلّف شريط الرئيسية عن غيره كلما أُضيف قسم أو مبدّل. -->
-  <div id="chrome"></div>
+<div id="chrome"></div>
 
-  <div class="control">
-    <label for="section">الشعبة:</label>
-    <select id="section" aria-label="اختيار الشعبة"></select>
-    <span class="hint" id="hint" data-staff hidden></span>
-    <span class="spacer"></span>
-    <a class="btn" href="honors.html" data-staff hidden>لوحة الشرف كاملة</a>
-  </div>
+<div class="control">
+  <label for="section">الشعبة</label>
+  <select id="section" aria-label="اختيار الشعبة"></select>
+  <span class="hint">الاختبارُ لا يظهر للطالبة حتى تفتحيه.</span>
+</div>
 
-  <!-- لوحة شرف اليوم: رصدُ الدكتورة أثناء الشرح. والطالبة لا ترى
-       تفاعل زميلاتها (يمنعه RLS)، فتظهر لها فارغةً أبدًا مع تعليمةٍ
-       موجَّهةٍ إلى غيرها. فتُخفى عنها. -->
-  <div class="section-title" data-staff hidden>لوحة شرف اليوم <span class="sub" id="todayLabel"></span></div>
-  <div class="podium" id="today" data-staff hidden></div>
+<div id="exams"></div>
 
-  <div class="section-title">المحاضرات <span class="sub" id="sessionsSub"></span></div>
-  <div class="row"><button id="toggleAll" type="button" class="ghost sm"></button></div>
-  <ul class="cards" id="sessions"></ul>
-
-  <!-- الاختبار المفتوح للطالبة — يُملأ من platform.js، ويبقى خاليًا
-       عند الدكتورة لأن لها صفحة «الاختبارات» -->
-  <div id="examsHere"></div>
-
-  <footer class="foot">
-    <div>→ ← للتنقل داخل المحاضرة · مسافة: إظهار الجواب · طباعة: تصدير المحاضرة</div>
-    <div id="credit"></div>
-  </footer>
+<div class="foot">
+  <div id="credit"></div>
+</div>
 
 <script src="data/tenants.js"></script>
 <script src="data/courses.js"></script>
@@ -61,6 +44,6 @@
 <script src="assets/content.js"></script>
 <script src="assets/role.js"></script>
 <script src="assets/ui.js"></script>
-<script src="assets/platform.js"></script>
+<script src="assets/exams.js"></script>
 </body>
 </html>

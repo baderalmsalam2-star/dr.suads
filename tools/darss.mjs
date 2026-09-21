@@ -236,6 +236,64 @@ p = await open();
 ok('والطالبة لا ترى شريط التحرير', !(await p.locator('.tahrirbar').isVisible()));
 await p.close();
 
+// ═══ فصل الاختبارات عن أوراق العمل ═══
+const EXAMS_URL='http://127.0.0.1:8994/exams.html?section=wilaya:1';
+const SHEETS_URL='http://127.0.0.1:8994/worksheets.html?section=wilaya:1';
+async function at(url){
+  const q=await b.newPage({viewport:{width:1194,height:834}});
+  await q.route('**', r=>{const u=r.request().url();
+    return (u.startsWith('http://127.0.0.1:8994')||u.startsWith(API))?r.continue():r.abort();});
+  await q.addInitScript(k=>{try{localStorage.setItem(k,JSON.stringify(
+    {access_token:'tok',refresh_token:'r',expires_at:Date.now()/1000+3600,user:{id:'x'}}))}catch(e){}},
+    'tp.sb.suad.session');
+  q.on('dialog', d=>d.accept());
+  await q.goto(url,{waitUntil:'networkidle'});
+  await q.waitForTimeout(800);
+  return q;
+}
+
+await fetch(API+'/__as/owner-1');
+let q = await at(SHEETS_URL);
+ok('أوراق العمل خلت من الاختبارات',
+   (await q.locator('.exam-cards').count()) === 0);
+await q.close();
+
+q = await at(EXAMS_URL);
+ok('وللاختبارات صفحتها', (await q.locator('.exam-cards .card').count()) >= 1);
+ok('وفيها زرّ فتح',
+   (await q.locator('#exams button', {hasText:'افتحيه للطالبات'}).count()) >= 1);
+await q.locator('#exams button', {hasText:'افتحيه للطالبات'}).first().click();
+await q.waitForTimeout(900);
+await q.close();
+
+await fetch(API+'/__as/student-x');
+q = await at(SHEETS_URL);
+ok('والطالبة لا ترى اختبارًا في أوراقها',
+   (await q.locator('.exam-cards').count()) === 0);
+await q.close();
+
+q = await at(EXAMS_URL);
+ok('ولا تفتح لها صفحة الاختبارات',
+   /هذه الصفحة للدكتورة/.test(await q.locator('#exams').innerText()));
+await q.close();
+
+p = await home();
+ok('والمفتوح يظهر لها في الرئيسية',
+   (await p.locator('#examsHere .card').count()) === 1,
+   String(await p.locator('#examsHere .card').count()));
+await p.close();
+
+await fetch(API+'/__as/owner-1');
+q = await at(EXAMS_URL);
+await q.locator('#exams button', {hasText:'أغلقيه'}).first().click();
+await q.waitForTimeout(900);
+await q.close();
+
+await fetch(API+'/__as/student-x');
+p = await home();
+ok('ويُغلق فيختفي عنها', (await p.locator('#examsHere .card').count()) === 0);
+await p.close();
+
 console.log(`\n── الحصيلة ──\nحالات: ${step.length} · نجح ${step.filter(Boolean).length} · فشل ${step.filter(x=>!x).length}`);
 await b.close(); srv.close(); mock.kill(); back();
 process.exit(step.every(Boolean)?0:1);

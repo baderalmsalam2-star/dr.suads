@@ -22,6 +22,9 @@
     { id: "register",   label: "الباركود",     href: "register.html",  staff: true },
     { id: "attendance", label: "الحضور",       href: "attendance.html", staff: true },
     { id: "worksheets", label: "أوراق العمل",  href: "worksheets.html" },
+    /*  الاختبارات للدكتورة وحدها: الطالبةُ لا ترى بابًا إليها. وما
+        فُتح منها يظهر لها في الصفحة الرئيسية مع محاضراتها. */
+    { id: "exams",      label: "الاختبارات",   href: "exams.html",     staff: true },
     { id: "grades",     label: "الدرجات",      href: "grades.html",    staff: true },
     { id: "honors",     label: "لوحة الشرف",   href: "honors.html",    staff: true },
     { id: "evidences",  label: "الأدلة",        href: "evidences.html" },

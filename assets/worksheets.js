@@ -225,7 +225,6 @@
     if (!data) return;
     var box = document.getElementById("groups");
     box.textContent = "";
-    exams(box);
 
     var nums = shown();
     if (!nums.length) {
@@ -279,36 +278,10 @@
     return d;
   }
 
-  /*  الاختبارات الرسمية فوق الطيّات: هي أهمّ ما في الصفحة، ولا
-      تنتمي إلى محاضرةٍ بعينها بل إلى مدًى منها. */
-  function exams(box) {
-    var list = window.EXAMS || [];
-    if (!list.length) return;
-    var ul = el("ul", "cards exam-cards");
-    list.forEach(function (x) {
-      var done = data.subs.filter(function (s) {
-        return s.worksheetId === x.id && s.status === "submitted";
-      }).length;
-      var li = el("li", "card ready exam" + (done ? " done" : ""));
-      li.appendChild(el("span", "badge",
-        done ? "سلّمت " + ar(done) + " من " + ar(data.students.length) : "لم يُسلَّم بعد"));
-      var a = el("a", "open");
-      a.href = "exam.html?x=" + encodeURIComponent(x.id) +
-               "&section=" + encodeURIComponent(section.id);
-      a.appendChild(el("span", "no", "اختبار رسميّ"));
-      a.appendChild(el("h2", "", x.title));
-      if (x.scope) a.appendChild(el("div", "sub", x.scope));
-      var meta = el("div", "meta");
-      meta.appendChild(el("span", "", x.date ? TPUI.arDate(x.date) : ""));
-      meta.appendChild(el("span", "readers",
-        ar(x.minutes) + " دقيقة، " + ar(x.forms) + " نماذج"));
-      a.appendChild(meta);
-      li.appendChild(a);
-      ul.appendChild(li);
-    });
-    box.appendChild(ul);
-  }
-
+  /*  الاختبارات نُقلت إلى صفحتها: كانت فوق أوراق العمل في الصفحة
+      نفسها، فتراها الطالبةُ متى فتحت أوراقها — وهي لا تُعرض إلا
+      متى أذنت الدكتورة. وأوراقُ العمل تقويمٌ تكوينيّ بلا درجة،
+      والاختبارُ عشرون درجة: خلطُهما في صفحةٍ يخلط المعنيين. */
   /* «٢٤ سبتمبر ١١:٥٩» — يوم وساعة بلا سنة، فالفصل واحد */
   function shortWhen(iso) {
     var d = new Date(iso);
