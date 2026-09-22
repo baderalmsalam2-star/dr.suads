@@ -85,14 +85,48 @@ ok('القلم يكتب على الشريحة', drawn > 200, drawn+' بكسل');
 await stroke(p,'touch',[[.2,.7],[.6,.75]]);
 ok('الراحة والإصبع لا يكتبان', await count(p) === drawn, await count(p)+' بكسل');
 
-//  الإصبعُ يقلّب وإن كان القلم مفتوحًا
-const before = await p.evaluate(()=>[...document.querySelectorAll('.slide')].findIndex(s=>s.classList.contains('on')));
-await p.evaluate(()=>{const t=(n,x)=>dispatchEvent(new TouchEvent(n,{bubbles:true,
+//  ═══ والقلمُ مفتوح: لا تمشي الشريحة بمسٍّ ولا سحب ═══
+//  كانت هذه الخطوةُ تقول «والإصبع يقلّب الشريحة والقلمُ مفتوح» —
+//  وكان ذلك مقصودًا: القلمُ للكتابة والإصبعُ للتقليب. ثم قالت
+//  الدكتورة: «كل ما أكتب كلمةً بالقلم تتغيّر الصفحة، لأني ألمس
+//  الشاشة بالخطأ». فالسلوكُ تبدّل بالقصد، والخطوةُ تحفظ الجديد.
+const fingerSwipe = () => p.evaluate(()=>{const t=(n,x)=>dispatchEvent(new TouchEvent(n,{bubbles:true,
   changedTouches:[new Touch({identifier:1,target:document.body,clientX:x,clientY:400})]}));
   t('touchstart',700); t('touchend',300);});
+const onAt = () => p.evaluate(()=>[...document.querySelectorAll('.slide')].findIndex(s=>s.classList.contains('on')));
+
+const before = await onAt();
+await fingerSwipe();
 await p.waitForTimeout(250);
-const after = await p.evaluate(()=>[...document.querySelectorAll('.slide')].findIndex(s=>s.classList.contains('on')));
-ok('والإصبع يقلّب الشريحة والقلمُ مفتوح', after === before+1, `${before} ← ${after}`);
+ok('ولا يقلّبها الإصبع والقلمُ مفتوح', (await onAt()) === before, `${before} ← ${await onAt()}`);
+
+//  ولا نقرةٌ على الشريحة
+await p.evaluate(()=>document.querySelector('.slide.on')
+  .dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})));
+await p.waitForTimeout(250);
+ok('ولا نقرةٌ على الشريحة', (await onAt()) === before, `${before} ← ${await onAt()}`);
+
+//  ═══ والسهمُ أسفل الصفحة يقلّبها ═══
+//  «خلّ تغيير الشاشة بسهمٍ أسفل الصفحة». وكان السهمان لا يظهران
+//  إلا دون ٦٤٠ بكسلًا — والإيباد ١١٩٤، فلا سهمَ في جهاز الدرس.
+ok('وسهما التنقّل ظاهران على الإيباد', await p.locator('#nextBtn').isVisible());
+await p.locator('#nextBtn').click();
+await p.waitForTimeout(250);
+ok('والسهم يقلّبها والقلمُ مفتوح', (await onAt()) === before+1, `${before} ← ${await onAt()}`);
+await p.locator('#prev').click();
+await p.waitForTimeout(250);
+
+//  ويعود التقليبُ باللمس متى أُغلق القلم
+await p.locator('.inkbar button').first().click();
+await p.waitForTimeout(200);
+const shut = await onAt();
+await fingerSwipe();
+await p.waitForTimeout(250);
+ok('ويعود التقليبُ باللمس متى أُغلق القلم', (await onAt()) === shut+1, `${shut} ← ${await onAt()}`);
+await p.locator('.inkbar button').first().click();
+await p.waitForTimeout(200);
+await p.locator('#prev').click();
+await p.waitForTimeout(250);
 
 //  ═══ والقلم لا يقلّبها ═══
 //  قلمُ أبل يُطلق لمسًا مع أحداث المؤشّر، وdeck.js يقرأ السحب

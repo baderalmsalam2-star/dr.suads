@@ -138,6 +138,29 @@ const stored=await p.evaluate(async()=>{
   const rows=await Store.submissions('wilaya:1','h1'); return rows.length;
 });
 ok('التسليم وصل الخادم ('+stored+' صفّ)', stored>=1);
+
+//  «سُلِّمت الورقة — وصلت الدكتورة»، لا «نُزّلي ملفًّا وأرسليه».
+//  الرسالةُ الأولى بقيّةٌ من زمنٍ بلا خادم، وهي التي جعلت الطالبات
+//  يظنّن التسليمَ نقلَ ملفٍّ باليد وتنتظر الدكتورة أوراقًا لا تأتي.
+ok('ولا يُطلب منها تنزيل ملفٍّ ترسله',
+   await p.evaluate(()=>{
+     const b=document.getElementById('send');
+     return !b || b.hidden;
+   }));
+await p.close();
+
+// ═══ طالبةٌ بحسابٍ غير مربوطٍ بالكشف ═══
+//  «مو قادرين يسلمون أوراق العمل الصفية»: صفٌّ غير مربوطٍ بحسابها
+//  يجعل السياسةَ لا تُرجع لها شيئًا، فكانت تُعرض عليها رسالةُ
+//  الدكتورة «أضيفي الكشف من صفحة الطالبات» — بابٌ مغلقٌ لا تعرف
+//  من يفتحه.
+await as('gharib-uid');
+p=await page();
+await p.goto(U+'worksheet.html?w=wilaya:h1&section=wilaya:1',{waitUntil:'networkidle'});
+await p.waitForTimeout(800);
+const said=await p.evaluate(()=>document.getElementById('emptyBox').innerText);
+ok('وغيرُ المربوطة تُقال لها علّتُها هي', /غير مربوط/.test(said) && !/أضيفي الكشف/.test(said),
+   said.replace(/\s+/g,' ').slice(0,80));
 await p.close();
 
 // ═══ الدكتورة: ترى التسليم ═══
@@ -149,6 +172,22 @@ const seen=await p.evaluate(async()=>{
   return rows.map(r=>JSON.stringify(r.answers||{}).includes('البروفة')).filter(Boolean).length;
 });
 ok('الدكتورة تقرأ إجابة الطالبة ('+seen+')', seen>=1);
+
+//  «مو عارفة من وين الاستلام»: المصفوفةُ كانت تقول «سُلِّم» ولا
+//  تدلّ على طريقٍ إلى ما سُلِّم. فصارت الخليّةُ بابًا إلى ورقة
+//  صاحبتها، ومعها سطرٌ يقول إن الأوراق تصل هنا بنفسها.
+await p.selectOption('#lesson','1').catch(()=>{});
+await p.waitForTimeout(700);
+const door=await p.evaluate(()=>{
+  const a=document.querySelector('#table a.chip');
+  return a ? a.getAttribute('href') : '';
+});
+ok('وخليّةُ التسليم تفتح ورقة صاحبتها', /worksheet\.html\?w=.*student=/.test(door),
+   decodeURIComponent(door).slice(0,70));
+ok('ويُقال لها أين تصل الأوراق',
+   await p.evaluate(()=>{const h=document.getElementById('intakeHint'); return !!h && !h.hidden;}));
+ok('ولا زرَّ استلامِ ملفٍّ على الخادم',
+   await p.evaluate(()=>document.getElementById('collect').hidden));
 
 // ═══ الحضور بالباركود ═══
 const code=await p.evaluate(async()=>{

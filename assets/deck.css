@@ -118,16 +118,20 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
 .slide{display:none}
 .slide.on{display:flex;flex-direction:column;justify-content:safe center;min-height:100%}
 
-/* تنقل باللمس — يظهر على الشاشات الصغيرة فقط */
-.nav{display:none;gap:.5em}
-.nav button{padding:.4em .95em;line-height:1}
+/*  سهما التنقّل — ظاهران دائمًا.
+    كانا لا يظهران إلا دون ٦٤٠ بكسل، فالإيباد — وهو جهازُ الدرس —
+    لا سهمَ فيه. فكانت الشريحة لا تمشي إلا بمسّ الشاشة، ومسُّ
+    الشاشة هو نفسه ما يفسد الكتابة بالقلم. «خلّ تغيير الشاشة بسهمٍ
+    أسفل الصفحة.» */
+.nav{display:flex;gap:.5em}
+.nav button{padding:.45em 1.1em;line-height:1;font-size:1.05rem;
+  min-width:3em;min-height:2.4em}
 
 @media (max-width:640px){
   .inner{padding:14px 10px}
   .matn,.qtext{max-width:none}
   .keys,.zoom .lvl{display:none}
   .credit{display:none}
-  .nav{display:flex}
   .marks{flex:none}
   .foot{justify-content:space-between}
 }

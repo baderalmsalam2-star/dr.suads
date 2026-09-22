@@ -138,8 +138,21 @@
   Store.students(section.id).then(function (list) {
     students = list.slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
     if (!students.length) {
-      document.getElementById("emptyBox").appendChild(
-        TPUI.empty("لا يوجد كشف لهذه الشعبة.", "أضيفي الكشف من صفحة «الطالبات» أولًا."));
+      /*  كشفٌ فارغ عند الدكتورة معناه: لم تُدخليه بعد.
+          وعند الطالبة معناه شيءٌ آخر تمامًا: حسابها لم يُربط بصفّها،
+          فالسياسةُ لا تُرجع لها صفًّا — فلا تستطيع أن تُسلِّم شيئًا.
+          وكانت تُعرض عليها رسالةُ الدكتورة «أضيفي الكشف»، فتقف
+          أمام بابٍ مغلقٍ لا تعرف من يفتحه. */
+      TPRole.staff().then(function (ok) {
+        var box = document.getElementById("emptyBox");
+        box.textContent = "";
+        box.appendChild(ok
+          ? TPUI.empty("لا يوجد كشف لهذه الشعبة.",
+              "أضيفي الكشف من صفحة «الطالبات» أولًا.")
+          : TPUI.empty("حسابك غير مربوطٍ بكشف هذه الشعبة.",
+              "تأكّدي أنكِ دخلتِ ببريدك الجامعي (sرقمك@ku.edu.kw). " +
+              "فإن كان كذلك فرقمك لم يُضَف بعدُ إلى الكشف — راجعي الدكتورة."));
+      });
       return;
     }
     students.forEach(function (s) {
@@ -207,7 +220,11 @@
     var shut = !owner && TPContent.isOpen(W.id) !== "open";
     document.getElementById("submit").hidden = locked || shut;
     document.getElementById("save").hidden = locked || shut;
-    document.getElementById("send").hidden = !locked;
+    /*  «تنزيل ملف التسليم» طريقُ الوضع المحلّي: لا خادم، فلا يخرج
+        التسليم من المتصفّح إلا بملفٍّ يُنقل. وعلى الخادم يصل بنفسه،
+        فزرُّ التنزيل ههنا يدعو إلى عملٍ لا لزوم له ويوهم أن التسليم
+        لم يصل. */
+    document.getElementById("send").hidden = !locked || Store.server;
     document.getElementById("reopen").hidden = !locked || !owner;
 
     applyEdit();                    /* الأسئلة بُنيت من جديد */
@@ -607,7 +624,13 @@
       sub = s;
       return credit();
     }).then(function () {
-      TPUI.toast("سُلِّمت الورقة. نُزّلي ملف التسليم وأرسليه للدكتورة.", "good");
+      /*  على الخادم يصل التسليم بنفسه، وتراه الدكتورة في مصفوفة
+          «أوراق العمل». وكانت الرسالةُ تقول «نُزّلي وأرسلي» — وهي
+          بقيّةٌ من زمنٍ بلا خادم — فظنّت الطالبات أن التسليم نقلُ
+          ملفٍّ باليد، وبقيت الدكتورة تنتظر أوراقًا لا تأتي. */
+      TPUI.toast(Store.server
+        ? "سُلِّمت الورقة — وصلت الدكتورة."
+        : "سُلِّمت الورقة. نُزّلي ملف التسليم وأرسليه للدكتورة.", "good");
       render();
     }).catch(fail);
   });

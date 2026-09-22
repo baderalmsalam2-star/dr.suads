@@ -70,6 +70,16 @@
     lessonSel.value = lesson;
   }
 
+  /* ─── من أين تصل الأوراق؟ ───
+     على الخادم تصل بنفسها، فيُقال ذلك صراحةً ويُخفى زرُّ استلام
+     الملفات — وهو طريقُ الوضع المحلّي. وبقاؤه ظاهرًا كان يوهم أن
+     التسليم نقلُ ملفٍّ باليد، فتنتظر الدكتورة أوراقًا لا تأتي. */
+  TPRole.staff().then(function (ok) {
+    var hint = document.getElementById("intakeHint");
+    if (ok && hint) hint.hidden = false;
+    if (Store.server) document.getElementById("collect").hidden = true;
+  });
+
   /* ─── استلام ملفات التسليم من الطالبات ─── */
   var collectFile = document.getElementById("collectFile");
   document.getElementById("collect").addEventListener("click", function () { collectFile.click(); });
@@ -392,10 +402,19 @@
           else cell.appendChild(el("span",
             "chip " + (done >= c.sheets.length ? "gold" : done ? "blue" : ""),
             ar(done) + "/" + ar(c.sheets.length)));
-        } else if (done) {
-          cell.appendChild(el("span", "chip gold", "سُلِّم"));
-        } else if (mine.length) {
-          cell.appendChild(el("span", "chip blue", "مسودة"));
+        } else if (done || mine.length) {
+          /*  الخليّة تُفتح على ورقة صاحبتها.
+              «الدكتورة مو واصل لها الأوراق، مو عارفة من وين
+              الاستلام»: كانت المصفوفة تقول «سُلِّم» ولا تدلّ على
+              طريقٍ إلى ما سُلِّم — فيُظنّ أن الورقة لم تصل، وإنما
+              وصلت ولا باب إليها. */
+          var open = el("a", "chip " + (done ? "gold" : "blue"),
+                        done ? "سُلِّم" : "مسودة");
+          open.href = "worksheet.html?w=" + encodeURIComponent(c.sheets[0].id) +
+                      "&student=" + encodeURIComponent(st.id) +
+                      "&section=" + encodeURIComponent(section.id);
+          open.title = "افتحي ورقة " + st.name;
+          cell.appendChild(open);
         } else {
           cell.textContent = "—";
         }

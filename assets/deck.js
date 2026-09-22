@@ -234,8 +234,21 @@
     else if (e.key === "0" || e.key === "٠") { zi = STEPS.indexOf(1); applyZoom(); e.preventDefault(); }
   });
 
+  /*  «كل ما أكتب كلمةً على الشاشة بالقلم تتغيّر الصفحة، لأني ألمس
+      الشاشة بالخطأ.»
+
+      كانت الشريحةُ تمشي بأيِّ نقرةٍ على الشاشة وبأيِّ سحبةٍ بالإصبع.
+      وذاك يصلح لعرضٍ يُقلَّب باليد، ولا يصلح ومعها قلمٌ تكتب به:
+      الراحةُ تمسّ الشاشة، وطرفُ الكمّ، وحركةُ اليد — فتمضي الشريحة
+      في وسط الكلمة.
+
+      فمتى كان القلم مفتوحًا لم تمشِ الشريحة بمسٍّ ولا سحب: تمشي
+      بالسهمين أسفل الصفحة وبمفاتيح لوحة المفاتيح لا غير. */
+  function inkOn() { return document.body.classList.contains("ink-on"); }
+
   addEventListener("click", function (e) {
     if (e.target.closest("button, a, select")) return;
+    if (inkOn()) return;
     if (slides[i].hasAttribute("data-q") && !slides[i].classList.contains("reveal")) reveal();
     else show(i + 1);
   });
@@ -250,9 +263,11 @@
 
   /* سحب بالإصبع — الاتجاه من اليمين لليسار كاتجاه القراءة */
   var x0 = null;
-  addEventListener("touchstart", function (e) { x0 = e.changedTouches[0].clientX; }, { passive: true });
+  addEventListener("touchstart", function (e) {
+    x0 = inkOn() ? null : e.changedTouches[0].clientX;
+  }, { passive: true });
   addEventListener("touchend", function (e) {
-    if (x0 === null) return;
+    if (x0 === null || inkOn()) return;
     var dx = e.changedTouches[0].clientX - x0;
     x0 = null;
     if (Math.abs(dx) < 45) return;
