@@ -173,6 +173,10 @@
                 submittedAt: "submitted_at", startedAt: "started_at",
                 updatedAt: "updated_at" };
 
+  var M_WORK = { studentId: "student_id", sectionId: "section_id",
+                 fileId: "file_id", fileName: "file_name", fileType: "file_type",
+                 createdAt: "created_at" };
+
   var M_GRADE = { studentId: "student_id", sectionId: "section_id",
                   itemId: "item_id", updatedAt: "updated_at" };
 
@@ -365,6 +369,54 @@
         headers: { Prefer: "resolution=merge-duplicates,return=representation" },
         body: [body]
       }).then(function (rows) { return fromDb(M_SUB, (rows || [])[0]) || s; });
+    },
+
+    /* أعمال الطالبات ------------------------------------------- */
+    works: function (f) {
+      f = f || {};
+      var q = "works?select=*&order=created_at.desc";
+      if (f.sectionId) q += "&section_id=eq." + enc(f.sectionId);
+      if (f.studentId) q += "&student_id=eq." + enc(f.studentId);
+      return req(q).then(function (rows) { return mapAll(M_WORK, rows); });
+    },
+
+    saveWork: function (w) {
+      w.id = w.id || uid("wk");
+      var body = toDb(M_WORK, w);
+      /*  وقتُ الإنشاء يملكه الخادم — المطلِق يكتبه — فلا يُرسَل من
+          هنا لئلا يُظنّ أن للمتصفّح فيه رأيًا. */
+      delete body.created_at;
+      return req("works?on_conflict=id", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+        body: [body]
+      }).then(function (rows) { return fromDb(M_WORK, (rows || [])[0]) || w; });
+    },
+
+    removeWork: function (id) {
+      return req("works?id=eq." + enc(id), { method: "DELETE" }).then(function () {});
+    },
+
+    /*  الملفّ يُجلب نقيًّا بمساره، بلا المرور على جدول التسليمات.
+        getFile يبحث عن وصف الملفّ في submissions.files — وأعمال
+        الطالبات ليست فيه، فيرجع فارغًا. وهنا الوصفُ في صفّ العمل
+        نفسه، فلا يُحتاج إلى بحث. */
+    fileBlob: function (path) {
+      return fresh().then(function () {
+        return fetch(STORAGE + "object/tp-files/" + path, {
+          headers: { apikey: CFG.anonKey, Authorization: "Bearer " + token() }
+        });
+      }).then(function (r) {
+        if (!r.ok) throw new Error("تعذّر فتح الملف (" + r.status + ").");
+        return r.blob();
+      });
+    },
+
+    removeWork_file: function (path) {
+      return fetch(STORAGE + "object/tp-files/" + path, {
+        method: "DELETE",
+        headers: { apikey: CFG.anonKey, Authorization: "Bearer " + token() }
+      }).then(function () {});
     },
 
     removeSubmission: function (id) {

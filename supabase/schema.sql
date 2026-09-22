@@ -799,6 +799,76 @@ begin
 end $$;
 
 -- ═══════════════════════════════════════════════════════════════
+--  أعمال الطالبات — تطوّعٌ لا درجة
+--
+--  تُنشئ الطالبة عملًا متى شاءت: عنوانٌ ووصفٌ وملفّ (صورة أو PDF).
+--  لا موعدَ ولا درجة — فمن لم ترفع شيئًا لم يُنقص منها.
+--
+--  ═══ والإذن بالعرض بيدها ═══
+--  shared: أتأذن بعرضه على الشاشة أمام زميلاتها؟ والأصل «لا».
+--  فالدكتورة ترى العمل كلَّه — لأنها مدرِّسته — ولا تعرض إلا ما
+--  أُذن فيه. وعرضُ عمل طالبةٍ أمام صفّها قرارٌ يخصّها، فلا يُؤخذ
+--  ضمنًا من مجرّد رفعها إيّاه.
+--
+--  والملفّ نفسه في صندوق tp-files تحت مجلّد الطالبة، تحرسه سياساتُ
+--  التخزين القائمة: مسارُه يبدأ بمعرّف صفّها، فلا ترفع في مجلّد
+--  غيرها ولا تقرأ منه.
+-- ═══════════════════════════════════════════════════════════════
+create table if not exists works (
+  id         text primary key,
+  student_id text not null references students(id) on delete cascade,
+  section_id text not null,
+  title      text not null,
+  note       text,
+  file_id    text,
+  file_name  text,
+  file_type  text,
+  shared     boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists works_section on works (section_id, created_at desc);
+create index if not exists works_student on works (student_id);
+
+alter table works enable row level security;
+
+-- المالكة ترى أعمال طالباتها كلَّها وتحذف ما لا يصلح
+drop policy if exists works_owner on works;
+create policy works_owner on works for all
+  using (is_owner()) with check (is_owner());
+
+-- والطالبة ترى عملها وحده — لا أعمال زميلاتها ولو أُذن بعرضها.
+-- العرضُ في القاعة من جهاز الدكتورة، لا من أجهزتهنّ.
+drop policy if exists works_self on works;
+create policy works_self on works for select
+  using (student_id in (select my_student_ids()));
+
+drop policy if exists works_self_write on works;
+create policy works_self_write on works for insert
+  with check (student_id in (select my_student_ids()));
+
+--  وتعدّل عملها وتسحب إذنها متى شاءت.
+drop policy if exists works_self_update on works;
+create policy works_self_update on works for update
+  using (student_id in (select my_student_ids()))
+  with check (student_id in (select my_student_ids()));
+
+drop policy if exists works_self_delete on works;
+create policy works_self_delete on works for delete
+  using (student_id in (select my_student_ids()));
+
+--  ووقتُ الإنشاء يُختم في الخادم لا يُرسَل من المتصفّح.
+create or replace function stamp_work() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if tg_op = 'INSERT' then new.created_at := now(); end if;
+  return new;
+end $$;
+
+drop trigger if exists on_work_saved on works;
+create trigger on_work_saved before insert on works
+  for each row execute function stamp_work();
+
+-- ═══════════════════════════════════════════════════════════════
 --  إعادة تعيين كلمة سرّ طالبة — بيد الدكتورة، بلا رسالة بريد
 --
 --  المشكلة: أطفأنا رسائل البريد بالقصد (خدمة Supabase المدمجة

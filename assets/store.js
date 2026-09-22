@@ -637,6 +637,36 @@
 
     /*  كلمات السر — للخادم وحده كذلك. في الوضع المحلي لا حساباتِ
         أصلًا: البيانات على الجهاز، ولا شيء يُحرَس بكلمة سر. */
+    /*  أعمال الطالبات — للخادم وحده: هي مشاركةٌ بين جهازين، ولا
+        معنى لها في الوضع المحلي حيث البيانات على جهازٍ واحد. */
+    worksReady: function () { return !!A.works; },
+
+    works: function (f) {
+      if (!A.works) return Promise.resolve([]);
+      return A.works(f);
+    },
+
+    saveWork: function (w) {
+      if (!A.saveWork) {
+        return Promise.reject(new Error("أعمال الطالبات تعمل مع الخادم فقط."));
+      }
+      return A.saveWork(w);
+    },
+
+    removeWork: function (id) {
+      if (!A.removeWork) {
+        return Promise.reject(new Error("أعمال الطالبات تعمل مع الخادم فقط."));
+      }
+      return A.removeWork(id);
+    },
+
+    fileBlob: function (path) {
+      if (!A.fileBlob) {
+        return Promise.reject(new Error("فتح الملفات يعمل مع الخادم فقط."));
+      }
+      return A.fileBlob(path);
+    },
+
     passwordsReady: function () { return !!A.resetStudentPassword; },
 
     resetStudentPassword: function (studentId, next) {

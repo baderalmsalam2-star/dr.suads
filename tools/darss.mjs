@@ -294,6 +294,82 @@ p = await home();
 ok('ويُغلق فيختفي عنها', (await p.locator('#examsHere .card').count()) === 0);
 await p.close();
 
+// ═══ أعمال الطالبات ═══
+const WORKS='http://127.0.0.1:8994/works.html?section=wilaya:1';
+async function works(){
+  const w=await b.newPage({viewport:{width:1194,height:834}});
+  await w.route('**', r=>{const u=r.request().url();
+    return (u.startsWith('http://127.0.0.1:8994')||u.startsWith(API))?r.continue():r.abort();});
+  await w.addInitScript(k=>{try{localStorage.setItem(k,JSON.stringify(
+    {access_token:'tok',refresh_token:'r',expires_at:Date.now()/1000+3600,user:{id:'x'}}))}catch(e){}},
+    'tp.sb.suad.session');
+  w.on('dialog', d=>d.accept());
+  w.on('pageerror', e=>console.log('   ⚠ خطأ صفحة:', String(e).slice(0,140)));
+  await w.goto(WORKS,{waitUntil:'networkidle'});
+  await w.waitForTimeout(900);
+  return w;
+}
+
+//  صفٌّ للطالبة مربوطٌ بحسابها — الرفع يشترطه (مسار التخزين يبدأ به)
+await fetch(API+'/rest/v1/students',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({id:'st-w',section_id:'wilaya:1',no:9,name:'طالبة تجريبية',
+                       uid:'0000000009',auth_uid:'stud-w',active:true})});
+
+await fetch(API+'/__as/stud-w');
+let g = await works();
+ok('الطالبة ترى صندوق الرفع', await g.locator('#add').isVisible());
+
+//  تُحاكى صورةٌ صغيرة يقبلها المتصفّح
+async function put(page, name, mime, shared){
+  await page.evaluate(async ({name,mime,shared})=>{
+    const c=document.createElement('canvas'); c.width=40; c.height=30;
+    const x=c.getContext('2d'); x.fillStyle='#0DABE2'; x.fillRect(0,0,40,30);
+    const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+    const dt=new DataTransfer();
+    dt.items.add(new File([blob], name, {type:mime}));
+    const inp=document.getElementById('wFile');
+    inp.files=dt.files; inp.dispatchEvent(new Event('change',{bubbles:true}));
+    document.getElementById('wTitle').value='عملٌ تجريبيّ';
+    document.getElementById('wShared').checked=!!shared;
+  },{name,mime,shared});
+  await page.waitForTimeout(700);
+  await page.locator('#wSave').click();
+  await page.waitForTimeout(1500);
+}
+
+await put(g,'work.png','image/png',false);
+ok('ترفع عملها فيظهر في قائمتها',
+   (await g.locator('#list .card').count()) === 1,
+   String(await g.locator('#list .card').count()));
+ok('والأصل أنه خاصٌّ لا يُعرض',
+   /خاصّ/.test(await g.locator('#list .card .badge').first().innerText()));
+await g.close();
+
+await fetch(API+'/__as/owner-1');
+g = await works();
+ok('والدكتورة ترى العمل', (await g.locator('#list .card').count()) === 1);
+ok('ولا صندوقَ رفعٍ عندها', !(await g.locator('#add').isVisible()));
+ok('ويُنبَّه أنه بلا إذن',
+   /لم تأذن بعرضه/.test(await g.locator('#list').innerText()));
+await g.close();
+
+//  الطالبة تأذن
+await fetch(API+'/__as/stud-w');
+g = await works();
+await g.locator('#list button', {hasText:'أوافق على عرضه'}).click();
+await g.waitForTimeout(900);
+ok('وتأذن بالعرض فتتبدّل الحالة',
+   /مأذونٌ بعرضه/.test(await g.locator('#list .card .badge').first().innerText()));
+await g.close();
+
+await fetch(API+'/__as/owner-1');
+g = await works();
+await g.locator('#list button', {hasText:'اعرضيه'}).click();
+await g.waitForTimeout(1200);
+ok('والدكتورة تعرضه ملء الشاشة', await g.locator('#stage').isVisible());
+ok('والصورة ظهرت فيه', (await g.locator('#stage img').count()) === 1);
+await g.close();
+
 console.log(`\n── الحصيلة ──\nحالات: ${step.length} · نجح ${step.filter(Boolean).length} · فشل ${step.filter(x=>!x).length}`);
 await b.close(); srv.close(); mock.kill(); back();
 process.exit(step.every(Boolean)?0:1);

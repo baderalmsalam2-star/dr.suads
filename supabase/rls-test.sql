@@ -1049,6 +1049,62 @@ insert into rls_results select 'وحسابُ المالكة لم يُمسّ',
   (select encrypted_password = extensions.crypt('OwnerAAAA1', encrypted_password)
      from auth.users where id='11111111-1111-1111-1111-111111111111');
 
+-- ═══════════════════════════════════════════════════════════════
+--  أعمال الطالبات
+--
+--  العملُ تطوّعٌ ترفعه الطالبة، والإذنُ بعرضه بيدها. فيُختبر أنها
+--  لا ترى عمل زميلتها ولو أُذن بعرضه — العرضُ من جهاز الدكتورة لا
+--  من أجهزتهنّ — ولا ترفع باسم غيرها ولا تحذف عملها.
+-- ═══════════════════════════════════════════════════════════════
+insert into works(id,student_id,section_id,title,shared) values
+ ('wk-sara','t-sara','wilaya:9','عمل سارة',false),
+ ('wk-noura','t-noura','wilaya:9','عمل نورة',true) on conflict do nothing;
+
+insert into rls_results select 'المالكة ترى أعمال طالباتها كلَّها',
+  (select count(*) from works) = 2;
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into rls_results select 'والطالبة ترى عملها وحده',
+  (select count(*) from works) = 1;
+insert into rls_results select 'ولا ترى عمل زميلتها ولو أُذن بعرضه',
+  not exists (select 1 from works where id = 'wk-noura');
+commit;
+
+--  ولا ترفع باسم غيرها
+do $$ begin
+  begin
+    perform set_config('role','authenticated',true);
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into works(id,student_id,section_id,title)
+      values ('wk-fake','t-noura','wilaya:9','عملٌ منسوبٌ لغيرها');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا ترفع عملًا باسم زميلتها', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا ترفع عملًا باسم زميلتها', true);
+  end;
+end $$;
+
+--  ولا تحذف عمل زميلتها
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+delete from works where id = 'wk-noura';
+commit;
+insert into rls_results select 'ولا تحذف عمل زميلتها',
+  exists (select 1 from works where id = 'wk-noura');
+
+--  وتسحب إذنها هي
+begin; set local role authenticated; set local request.jwt.claim.sub = :'NOURA';
+update works set shared = false where id = 'wk-noura';
+commit;
+insert into rls_results select 'وتسحب إذنها بعرض عملها',
+  (select shared from works where id = 'wk-noura') = false;
+
+--  والمجهول لا يرى شيئًا
+begin; set local role anon;
+insert into rls_results select 'والمجهول لا يرى عملًا',
+  (select count(*) from works) = 0;
+commit;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

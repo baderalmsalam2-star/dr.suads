@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<title>أعمال الطالبات — منصة التدريس</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23002856%27/%3E%3Crect x=%273%27 y=%273%27 width=%2726%27 height=%2726%27 fill=%27none%27 stroke=%27%230DABE2%27 stroke-width=%271.5%27/%3E%3Ctext x=%2716%27 y=%2723%27 font-size=%2718%27 text-anchor=%27middle%27 fill=%27%23F8D81B%27 font-family=%27serif%27%3E%D9%88%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="د. سعاد المطوع">
+<meta name="theme-color" content="#002856">
+<script src="assets/theme.js"></script>
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<div class="control">
+  <label for="section">الشعبة</label>
+  <select id="section" aria-label="اختيار الشعبة"></select>
+  <span class="hint" id="lead"></span>
+</div>
+
+<!-- الرفع — للطالبة وحدها -->
+<section class="item" id="add" hidden>
+  <div class="prompt">أضيفي عملًا</div>
+  <label for="wTitle">العنوان</label>
+  <input type="text" id="wTitle" maxlength="90" placeholder="مثال: خريطة ذهنية لأسباب الولاية">
+  <label for="wNote">وصفٌ قصير <span class="hint">اختياري</span></label>
+  <textarea id="wNote" rows="2" maxlength="400"></textarea>
+
+  <div class="drop" id="drop">اضغطي لاختيار صورة أو PDF</div>
+  <input type="file" id="wFile" accept="image/*,application/pdf" hidden>
+  <div id="pick" class="hint"></div>
+
+  <label class="chk-line">
+    <input type="checkbox" id="wShared">
+    أوافق على عرضه في المحاضرة أمام زميلاتي
+  </label>
+  <p class="hint">وبغير موافقتك لا يُعرض — تراه الدكتورة وحدها. ويمكنك
+     سحب الموافقة متى شئت.</p>
+
+  <div class="row">
+    <button id="wSave" type="button" class="gold">أضيفي</button>
+    <span class="hint" id="wState"></span>
+  </div>
+</section>
+
+<div id="list"></div>
+
+<!-- العرض ملء الشاشة -->
+<div id="stage" class="workstage" hidden>
+  <div class="bar">
+    <span id="stageTitle"></span>
+    <button id="stageClose" type="button" class="ghost sm">إغلاق</button>
+  </div>
+  <div class="frame" id="stageBody"></div>
+</div>
+
+<div class="foot">
+  <div id="credit"></div>
+</div>
+
+<script src="data/tenants.js"></script>
+<script src="data/courses.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/adapters/supabase.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/role.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/works.js"></script>
+</body>
+</html>

@@ -2,7 +2,8 @@
    ليس Supabase الحقيقي — لكنه يطبّق نفس عقد HTTP الذي يستعمله المحوّل. */
 import http from 'http';
 const DB = { students: [], events: [], attendance: [], submissions: [], schedule: [],
-             grades: [], scheme: [], attend_codes: [], content: [], owners: [{uid:'owner-1'}] };
+             grades: [], scheme: [], attend_codes: [], content: [], works: [],
+             owners: [{uid:'owner-1'}] };
 // من هو الداخل؟ يُضبط من الاختبار عبر /__as/<uid>
 let WHO = 'owner-1';
 // حسابات GoTrue: البريد ← كلمة السر
@@ -10,7 +11,8 @@ const USERS = new Map();
 const FILES = new Map();
 const PK = { students:['id'], events:['id'], attendance:['id'], submissions:['id'],
              grades:['id'], scheme:['section_id'], schedule:['section_id','session'],
-             attend_codes:['section_id','session'], content:['id'], owners:['uid'] };
+             attend_codes:['section_id','session'], content:['id'], works:['id'],
+             owners:['uid'] };
 
 const send = (res, code, body, extra={}) => {
   res.writeHead(code, {
@@ -58,8 +60,17 @@ const SESSIONS = new Set();
 const server = http.createServer((req,res)=>{
   if (req.method==='OPTIONS') return send(res,204,null);
   const u = new URL(req.url, 'http://x');
-  let body=''; req.on('data',d=>body+=d); req.on('end',()=>{
-    const json = body?JSON.parse(body):null;
+  //  الجسم يُجمع بايتاتٍ لا حروفًا: رفعُ صورةٍ جسمُه ثنائيّ، وجمعُه
+  //  نصًّا يُفسده فلا تُعاد الصورةُ كما رُفعت.
+  const chunks=[]; req.on('data',d=>chunks.push(Buffer.from(d))); req.on('end',()=>{
+    const raw = Buffer.concat(chunks);
+    const body = raw.length ? raw.toString('utf8') : '';
+    //  وما ليس JSON لا يُسقط الخادم. كان JSON.parse يُنادى على كل
+    //  جسم، فأولُ رفعِ ملفٍّ يرمي SyntaxError خارج أيِّ try فيموت
+    //  المحاكي — ويظهر في المتصفّح ERR_CONNECTION_REFUSED، فيُظنّ
+    //  العطبُ في الصفحة وهو في أداة الفحص.
+    let json = null;
+    try { json = body ? JSON.parse(body) : null; } catch (e) { json = null; }
 
     // ── auth: يحاكي GoTrue بكلمة السر ──
     //  الحسابات في الذاكرة. و CONFIRM=1 يحاكي مشروعًا لم يُطفأ فيه
@@ -147,10 +158,12 @@ const server = http.createServer((req,res)=>{
     // ── storage ──
     if (u.pathname.startsWith('/storage/v1/object/')) {
       const key = u.pathname.replace('/storage/v1/object/','');
-      if (req.method==='POST'){ FILES.set(key, body); return send(res,200,{Key:key}); }
+      if (req.method==='POST'){ FILES.set(key, raw); return send(res,200,{Key:key}); }
       if (req.method==='GET'){
         if(!FILES.has(key)) return send(res,404,{});
-        res.writeHead(200,{'Access-Control-Allow-Origin':'*','Content-Type':'application/octet-stream'});
+        res.writeHead(200,{'Access-Control-Allow-Origin':'*',
+                           'Content-Type':'application/octet-stream',
+                           'Content-Length':FILES.get(key).length});
         return res.end(FILES.get(key));
       }
       if (req.method==='DELETE') return send(res,200,{});
@@ -178,6 +191,8 @@ const server = http.createServer((req,res)=>{
     }
     if (req.method==='POST') {
       const rows = Array.isArray(json)?json:[json];
+      //  وقتُ الإنشاء يختمه الخادم، كما يفعل المطلِق on_work_saved.
+      if (table==='works') rows.forEach(r=>{ if(!r.created_at) r.created_at=new Date().toISOString(); });
       const conflict = (u.searchParams.get('on_conflict')||PK[table].join(',')).split(',');
       const out=[];
       for (const r of rows) {
