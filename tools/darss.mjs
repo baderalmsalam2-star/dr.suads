@@ -94,6 +94,49 @@ await p.waitForTimeout(250);
 const after = await p.evaluate(()=>[...document.querySelectorAll('.slide')].findIndex(s=>s.classList.contains('on')));
 ok('والإصبع يقلّب الشريحة والقلمُ مفتوح', after === before+1, `${before} ← ${after}`);
 
+//  ═══ والقلم لا يقلّبها ═══
+//  قلمُ أبل يُطلق لمسًا مع أحداث المؤشّر، وdeck.js يقرأ السحب
+//  باللمس. فخطٌّ أعرضُ من ٤٥ بكسلًا كان يُقرأ سحبًا — وهو ما شكت
+//  منه الدكتورة. ويُحاكى هنا بلمسٍ نوعُه stylus، وهو الطريق الذي
+//  لم يمرّ عليه الفحصُ الأول أصلًا.
+const where = () => p.evaluate(()=>[...document.querySelectorAll('.slide')].findIndex(s=>s.classList.contains('on')));
+
+//  لمسٌ نوعُه stylus — كما يُصدره سفاري على الآيباد.
+//  touchType ليس من خصائص مُنشئ Touch في كروميوم، فيُضبط بعده.
+async function swipe(kind){
+  await p.evaluate((kind)=>{
+    const cv=document.querySelector('canvas.ink');
+    const mk=(n,x)=>{
+      const t=new Touch({identifier:1,target:cv,clientX:x,clientY:400});
+      if (kind==='stylus') Object.defineProperty(t,'touchType',{value:'stylus'});
+      cv.dispatchEvent(new TouchEvent(n,{bubbles:true,cancelable:true,
+        changedTouches:[t], touches:n==='touchend'?[]:[t]}));
+    };
+    mk('touchstart',700); mk('touchmove',500); mk('touchend',300);
+  }, kind);
+  await p.waitForTimeout(300);
+}
+
+const at0 = await where();
+await swipe('stylus');
+ok('وخطُّ القلم لا يقلّب الشريحة', (await where()) === at0, `${at0} ← ${await where()}`);
+
+//  والمسار الثاني: قلمٌ مُنزَلٌ الآن ولمسٌ بلا نوع — لمتصفّحٍ لا
+//  يضع touchType. يُنزَّل القلم ولا يُرفع، ثم يُجرَّب السحب.
+await p.evaluate(()=>{
+  const cv=document.querySelector('canvas.ink');
+  const r=cv.getBoundingClientRect();
+  cv.dispatchEvent(new PointerEvent('pointerdown',{pointerType:'pen',pointerId:7,
+    bubbles:true,cancelable:true,buttons:1,clientX:r.left+r.width*0.4,clientY:r.top+r.height*0.4}));
+});
+const at2 = await where();
+await swipe('plain');
+ok('ولا يقلّبها لمسٌ والقلمُ مُنزَل', (await where()) === at2, `${at2} ← ${await where()}`);
+await p.evaluate(()=>{
+  const cv=document.querySelector('canvas.ink');
+  cv.dispatchEvent(new PointerEvent('pointerup',{pointerType:'pen',pointerId:7,bubbles:true,buttons:0}));
+});
+
 await p.waitForTimeout(1400);      // يحين أجل الحفظ
 await p.close();
 
@@ -102,9 +145,17 @@ await p.waitForTimeout(900);
 ok('والخطُّ يعود بعد إعادة الفتح', await count(p) > 200, await count(p)+' بكسل');
 await p.close();
 
+await fetch(API+'/rest/v1/students',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({id:'st-ink',section_id:'wilaya:1',no:8,name:'طالبة القلم',
+                       uid:'0000000008',auth_uid:'student-x',active:true})});
 await fetch(API+'/__as/student-x');
 p = await open();
-ok('والطالبة لا ترى الشريط', !(await p.locator('.inkbar').isVisible()));
+ok('والطالبة ترى الشريط كذلك — لها دفترها',
+   await p.locator('.inkbar').isVisible());
+
+//  ودفترها غيرُ دفتر الدكتورة: تفتح الشريحة نفسها فلا تجد خطَّها
+const hers = await count(p);
+ok('ولا ترى ما خطّته الدكتورة', hers === 0, hers + ' بكسل');
 await p.close();
 
 // ═══ فتحُ المحاضرة للطالبات ═══

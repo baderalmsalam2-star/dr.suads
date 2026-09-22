@@ -35,8 +35,13 @@
   var inner = document.querySelector(".folio .inner");
   if (!slides.length || !inner) return;
 
-  var REF = (COURSE.id || "course") + ":s" + sessionNo;
   var COLORS = ["#E23D2E", "#0DABE2", "#F8D81B", "#14A06A"];
+
+  /*  لكلٍّ دفترُها: الدكتورة تكتب على مرجع الدرس، والطالبة على مرجعٍ
+      يحمل معرّف صفّها. فلا تُمحى كتابةُ إحداهما بكتابة الأخرى، ولا
+      ترى الطالبةُ ما خطّته الدكتورةُ في تحضيرها — وهي ملاحظاتُ
+      شرحٍ لم تُكتب لها. */
+  var REF = (COURSE.id || "course") + ":s" + sessionNo;
 
   var ink = {};          /* فهرس الشريحة → مصفوفة خطوط */
   var pen = false, erase = false, finger = false;
@@ -253,9 +258,40 @@
     if (pen && e.target === cv) { e.stopPropagation(); e.preventDefault(); }
   }, true);
 
+  /*  ═══ والقلمُ يُطلق لمسًا أيضًا ═══
+      على الآيباد يُصدر قلمُ أبل أحداثَ لمسٍ إلى جانب أحداث المؤشّر،
+      وdeck.js يقرأ السحبَ باللمس. فكلُّ خطٍّ أعرضَ من خمسةٍ وأربعين
+      بكسلًا كان يُقرأ سحبًا فتمشي الشريحةُ تحت القلم — وهو ما شكت
+      منه الدكتورة: «الشريحة تمشي وقت الكتابة».
+
+      واختباري كان أعمى عنه: حاكى أحداث المؤشّر وحدها، فلم يمرّ على
+      طريق اللمس أصلًا. فحرسُ النقر وحده لا يكفي.
+
+      ويُفرَّق باللمس نفسه: touchType === 'stylus' في سفاري، ومعه
+      علمُنا أن قلمًا مُنزَلٌ الآن — فبعض المتصفّحات لا تضع النوع.
+      والإصبعُ يبقى يقلّب كما كان: تكتب بالقلم وتقلّب بإصبعها. */
+  var penDown = false;
+  cv.addEventListener("pointerdown", function (e) {
+    if (e.pointerType === "pen") penDown = true;
+  }, true);
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
+    cv.addEventListener(t, function (e) {
+      if (e.pointerType === "pen") penDown = false;
+    }, true);
+  });
+
+  function byStylus(e) {
+    var list = e.changedTouches || e.touches || [];
+    for (var k = 0; k < list.length; k++) {
+      if (list[k].touchType === "stylus") return true;
+    }
+    return false;
+  }
+
   ["touchstart", "touchend", "touchmove"].forEach(function (t) {
     addEventListener(t, function (e) {
-      if (pen && finger) e.stopPropagation();
+      if (!pen) return;
+      if (finger || penDown || byStylus(e)) e.stopPropagation();
     }, true);
   });
 
@@ -273,9 +309,8 @@
     if (e.key === "k" || e.key === "ك") { toggle(); e.preventDefault(); }
   });
 
-  /* ─── لمن تملك التحرير وحدها ─── */
-  TPRole.staff().then(function (ok) {
-    if (!ok) return;
+  /* ─── للدكتورة وللطالبة، ولكلٍّ دفترُها ─── */
+  function start() {
     document.querySelector(".folio").appendChild(bar);
     bar.hidden = false;
     return TPContent.ready().then(function () {
@@ -285,6 +320,19 @@
         try { ink[n] = JSON.parse(raw) || []; } catch (x) { ink[n] = []; }
       });
       size();
+    });
+  }
+
+  TPRole.staff().then(function (ok) {
+    if (ok) return start();
+    /*  الطالبة تكتب على شريحتها كما تكتب في دفترها: تحوّط كلمةً
+        وتعلّق في الهامش. وكتابتُها لها وحدها — لا تراها الدكتورةُ
+        ولا زميلاتُها، فهي ملاحظاتُ درسٍ لا تسليم. */
+    return Store.students().then(function (rows) {
+      var me = (rows || [])[0];
+      if (!me) return;                 /* حسابٌ بلا صفّ: لا دفتر له */
+      REF = REF + "@" + me.id;
+      return start();
     });
   }).catch(function () { /* بلا خادم: لا كتابة */ });
 
