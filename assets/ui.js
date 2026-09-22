@@ -425,6 +425,26 @@
     offlineNote: offlineNote,
     coursePicker: coursePicker, toast: toast,
     credit: credit,
+    /*  «الكشف فارغ» جملتان لا جملة، والفرقُ بينهما الدور.
+        عند الدكتورة معناه: لم تُدخليه بعد.
+        وعند الطالبة معناه شيءٌ آخر تمامًا: حسابُها لم يُربط بصفّها،
+        فالسياسةُ لا تُرجع لها شيئًا.
+        وكانت رسالةُ الدكتورة «أضيفي الكشف من صفحة الطالبات» تُعرض
+        على الطالبة في أربعة مواضع، فتقف أمام بابٍ مغلقٍ لا تعرف من
+        يفتحه. فجُمعت ههنا لئلا يتخلّف موضعٌ خامس عن الإصلاح القادم.
+
+        وتُملأ الصندوقَ بنفسها ليستوي النداءُ في المواضع كلِّها. */
+    emptyRoster: function (box, staff) {
+      if (!box) return;
+      box.textContent = "";
+      box.appendChild(staff
+        ? empty("لا يوجد كشف لهذه الشعبة.",
+                "أضيفي الكشف من صفحة «الطالبات» أولًا.")
+        : empty("حسابك غير مربوطٍ بكشف هذه الشعبة.",
+                "تأكّدي أنكِ دخلتِ ببريدك الجامعي (sرقمك@ku.edu.kw). " +
+                "فإن كان كذلك فرقمك لم يُضَف بعدُ إلى الكشف — راجعي الدكتورة."));
+    },
+
     empty: empty, download: download, readAsText: readAsText,
     readAsDataURL: readAsDataURL, arDate: arDate, arMonth: arMonth, bytes: bytes,
     count: count, safeName: safeName, csv: csv,

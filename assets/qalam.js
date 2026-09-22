@@ -43,6 +43,13 @@
       شرحٍ لم تُكتب لها. */
   var REF = (COURSE.id || "course") + ":s" + sessionNo;
 
+  /*  عنوانُ خطِّ الشريحة. ودفترُ الطالبة يُلحق بـ«@معرّف صفّها»
+      في آخر العنوان لا في وسطه: السياسةُ في الخادم تقرأ ما بعد آخر
+      «@» لتعرف صاحبَ الدفتر، فلو جاء الرقمُ قبل «#» قرأت
+      «st-sara#0» ولم تجده صفًّا، فرُدّت كتابتُها كلُّها. */
+  var MINE = "";
+  function refOf(n) { return REF + "#" + n + MINE; }
+
   var ink = {};          /* فهرس الشريحة → مصفوفة خطوط */
   var pen = false, erase = false, finger = false;
   var color = COLORS[0], width = 3;
@@ -160,12 +167,22 @@
     timer = setTimeout(save, 1000);
   }
 
+  /*  ولا تُرفع علامةُ «تبدّلت» إلا بعد أن يُقرّ الخادم.
+      كانت تُرفع قبل أن يُحسم الوعد، فالكتابةُ التي أخفقت — انقطاعُ
+      شبكةٍ في القاعة، أو رمزٌ انتهى — لا تُعاد أبدًا. والشاشةُ تبقى
+      صحيحةً لأن الطبقة تضع القيمة في الذاكرة قبل أن تسأل، فلا يظهر
+      الفقدُ إلا عند إعادة فتح المحاضرة. */
   function save() {
     Object.keys(dirty).forEach(function (n) {
       var list = ink[n] || [];
-      TPContent.set(REF + "#" + n, "ink", list.length ? JSON.stringify(list) : "")
-        .catch(function (e) { TPUI.toast("تعذّر حفظ الكتابة: " + (e.message || ""), "bad"); });
-      delete dirty[n];
+      TPContent.set(refOf(n), "ink", list.length ? JSON.stringify(list) : "")
+        .then(function () { delete dirty[n]; })
+        .catch(function (e) {
+          TPUI.toast("تعذّر حفظ الكتابة — تُعاد المحاولة: " + (e.message || ""), "bad");
+          /*  تبقى العلامةُ مرفوعة، ويُعاد الحفظ بعد قليل. */
+          clearTimeout(timer);
+          timer = setTimeout(save, 5000);
+        });
     });
   }
   /*  وإن أُغلقت الصفحة قبل أن يحين الأجل، حُفظ ما بقي. */
@@ -315,7 +332,7 @@
     bar.hidden = false;
     return TPContent.ready().then(function () {
       slides.forEach(function (_, n) {
-        var raw = TPContent.get(REF + "#" + n, "ink");
+        var raw = TPContent.get(refOf(n), "ink");
         if (!raw) return;
         try { ink[n] = JSON.parse(raw) || []; } catch (x) { ink[n] = []; }
       });
@@ -331,7 +348,7 @@
     return Store.students().then(function (rows) {
       var me = (rows || [])[0];
       if (!me) return;                 /* حسابٌ بلا صفّ: لا دفتر له */
-      REF = REF + "@" + me.id;
+      MINE = "@" + me.id;
       return start();
     });
   }).catch(function () { /* بلا خادم: لا كتابة */ });

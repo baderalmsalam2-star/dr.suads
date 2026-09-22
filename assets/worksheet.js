@@ -144,14 +144,7 @@
           وكانت تُعرض عليها رسالةُ الدكتورة «أضيفي الكشف»، فتقف
           أمام بابٍ مغلقٍ لا تعرف من يفتحه. */
       TPRole.staff().then(function (ok) {
-        var box = document.getElementById("emptyBox");
-        box.textContent = "";
-        box.appendChild(ok
-          ? TPUI.empty("لا يوجد كشف لهذه الشعبة.",
-              "أضيفي الكشف من صفحة «الطالبات» أولًا.")
-          : TPUI.empty("حسابك غير مربوطٍ بكشف هذه الشعبة.",
-              "تأكّدي أنكِ دخلتِ ببريدك الجامعي (sرقمك@ku.edu.kw). " +
-              "فإن كان كذلك فرقمك لم يُضَف بعدُ إلى الكشف — راجعي الدكتورة."));
+        TPUI.emptyRoster(document.getElementById("emptyBox"), ok);
       });
       return;
     }
@@ -494,7 +487,12 @@
         if (!locked) {
           var rm = el("button", "sm danger", "حذف");
           rm.addEventListener("click", function () {
-            Store.removeFile(f.fileId).catch(function () {});
+            /*  الردُّ يُقال: كان يُبتلع، فيمضي المسحُ في الواجهة ويُحفظ في
+        التسليم وإن ردّ الخادم — فيبقى الملفُّ معلّقًا ولا أحد يعلم،
+        والطالبةُ ترى أنّ الحذف تمّ. */
+    Store.removeFile(f.fileId).catch(function (e) {
+      TPUI.toast(e && e.message ? e.message : "تعذّر حذف الملف من الخادم.", "bad");
+    });
             current.splice(fi, 1);
             sub.files[it.id] = current;
             paint(); autosave();

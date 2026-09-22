@@ -16,8 +16,13 @@
   var students = [], points = {}, picked = null, open = false;
   var panel, grid, kindBar, title;
 
-  build();
-  load();
+  /*  أدواتُ الشرح لا تُبنى إلا للدكتورة.
+      كانت تُبنى لكل من فتح المحاضرة، فترى الطالبةُ زرًّا عائمًا
+      ولوحةً تُغريها بما يردّه الخادم، ويعمل عندها مفتاحُها في لوحة
+      المفاتيح. والحارسُ في الخادم قائمٌ — لكن بابًا يُفتح ثم يُقال
+      «لا صلاحية» أسوأُ من بابٍ لا يُعرض. */
+  if (!window.TPRole) return;
+  TPRole.staff().then(function (ok) { if (!ok) return; build(); load(); });
 
   /* ─── البناء ─── */
   function build() {
@@ -66,7 +71,11 @@
 
     addEventListener("keydown", function (e) {
       var t = e.target;
-      if (t && t.tagName && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      /*  ولا يُلتقط حرفٌ يُكتب: «تحرير النصّ» يجعل الشريحة نفسها
+          قابلةً للكتابة، وهي ليست INPUT ولا TEXTAREA. فكانت الدكتورة
+          تصحّح «من» أو «الحكم» فلا يُكتب الحرف، ويُفتح شريطٌ فوق
+          الشريحة والبروجكتر يعرضها. */
+      if (t && t.closest && t.closest("input, textarea, select, [contenteditable]")) return;
       if (e.key === "م" || e.key === "m" || e.key === "M") { toggle(); e.preventDefault(); }
       else if (e.key === "Escape" && open) { toggle(); }
     });

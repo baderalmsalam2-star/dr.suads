@@ -14,10 +14,16 @@
 
   var el = TPUI.el;
 
-  /*  الجداول العشرة كما في supabase/schema.sql. نقصان واحدٍ منها
-      يعني أن السكربت لم يُلصق أو لُصق ناقصًا. */
+  /*  جداولُ supabase/schema.sql كلُّها. نقصان واحدٍ منها يعني أن
+      السكربت لم يُلصق أو لُصق ناقصًا.
+
+      ويُذكر كلُّ جديدٍ هنا: بقي replies وworks خارج القائمة بعد
+      إضافتهما، فكانت الصفحةُ تقول «المشروع جاهز» لأستاذةٍ لصقت
+      مخطّطًا قديمًا، ثم ينكسر عندها كشفُ الإجابة في القاعة وصفحةُ
+      الأعمال. والعددُ يُشتقّ من القائمة فلا يتخلّف نصٌّ عنها. */
   var TABLES = ["owners", "students", "events", "attendance", "submissions",
-                "schedule", "grades", "scheme", "attend_codes", "content"];
+                "schedule", "grades", "scheme", "attend_codes", "content",
+                "replies", "works"];
 
   TPUI.chrome(null, "تنصيب أستاذة", "إضافة مستأجرةٍ إلى النشرة");
   TPUI.credit(document.getElementById("credit"));
@@ -94,8 +100,8 @@
       var missing = rows.filter(function (x) { return !x.r.ok; });
       box.appendChild(line(missing.length === 0,
         missing.length === 0
-          ? "المشروع جاهز — الجداول العشرة موجودة."
-          : "ينقص " + missing.length + " من عشرة جداول.",
+          ? "المشروع جاهز — الجداول " + TP.ar(TABLES.length) + " موجودة."
+          : "ينقص " + TP.ar(missing.length) + " من " + TP.ar(TABLES.length) + " جداول.",
         missing.length ? "الصقي supabase/schema.sql في محرّر SQL ثم أعيدي الفحص." : ""));
       rows.forEach(function (x) { box.appendChild(line(x.r.ok, x.t, x.r.why)); });
       if (missing.length === 0) render();
@@ -110,13 +116,13 @@
         return r.text();
       })
       .then(function (t) { return navigator.clipboard.writeText(t); })
-      .then(function () { TPUI.toast("نُسخ schema.sql — الصقيه في محرّر SQL واضغطي Run.", "ok"); })
+      .then(function () { TPUI.toast("نُسخ schema.sql — الصقيه في محرّر SQL واضغطي Run.", "good"); })
       .catch(function () { TPUI.toast("تعذّر النسخ. افتحي supabase/schema.sql وانسخيه يدويًا.", "bad"); });
   });
 
   document.getElementById("copyOut").addEventListener("click", function () {
     navigator.clipboard.writeText(document.getElementById("out").value)
-      .then(function () { TPUI.toast("نُسخ المدخل — الصقه في data/tenants.js.", "ok"); })
+      .then(function () { TPUI.toast("نُسخ المدخل — الصقه في data/tenants.js.", "good"); })
       .catch(function () { TPUI.toast("تعذّر النسخ. انسخيه من الصندوق يدويًا.", "bad"); });
   });
 

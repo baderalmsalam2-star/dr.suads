@@ -356,7 +356,10 @@ PAGE = '''<!DOCTYPE html>
 <title>المحاضرة {nar} — {title}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<!--  ورقةٌ خارجيةٌ لا تحجز الرسم — انظر تعليقها في index.html. -->
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap"
+      rel="stylesheet" media="print" onload="this.media='all';this.onload=null">
+<noscript><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 {favicon}
 <link rel="manifest" href="../../manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="../../icons/icon-180.png">

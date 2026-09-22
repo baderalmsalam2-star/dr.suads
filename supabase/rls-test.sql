@@ -14,7 +14,11 @@ do $$ begin
 end $$;
 grant usage on schema public to anon, authenticated;
 grant all on all tables in schema public to anon, authenticated;
-grant execute on all functions in schema public to anon, authenticated;
+--  ولا تُمنح الدوالُّ منحًا صريحًا: على Postgres كلُّ دالّةٍ تُنشأ
+--  قابلةً للتنفيذ من public، فيرثها anon وauthenticated. والمنحُ
+--  الصريح كان يبقى بعد revoke ... from public، فيُخفي كلَّ ثغرةِ
+--  صلاحيةٍ في دالّة — وأوّلُها locked_file التي تتخطّى الحماية.
+--  فتُترك الدوالُّ على أصلها، ويُمنح صراحةً ما يمنحه schema.sql.
 /* Supabase يمنح authenticated وصولًا إلى storage وحارسه RLS —
    يُحاكى هنا ليُختبر قفل ملفات التسليم */
 grant usage on schema storage to anon, authenticated;
@@ -410,7 +414,7 @@ insert into students(id,section_id,no,name,uid,placeholder) values
 
 begin; set local role anon;
 insert into rls_results select 'بلا حساب تسجّل نفسها بالباركود',
-  join_class('wilaya:7','نوره فهد عبدالهادي تركي','2202147001') = 'j-ph';
+  join_class('wilaya:7','طالبةٌ تجريبيةٌ رباعية','2200000071') = 'j-ph';
 commit;
 
 insert into rls_results select 'تملأ صفًّا نموذجيًّا لا تُنشئ صفًّا جديدًا',
@@ -420,7 +424,7 @@ insert into rls_results select 'والصفّ لم يعد نموذجيًّا',
 
 begin; set local role anon;
 insert into rls_results select 'إعادة التسجيل تُحدّث ولا تُكرّر',
-  join_class('wilaya:7','نوره فهد تركي','2202147001') = 'j-ph';
+  join_class('wilaya:7','طالبةٌ تجريبيةٌ ثلاثية','2200000071') = 'j-ph';
 commit;
 insert into rls_results select 'ولا يزال صفًّا واحدًا',
   (select count(*) from students where section_id='wilaya:7')=1;
@@ -448,13 +452,13 @@ end $$;
 
 -- رقمٌ مربوط بحساب لا يُنتحَل
 insert into auth.users(id,email) values
- ('aaaaaaaa-7777-0000-0000-000000000001','s2202147001@ku.edu.kw') on conflict do nothing;
+ ('aaaaaaaa-7777-0000-0000-000000000001','s2200000071@ku.edu.kw') on conflict do nothing;
 update students set auth_uid='aaaaaaaa-7777-0000-0000-000000000001' where id='j-ph';
 do $$
 begin
   begin
     perform set_config('role','anon',true);
-    perform join_class('wilaya:7','اسم مسروق','2202147001');
+    perform join_class('wilaya:7','اسم مسروق','2200000071');
     perform set_config('role','postgres',true);
     insert into rls_results values ('رقمٌ مربوط بحساب لا يُنتحَل', false);
   exception when others then
@@ -463,7 +467,7 @@ begin
   end;
 end $$;
 insert into rls_results select 'ولم يُنشَأ له صفٌّ ثانٍ',
-  (select count(*) from students where uid='2202147001')=1;
+  (select count(*) from students where uid='2200000071')=1;
 
 -- مدخلات غير صالحة تُرفض
 do $$
@@ -1168,6 +1172,100 @@ begin; set local role anon;
 insert into rls_results select 'والمجهول لا يرى إجابةً',
   (select count(*) from replies) = 0;
 commit;
+
+-- ═══════════════════════════════════════════════════════════════
+--  دفترُ الطالبة على الشريحة
+--
+--  خطُّ القلم يسكن طبقة content، ومرجعُ دفترها ينتهي بـ«@معرّف
+--  صفّها». فيُختبر أنها تكتب دفترها هي، ولا تكتب تصحيحَ نصٍّ ولا
+--  دفترَ زميلتها.
+-- ═══════════════════════════════════════════════════════════════
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into content(id,course_id,ref,field,value)
+  values ('wilaya:s3#0@t-sara|ink','wilaya','wilaya:s3#0@t-sara','ink','[[1,2]]');
+commit;
+insert into rls_results select 'الطالبة تكتب دفترها على الشريحة',
+  exists (select 1 from content where ref = 'wilaya:s3#0@t-sara');
+
+--  ولا تكتب دفتر زميلتها
+do $$ begin
+  begin
+    set local role authenticated;
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into content(id,course_id,ref,field,value)
+      values ('wilaya:s3#0@t-noura|ink','wilaya','wilaya:s3#0@t-noura','ink','[[9,9]]');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تكتب دفتر زميلتها', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تكتب دفتر زميلتها', true);
+  end;
+end $$;
+
+--  ولا تكتب تصحيحَ نصٍّ بحجّة الدفتر (مرجعٌ بلا «@»)
+do $$ begin
+  begin
+    set local role authenticated;
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into content(id,course_id,ref,field,value)
+      values ('wilaya:h1|ink','wilaya','wilaya:h1','ink','[[9,9]]');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تمسّ نصَّ المقرر بحجّة الدفتر', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تمسّ نصَّ المقرر بحجّة الدفتر', true);
+  end;
+end $$;
+
+--  ولا تكتب حقلًا غير الخطّ في مرجع دفترها
+do $$ begin
+  begin
+    set local role authenticated;
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into content(id,course_id,ref,field,value)
+      values ('wilaya:s3#q0@t-sara|kashf','wilaya','wilaya:s3#q0@t-sara','kashf','1');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تكشف جوابًا بحجّة الدفتر', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تكشف جوابًا بحجّة الدفتر', true);
+  end;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════════
+--  ما تملكه الطالبة وما يملكه الخادم
+-- ═══════════════════════════════════════════════════════════════
+--  الشعبةُ تُشتقّ من صفّها لا تُؤخذ من المتصفّح: لولا ذلك أُرسلت
+--  إجابةٌ بشعبةٍ أخرى فحُسبت في حصيلتها على شاشة الدكتورة.
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into replies(id,student_id,section_id,session,q,choice)
+  values ('rp-sec','t-sara','wilaya:99',5,0,1);
+commit;
+insert into rls_results select 'وشعبةُ الإجابة يشتقُّها الخادم',
+  (select section_id from replies where id='rp-sec')
+  = (select section_id from students where id='t-sara');
+
+--  وملفُّ العمل لا يُقبل من مجلّد غيرها
+do $$ begin
+  begin
+    set local role authenticated;
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into works(id,student_id,section_id,title,file_id)
+      values ('wk-steal','t-sara','wilaya:9','عملٌ بملفِّ غيرها','t-noura/ورقتها.pdf');
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تنسب إلى عملها ملفَّ زميلتها', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تنسب إلى عملها ملفَّ زميلتها', true);
+  end;
+end $$;
+
+--  ودالّةُ «أهذا الملفّ في تسليمٍ مقفل؟» لا تُستدعى من الخارج:
+--  تعمل بصلاحية المالكة فتتخطّى الحماية، وPostgREST يعرض كلَّ
+--  دالّةٍ مفتوحةٍ على /rpc/.
+insert into rls_results select 'ودالّةُ الملفّ المقفل لا تُستدعى بلا صلاحية',
+  not has_function_privilege('anon','locked_file(text)','execute')
+  and not has_function_privilege('authenticated','locked_file(text)','execute');
 
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;

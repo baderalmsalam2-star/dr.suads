@@ -33,13 +33,6 @@
       النظم لا يُنتظر. وطريقٌ واحدٌ يعمل خيرٌ من طريقين أحدهما يخذل.
       والدالّة باقيةٌ في المحوّل لمن أراد تفعيلها لاحقًا. */
 
-  function show(id) {
-    ["form", "who", "migrate", "offline"].forEach(function (k) {
-      document.getElementById(k).hidden = k !== id && k !== "migrate";
-    });
-    document.getElementById(id).hidden = false;
-  }
-
   function refresh() {
     state.textContent = "جارٍ التحقق…";
     if (!TPAuth.session()) {

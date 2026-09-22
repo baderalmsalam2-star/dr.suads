@@ -39,8 +39,43 @@
 
   TPContent.ready().then(start).catch(start);
 
+  /*  الاختبارُ المغلق لا يُفتح بكتابة عنوانه.
+      كانت صفحةُ القائمة وحدها تحرس، وexam.html لا تسأل عن الفتح
+      البتّة. فمن احتفظت برابطٍ قديم، أو قرأت المعرّف من ملفّ
+      المقرر — وهو علنيّ — فتحت ورقة الاختبار قبل يومه.
+
+      وأخطرُ من تسرّب الأسئلة أن «ابدئي الاختبار» كان حيًّا: فيُنشأ
+      صفُّ التسليم ويختم الخادمُ started_at ولا يُعدَّل بعدها أبدًا،
+      فتنطلق ساعتُها. ثم تأتي يوم الاختبار وقد انقضى وقتُها.
+
+      وهذا ترتيبُ عرضٍ لا حاجزُ أمان — الأسئلة في ملفٍّ ساكنٍ يقرؤه
+      من فتح أدوات المتصفّح. وإنما يمنع الوقوعَ في الخطأ بلا قصد. */
+  function gate() {
+    var ref = (COURSE.id || "course") + ":x" + EX.id;
+    if (TPContent.get(ref, "released") === "1") return Promise.resolve(true);
+    if (!window.TPRole) return Promise.resolve(false);
+    return TPRole.staff();
+  }
+
+  function shut() {
+    TPUI.chrome("worksheets", "اختبار", null);
+    TPUI.emptyRoster && document.getElementById("emptyBox").appendChild(
+      TPUI.empty("لم يُفتح هذا الاختبار بعد.",
+                 "يظهر لكِ في الصفحة الرئيسية يوم تفتحه الدكتورة."));
+    var c = document.querySelector(".control");
+    if (c) c.hidden = true;
+  }
+
   function start() {
+    gate().then(function (ok) { if (ok) build(); else shut(); });
+  }
+
+  function build() {
     TPUI.chrome("worksheets", EX.title, EX.scope || null);
+    /*  زرُّ «طباعة» كان في الصفحة بلا مُصغٍ، فتضغطه الطالبة ولا
+        يقع شيء. وأخواتُه موصولةٌ في كل صفحةٍ أخرى. */
+    var pr = document.getElementById("printBtn");
+    if (pr) pr.addEventListener("click", function () { window.print(); });
     document.getElementById("brief").textContent = brief();
     teacherPanel();
 
@@ -131,8 +166,9 @@
     Store.students(section.id).then(function (list) {
       students = list.slice().sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
       if (!students.length) {
-        document.getElementById("emptyBox").appendChild(
-          TPUI.empty("لا يوجد كشف لهذه الشعبة.", "أضيفي الكشف من صفحة «الطالبات» أولًا."));
+        TPRole.staff().then(function (ok) {
+          TPUI.emptyRoster(document.getElementById("emptyBox"), ok);
+        });
         return;
       }
       students.forEach(function (s) {

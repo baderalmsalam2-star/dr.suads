@@ -221,6 +221,11 @@
   }
 
   addEventListener("keydown", function (e) {
+    /*  الحرفُ الذي يُكتب لا يُلتقط اختصارًا: «تحرير النصّ» يجعل
+        الشريحة قابلةً للكتابة وهي ليست INPUT. فكانت + و− و٠ و«ر»
+        و Home و End تعمل على العرض والدكتورةُ تصحّح كلمة. */
+    if (e.target && e.target.closest &&
+        e.target.closest("input, textarea, select, [contenteditable]")) return;
     if (e.key === "ArrowLeft" || e.key === "PageDown") { show(i + 1); e.preventDefault(); }
     else if (e.key === "ArrowRight" || e.key === "PageUp") { show(i - 1); e.preventDefault(); }
     else if (e.key === " ") { reveal(); e.preventDefault(); }
@@ -262,15 +267,23 @@
   });
 
   /* سحب بالإصبع — الاتجاه من اليمين لليسار كاتجاه القراءة */
-  var x0 = null;
+  var x0 = null, y0 = 0;
   addEventListener("touchstart", function (e) {
-    x0 = inkOn() ? null : e.changedTouches[0].clientX;
+    /*  إصبعان: قرصةُ تكبيرٍ أو تمرير، لا تقليب. */
+    if (inkOn() || e.touches.length > 1) { x0 = null; return; }
+    x0 = e.changedTouches[0].clientX;
+    y0 = e.changedTouches[0].clientY;
   }, { passive: true });
   addEventListener("touchend", function (e) {
     if (x0 === null || inkOn()) return;
     var dx = e.changedTouches[0].clientX - x0;
+    var dy = e.changedTouches[0].clientY - y0;
     x0 = null;
     if (Math.abs(dx) < 45) return;
+    /*  ويُوزَن الأفقيّ بالرأسيّ: الشريحةُ الطويلة تُمرَّر بالإصبع،
+        والتمريرُ لا يخلو من ميلٍ أفقيّ. فكانت سحبةُ قراءةٍ إلى أسفل
+        تُقرأ تقليبًا، فتمضي الشريحة والدكتورةُ تقرأ الخيار الرابع. */
+    if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
     show(dx < 0 ? i + 1 : i - 1);
   }, { passive: true });
 

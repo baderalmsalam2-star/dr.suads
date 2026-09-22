@@ -490,6 +490,30 @@ drop policy if exists content_write on content;
 create policy content_write on content for all
   using (is_owner()) with check (is_owner());
 
+-- ═══ ودفترُ الطالبة على الشريحة ═══
+--  خطُّ القلم يسكن هذه الطبقة أيضًا، ومرجعُ دفتر الطالبة ينتهي
+--  بـ«@معرّف صفّها»: wilaya:s3#0@t-sara. وكان content_write
+--  للمالكة وحدها، فكانت الطالبة تخطّ على الشريحة فيظهر خطُّها
+--  ويبقى — لأن الطبقة تضعه في الذاكرة قبل أن تسأل الخادم — ثم
+--  يردّه الخادم، فإذا أعادت تحميل الصفحة ذهب دفترُها كلُّه.
+--
+--  ولا يُوسَّع content_write: التصحيحاتُ نصُّ المقرر، ولا تُفتح
+--  للطالبة بحال. وإنما تُفرَد سياسةٌ لا تُجاوز مرجعها هي:
+--  ما بعد آخر «@» يجب أن يكون صفًّا من صفوفها.
+--
+--  ولا تكتب في مرجعٍ بلا «@» فتُصيب نصَّ المقرر، لأن split_part
+--  على نصٍّ بلا فاصلٍ يُرجعه كلَّه، وهو ليس معرّف صفّ.
+create or replace function ink_owner(p_ref text) returns text
+language sql immutable set search_path = public, pg_temp as $$
+  select case when position('@' in p_ref) = 0 then null
+              else substring(p_ref from '@([^@]*)$') end;
+$$;
+
+drop policy if exists content_ink on content;
+create policy content_ink on content for all
+  using      (field = 'ink' and ink_owner(ref) in (select my_student_ids()))
+  with check (field = 'ink' and ink_owner(ref) in (select my_student_ids()));
+
 -- ─── attend_codes: المالكة وحدها، ولا أحد غيرها ───
 drop policy if exists attend_codes_owner on attend_codes;
 create policy attend_codes_owner on attend_codes for all
@@ -669,6 +693,13 @@ language sql stable security definer set search_path = public, pg_temp as $$
        and s.files::text like '%' || p || '%'
   );
 $$;
+--  وتُنزَع من الجميع: هي تعمل بصلاحية المالكة فتتخطّى حمايةَ
+--  الصفوف، وPostgREST يعرض كلَّ دالّةٍ مفتوحةٍ على /rpc/. فمن ملك
+--  المفتاح المنشور — بلا حسابٍ أصلًا — كان يسألها حرفًا حرفًا
+--  فيستخرج مسارات ملفّات التسليم وأسماءها، ويعرف من سلّمت ومن لم
+--  تُسلِّم. ولا تحتاج منحًا: سياساتُ التخزين تستدعيها بصلاحية
+--  مالك الجدول لا بصلاحية الداخلة.
+revoke all on function locked_file(text) from public;
 
 -- ═══ تخزين ملفات الطالبات ═══
 --  كل ما يمسّ مخطّط storage يُحرَس: هو مملوك لدور آخر على Supabase،
@@ -852,10 +883,16 @@ create policy replies_self_update on replies for update
 
 --  ووقتُ الإجابة يُختم في الخادم: هو ما يُفرّق من أجابت في وقتها
 --  ممّن أجابت بعد كشف الجواب.
+--
+--  والشعبةُ كذلك تُشتقّ من صفّ صاحبته لا تُؤخذ من المتصفّح: كانت
+--  السياسةُ تحرس student_id وحده، فتُرسل طالبةٌ إجابةً بشعبةٍ ليست
+--  شعبتها فتُحسب في حصيلة شعبةٍ أخرى على شاشة الدكتورة — فتقرأ
+--  «أجابت ٢٣ من ٢٢» في وسط الدرس ولا تدري من أين جاءت الزيادة.
 create or replace function stamp_reply() returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
 begin
   new.at := now();
+  select section_id into new.section_id from students where id = new.student_id;
   return new;
 end $$;
 
@@ -921,16 +958,27 @@ drop policy if exists works_self_delete on works;
 create policy works_self_delete on works for delete
   using (student_id in (select my_student_ids()));
 
---  ووقتُ الإنشاء يُختم في الخادم لا يُرسَل من المتصفّح.
+--  ووقتُ الإنشاء يُختم في الخادم لا يُرسَل من المتصفّح، والشعبةُ
+--  تُشتقّ من صفّ صاحبته كما في stamp_reply.
+--
+--  والملفُّ لا يُقبل إلا من مجلّدها: مسارُه في الصندوق يبدأ بمعرّف
+--  صفّها. وكان نصًّا حرًّا، فلو بلغ طالبةً مسارُ ملفِّ زميلتها
+--  أنشأت عملًا باسمها يشير إليه وأذنت بعرضه — وجهازُ الدكتورة يقرأ
+--  الصندوق كلَّه، فيُعرض على البروجكتر ملفُّ زميلتها الخاصّ منسوبًا
+--  إلى غير صاحبته. وذاك نقضٌ لأصل هذا الجدول: الإذنُ بيد صاحبته.
 create or replace function stamp_work() returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
 begin
   if tg_op = 'INSERT' then new.created_at := now(); end if;
+  select section_id into new.section_id from students where id = new.student_id;
+  if new.file_id is not null and split_part(new.file_id, '/', 1) <> new.student_id then
+    raise exception 'الملفّ ليس في مجلّدك';
+  end if;
   return new;
 end $$;
 
 drop trigger if exists on_work_saved on works;
-create trigger on_work_saved before insert on works
+create trigger on_work_saved before insert or update on works
   for each row execute function stamp_work();
 
 -- ═══════════════════════════════════════════════════════════════

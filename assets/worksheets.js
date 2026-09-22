@@ -356,8 +356,7 @@
 
     if (!students.length) {
       table.hidden = true;
-      emptyBox.appendChild(TPUI.empty("لا يوجد كشف لهذه الشعبة.",
-        "أضيفي الكشف من صفحة «الطالبات» أولًا."));
+      TPRole.staff().then(function (ok) { TPUI.emptyRoster(emptyBox, ok); });
       return;
     }
     table.hidden = false;

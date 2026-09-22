@@ -143,7 +143,12 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
 .item textarea,.item input[type=text]{font:inherit;font-family:var(--matn);width:100%;
   font-size:clamp(1rem,1.8vw,1.25rem);line-height:1.8;color:var(--surface);
   background:var(--navy);border:1px solid var(--line);padding:.7em .9em;resize:vertical}
-.item textarea:focus,.item input:focus{outline:none;border-color:var(--faculty)}
+/*  كان .item input:focus فالتقط خانةَ الموافقة أيضًا — وهي لا حدَّ
+    لها يتبدّل، فكانت الطالبة تبلغها بـTab فلا ترى أين هي، وهي
+    قرارُ إذنٍ يخصّها. */
+.item textarea:focus,.item input[type=text]:focus{outline:none;border-color:var(--faculty)}
+input:focus-visible,textarea:focus-visible,summary:focus-visible{
+  outline:2px solid var(--faculty);outline-offset:2px}
 .choices{list-style:none;display:grid;gap:.5em}
 .choices label{font-family:var(--matn);font-size:clamp(1rem,1.8vw,1.35rem);
                border:1px solid var(--line);padding:.5em .9em;display:flex;gap:.75em;
@@ -163,8 +168,10 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
           padding:.45em .8em;font-size:clamp(.75rem,1.25vw,.9rem)}
 .files li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .files li .sz{color:var(--neutral);font-variant-numeric:tabular-nums;flex:none}
-.drop{border:1px dashed var(--line);padding:clamp(14px,2vw,22px);text-align:center;
-      color:var(--neutral);font-size:clamp(.78rem,1.3vw,.92rem);cursor:pointer}
+/*  زرٌّ لا div — فيلزم ردُّ ما يأخذه الزرُّ من نمط المتصفّح. */
+.drop{font:inherit;background:transparent;width:100%;cursor:pointer;
+      border:1px dashed var(--line);padding:clamp(14px,2vw,22px);text-align:center;
+      color:var(--neutral);font-size:clamp(.78rem,1.3vw,.92rem)}
 .drop.over{border-color:var(--faculty);color:var(--faculty);background:rgba(var(--faculty-rgb),.07)}
 
 /* حالات ورسائل */
@@ -192,6 +199,11 @@ table.grid a:hover{border-bottom-color:var(--faculty)}
       border-top:1px solid var(--line);padding-top:1em}
 
 @media print{
+  /*  كما في deck.css: تُقلب الرموز بدل ملاحقة المحدِّدات. */
+  :root{--surface:#000;--neutral:#333;--muted:#555;
+        --faculty:#004a7a;--student:#6a4a00;--navy:#fff;--navy-2:#fff;
+        --line:#bbb}
+
   body{background:#fff;color:#000}
   .masthead,.card,.item,.seat,.stat{border-color:#999;background:#fff}
   .masthead h1,.card h2,.item .prompt,.seat .name{color:#000}
@@ -389,6 +401,12 @@ button.revert{margin-inline-start:.5em;vertical-align:middle;
   padding:.12em .7em;color:var(--neutral);white-space:nowrap}
 .ev-kind.k-quran{border-color:var(--student);color:var(--student)}
 .ev-kind.k-sunna{border-color:var(--faculty);color:var(--faculty)}
+/*  والإجماعُ والمعقول كانا رماديّين بلا تمييز: الصنفان يُولَّدان في
+    evidences.js ولا قاعدة لهما. */
+/*  ورمزان مقروءان في اللوحات العشر: --ink حبرُ الأسطح الفاتحة،
+    فعلى الأرضية الداكنة ١.١٢:١ — وهو ما لا يُقرأ أصلًا. */
+.ev-kind.k-ijma{border-color:var(--surface);color:var(--surface)}
+.ev-kind.k-aql{border-color:var(--neutral);color:var(--neutral)}
 .ev-src{color:var(--muted);font-size:clamp(.68rem,1.15vw,.8rem);
   margin-inline-start:auto;white-space:nowrap}
 .ev-text{font-family:var(--matn);color:var(--surface);line-height:1.95;

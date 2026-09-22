@@ -147,6 +147,16 @@
     return Promise.all(jobs);
   }
 
+  /*  ويُحفظ ما تبدّل في الشرائح كلِّها لا في الظاهرة وحدها:
+      «تحرير» يفتح المحاضرة كلَّها للكتابة، والسهمان أسفل الصفحة
+      يعملان وهي تحرّر. فكانت تصحّح الثالثة ثم تنتقل إلى الرابعة
+      فتصحّحها ثم تضغط «احفظي» — فيُحفظ نصُّ الرابعة وحده ويذهب
+      تصحيحُ الثالثة بلا رسالةٍ ولا أثر. */
+  function saveAll() {
+    var jobs = [].map.call(inner.querySelectorAll(".slide"), saveSlide);
+    return Promise.all(jobs);
+  }
+
   /* ─── الشريط ─── */
   var bar = document.createElement("div");
   bar.className = "tahrirbar";
@@ -164,9 +174,8 @@
 
   var bEdit = btn("تحرير", "عدّلي نصّ الشريحة في مكانه", function () {
     if (!on) { on = true; editable(true); paintBar(); return; }
-    var s = curSlide();
     bEdit.disabled = true;
-    saveSlide(s).then(function () {
+    saveAll().then(function () {
       on = false; editable(false); paintBar(); bEdit.disabled = false;
       TPUI.toast("حُفظ النصّ.", "good");
     }).catch(function (e) {
@@ -202,7 +211,7 @@
 
   var bGone = btn("المحذوفة", "أرجعي ما حذفتِ", function () {
     var gone = [].slice.call(keep.querySelectorAll('.gone-slide'));
-    if (!gone.length) return TPUI.toast("لا شريحة محذوفة في هذه المحاضرة.", "ok");
+    if (!gone.length) return TPUI.toast("لا شريحة محذوفة في هذه المحاضرة.", "good");
     if (!confirm("إرجاع " + gone.length + " شريحةً محذوفة؟")) return;
     Promise.all(gone.map(function (s) { return TPContent.set(refOf(s), "hidden", ""); }))
       .then(function () { location.reload(); });

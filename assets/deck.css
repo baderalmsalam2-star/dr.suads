@@ -132,10 +132,25 @@ ol.opts li span{color:var(--faculty);font-family:var(--ui);font-size:.72em;flex:
   .matn,.qtext{max-width:none}
   .keys,.zoom .lvl{display:none}
   .credit{display:none}
-  .marks{flex:none}
+  /*  وعلاماتُ الشرائح تنكمش ولا تدفع غيرها خارج الشاشة: كانت
+      flex:none فتأخذ عرضها كاملًا — ستُّ عشرةَ بكسلًا لكل شريحة،
+      فمحاضرةٌ من خمسٍ وثلاثين شريحةً تأخذ ٧٢٥ — فتدفع السهمين
+      وأزرارَ الخطّ خارج الحافّة. وbody{overflow:hidden} يمنع
+      التمرير إليها، والسحبُ يقلّب الشريحة. فلا سبيل إليها ألبتّة.
+      وهذا ينقض السهمين اللذين طلبتهما الدكتورة على الجوال. */
+  .marks{flex:1 1 auto;min-width:0;overflow:hidden}
+  .foot{flex-wrap:wrap}
   .foot{justify-content:space-between}
 }
 @media print{
+  /*  المتصفّح لا يطبع الخلفيات، فالورقُ أبيضُ واللوحةُ داكنة — فكل
+      لونٍ فاتحٍ صُمّم للأسود يصير أبيضَ على أبيض. وكان يُلاحَق
+      محدِّدٌ محدِّد، فبقي جوابُ السؤال (.answer) غيرَ مرئيٍّ ألبتّة
+      على الورق. فتُقلب الرموزُ نفسها مرّةً واحدة، ويبقى تمييزُ
+      الدكتورة من الطالبة قائمًا. */
+  :root{--surface:#000;--neutral:#333;--muted:#555;
+        --faculty:#004a7a;--student:#6a4a00;--navy:#fff;--navy-2:#fff;
+        --line:#bbb}
   body{background:#fff;color:#000;overflow:visible}
   .stage{height:auto}.folio{page-break-after:always;border-color:#999}
   .slide{display:flex!important;min-height:88vh}
@@ -312,7 +327,7 @@ body.ink-on .ink.erasing{cursor:cell}
   color:var(--surface);border:1px solid transparent;border-radius:999px;
   padding:.25em .7em;line-height:1.6}
 .tahrirbar button:hover:not(:disabled){border-color:var(--line)}
-.tahrirbar button.on{background:var(--gold,#F8D81B);color:var(--navy);font-weight:600}
+.tahrirbar button.on{background:var(--student);color:var(--navy);font-weight:600}
 .tahrirbar button:disabled{opacity:.45;cursor:default}
 
 /* النصّ تحت التحرير يُرى أنه تحت التحرير */

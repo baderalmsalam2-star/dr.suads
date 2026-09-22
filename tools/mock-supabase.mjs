@@ -196,6 +196,23 @@ const server = http.createServer((req,res)=>{
       return rows;
     }
 
+    //  ومن يكتب؟ الكتابة في content للمالكة وحدها إلا خطَّ القلم:
+    //  مرجعُ دفتر الطالبة ينتهي بـ«@معرّف صفّها». وكان المحاكي يقبل
+    //  كلَّ كتابةٍ من كلِّ داخلة، فمرّ فحصُ «وللطالبة دفترها» على
+    //  ميزةٍ لا تعمل على الخادم أصلًا: تخطّ فيظهر خطُّها ثم يردّه
+    //  الخادم، فإذا أعادت الفتح ذهب دفترُها كلُّه.
+    function inkOwner(ref){
+      const k = String(ref||'').lastIndexOf('@');
+      return k < 0 ? null : String(ref).slice(k+1);
+    }
+    function mayWrite(row) {
+      if (isOwner) return true;
+      if (table==='content')
+        return row && row.field==='ink' && mine().includes(inkOwner(row.ref));
+      return true;              // بقيةُ الجداول تحرسها visible/PK
+    }
+    const denied = () => send(res,403,{message:'لا صلاحية لهذا الإجراء بحسابك'});
+
     if (req.method==='GET') {
       let rows = visible(DB[table].filter(r=>match(r,params)));
       const ord = u.searchParams.get('order');
@@ -204,13 +221,15 @@ const server = http.createServer((req,res)=>{
       return send(res,200,rows);
     }
     if (req.method==='DELETE') {
-      const before=DB[table].length;
+      const hit = DB[table].filter(r=>match(r,params));
+      if (hit.some(r=>!mayWrite(r))) return denied();
       DB[table]=DB[table].filter(r=>!match(r,params));
       return send(res, prefer.includes('return=representation')?200:204,
                   prefer.includes('return=representation')?[]:null);
     }
     if (req.method==='POST') {
       const rows = Array.isArray(json)?json:[json];
+      if (rows.some(r=>!mayWrite(r))) return denied();
       //  وقتُ الإنشاء يختمه الخادم، كما يفعل المطلِق on_work_saved.
       if (table==='works') rows.forEach(r=>{ if(!r.created_at) r.created_at=new Date().toISOString(); });
       //  ووقتُ الإجابة كذلك — به يُفرَّق من أجابت في وقتها.
