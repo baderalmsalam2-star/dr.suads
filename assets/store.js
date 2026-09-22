@@ -297,8 +297,9 @@
     },
 
     /* تصحيحات النصوص: صفٌّ لكل (موضع، حقل) ------------------- */
-    content: function (courseId) {
+    content: function (courseId, ref) {
       var all = read("content", []);
+      if (ref != null) all = all.filter(function (r) { return r.ref === ref; });
       if (courseId == null) return Promise.resolve(all);
       return Promise.resolve(all.filter(function (c) {
         return String(c.courseId) === String(courseId);
@@ -626,7 +627,7 @@
       return Local.unmarkAttendance(st, ses);
     },
 
-    content: function (courseId) { return A.content(courseId); },
+    content: function (courseId, ref) { return A.content(courseId, ref); },
     saveContent: function (rec) { return A.saveContent(rec); },
 
     /*  رمز الحضور الدوّار — للخادم وحده.
@@ -637,6 +638,22 @@
 
     /*  كلمات السر — للخادم وحده كذلك. في الوضع المحلي لا حساباتِ
         أصلًا: البيانات على الجهاز، ولا شيء يُحرَس بكلمة سر. */
+    /*  إجابات أسئلة المحاضرة — للخادم وحده: هي بين جهاز الطالبة
+        وشاشة الدكتورة، ولا معنى لها على جهازٍ واحد. */
+    repliesReady: function () { return !!A.saveReply; },
+
+    replies: function (f) {
+      if (!A.replies) return Promise.resolve([]);
+      return A.replies(f);
+    },
+
+    saveReply: function (r) {
+      if (!A.saveReply) {
+        return Promise.reject(new Error("إجابات المحاضرة تعمل مع الخادم فقط."));
+      }
+      return A.saveReply(r);
+    },
+
     /*  أعمال الطالبات — للخادم وحده: هي مشاركةٌ بين جهازين، ولا
         معنى لها في الوضع المحلي حيث البيانات على جهازٍ واحد. */
     worksReady: function () { return !!A.works; },

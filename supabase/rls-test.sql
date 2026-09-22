@@ -1105,6 +1105,70 @@ insert into rls_results select 'والمجهول لا يرى عملًا',
   (select count(*) from works) = 0;
 commit;
 
+-- ═══════════════════════════════════════════════════════════════
+--  إجابات أسئلة المحاضرة
+--
+--  الخيارُ المضغوط يُخزَّن ولا يُخزَّن صوابُه — والصوابُ يُعرف من
+--  الشريحة عند العرض. فيُختبر أن الطالبة لا ترى إجابة زميلتها
+--  (فتنقلها)، ولا تُجيب باسمها، ولا تبدّل إجابةَ غيرها، وأن لها
+--  أن تعدل عن خيارها ما دام السؤال قائمًا.
+-- ═══════════════════════════════════════════════════════════════
+insert into replies(id,student_id,section_id,session,q,choice) values
+ ('rp-sara','t-sara','wilaya:9',3,0,2),
+ ('rp-noura','t-noura','wilaya:9',3,0,1) on conflict do nothing;
+
+insert into rls_results select 'المالكة ترى إجابات طالباتها كلَّها',
+  (select count(*) from replies) = 2;
+
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+insert into rls_results select 'والطالبة ترى إجابتها وحدها',
+  (select count(*) from replies) = 1;
+insert into rls_results select 'ولا ترى ما اختارته زميلتها',
+  not exists (select 1 from replies where id = 'rp-noura');
+commit;
+
+--  وتعدل عن خيارها
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+update replies set choice = 3 where id = 'rp-sara';
+commit;
+insert into rls_results select 'ولها أن تعدل عن خيارها',
+  (select choice from replies where id = 'rp-sara') = 3;
+
+--  ولا تُجيب باسم زميلتها
+do $$ begin
+  begin
+    set local role authenticated;
+    perform set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',true);
+    insert into replies(id,student_id,section_id,session,q,choice)
+      values ('rp-x','t-noura','wilaya:9',4,0,0);
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تُجيب باسم زميلتها', false);
+  exception when others then
+    perform set_config('role','postgres',true);
+    insert into rls_results values ('ولا تُجيب باسم زميلتها', true);
+  end;
+end $$;
+
+--  ولا تبدّل إجابة زميلتها
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+update replies set choice = 0 where id = 'rp-noura';
+commit;
+insert into rls_results select 'ولا تبدّل ما اختارته زميلتها',
+  (select choice from replies where id = 'rp-noura') = 1;
+
+--  ووقتُ الإجابة يملكه الخادم — لا تُقدِّمه ولا تُؤخِّره
+begin; set local role authenticated; set local request.jwt.claim.sub = :'SARA';
+update replies set at = timestamptz '2020-01-01' where id = 'rp-sara';
+commit;
+insert into rls_results select 'ووقتُ الإجابة يملكه الخادم',
+  (select at from replies where id = 'rp-sara') > timestamptz '2024-01-01';
+
+--  والمجهول لا يرى شيئًا
+begin; set local role anon;
+insert into rls_results select 'والمجهول لا يرى إجابةً',
+  (select count(*) from replies) = 0;
+commit;
+
 \echo ''
 select case when ok then '✓' else '✗ ثغرة' end as حالة, label as الاختبار from rls_results;
 select count(*) filter (where ok) as نجح, count(*) filter (where not ok) as فشل from rls_results;

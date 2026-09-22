@@ -799,6 +799,71 @@ begin
 end $$;
 
 -- ═══════════════════════════════════════════════════════════════
+--  إجابات الطالبات على أسئلة المحاضرة
+--
+--  شرائح الأسئلة كانت تُعرض وتُكشف إجابتها، والطالبات يُجِبن شفاهًا.
+--  فلا تعرف الدكتورة كم فهم قبل أن تكشف — ومن أصابت بعد الكشف لا
+--  يُعرف أأصابت أم وافقت.
+--
+--  فصارت الطالبة تضغط الخيار على جهازها، وترى الدكتورة على شاشتها
+--  كم أجابت وكم أصابت وأيُّ خيارٍ خاطئٍ جذبهنّ — قبل أن تكشف.
+--
+--  ═══ ولا تُخزَّن «صحيحة» ═══
+--  يُخزَّن الخيارُ المضغوط لا صوابُه. فالصوابُ يُعرف من الشريحة
+--  نفسها عند العرض، ولو خُزّن لاستطاعت الطالبةُ أن ترسل «أصبتُ».
+--
+--  ═══ ولا ترى الطالبةُ إجابات زميلاتها ═══
+--  وإلا لصار الجوابُ نقلًا. ترى إجابتها وحدها، والحصيلةُ على شاشة
+--  الدكتورة.
+-- ═══════════════════════════════════════════════════════════════
+create table if not exists replies (
+  id         text primary key,
+  student_id text not null references students(id) on delete cascade,
+  section_id text not null,
+  session    int  not null,
+  q          int  not null,
+  choice     int  not null,
+  at         timestamptz not null default now()
+);
+--  جوابٌ واحد لكل (طالبة، محاضرة، سؤال): تبديلُ رأيها يُحدِّث صفَّها
+--  ولا يضيف صفًّا ثانيًا، فلا تُعَدّ مرتين في الحصيلة.
+create unique index if not exists replies_one
+  on replies (student_id, session, q);
+create index if not exists replies_tally on replies (section_id, session, q);
+
+alter table replies enable row level security;
+
+drop policy if exists replies_owner on replies;
+create policy replies_owner on replies for all
+  using (is_owner()) with check (is_owner());
+
+drop policy if exists replies_self on replies;
+create policy replies_self on replies for select
+  using (student_id in (select my_student_ids()));
+
+drop policy if exists replies_self_write on replies;
+create policy replies_self_write on replies for insert
+  with check (student_id in (select my_student_ids()));
+
+drop policy if exists replies_self_update on replies;
+create policy replies_self_update on replies for update
+  using (student_id in (select my_student_ids()))
+  with check (student_id in (select my_student_ids()));
+
+--  ووقتُ الإجابة يُختم في الخادم: هو ما يُفرّق من أجابت في وقتها
+--  ممّن أجابت بعد كشف الجواب.
+create or replace function stamp_reply() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  new.at := now();
+  return new;
+end $$;
+
+drop trigger if exists on_reply_saved on replies;
+create trigger on_reply_saved before insert or update on replies
+  for each row execute function stamp_reply();
+
+-- ═══════════════════════════════════════════════════════════════
 --  أعمال الطالبات — تطوّعٌ لا درجة
 --
 --  تُنشئ الطالبة عملًا متى شاءت: عنوانٌ ووصفٌ وملفّ (صورة أو PDF).

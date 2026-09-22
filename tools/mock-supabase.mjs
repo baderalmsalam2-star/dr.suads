@@ -2,7 +2,7 @@
    ليس Supabase الحقيقي — لكنه يطبّق نفس عقد HTTP الذي يستعمله المحوّل. */
 import http from 'http';
 const DB = { students: [], events: [], attendance: [], submissions: [], schedule: [],
-             grades: [], scheme: [], attend_codes: [], content: [], works: [],
+             grades: [], scheme: [], attend_codes: [], content: [], works: [], replies: [],
              owners: [{uid:'owner-1'}] };
 // من هو الداخل؟ يُضبط من الاختبار عبر /__as/<uid>
 let WHO = 'owner-1';
@@ -12,6 +12,7 @@ const FILES = new Map();
 const PK = { students:['id'], events:['id'], attendance:['id'], submissions:['id'],
              grades:['id'], scheme:['section_id'], schedule:['section_id','session'],
              attend_codes:['section_id','session'], content:['id'], works:['id'],
+             replies:['student_id','session','q'],
              owners:['uid'] };
 
 const send = (res, code, body, extra={}) => {
@@ -176,8 +177,27 @@ const server = http.createServer((req,res)=>{
     const params=[...u.searchParams.entries()];
     const prefer = req.headers['prefer']||'';
 
+    //  ما ترى الداخلةُ من الصفوف.
+    //  المحاكي كان يردّ كلَّ صفوف الجدول لكل داخلة، فكانت الطالبة
+    //  ترى الكشف كلَّه — وفي الحقيقة تحرسه السياسات في الخادم.
+    //  فكان الاختبار يمرّ على شيءٍ لا يشبه الواقع: صفحةٌ تأخذ
+    //  «أنا» من أول صفٍّ يرجع كانت تأخذ طالبةً أخرى ولا يبين.
+    //  فتُحاكى هنا سياسات my_student_ids: لا تُغني عن فحص
+    //  rls-test.sql على Postgres حقيقيّ، لكنها تمنع الوهم.
+    const isOwner = OWNERS.has(WHO) || DB.owners.some(o=>o.uid===WHO);
+    const mine = () => DB.students.filter(s2=>s2.auth_uid===WHO).map(s2=>s2.id);
+    function visible(rows) {
+      if (isOwner) return rows;
+      if (table==='students') return rows.filter(r=>r.auth_uid===WHO);
+      if (table==='replies' || table==='works') {
+        const ids = mine();
+        return rows.filter(r=>ids.includes(r.student_id));
+      }
+      return rows;
+    }
+
     if (req.method==='GET') {
-      let rows = DB[table].filter(r=>match(r,params));
+      let rows = visible(DB[table].filter(r=>match(r,params)));
       const ord = u.searchParams.get('order');
       if (ord){ const [c,d]=ord.split('.'); rows=[...rows].sort((a,b)=>
         ((a[c]??0)>(b[c]??0)?1:(a[c]??0)<(b[c]??0)?-1:0)*(d==='desc'?-1:1)); }
@@ -193,6 +213,8 @@ const server = http.createServer((req,res)=>{
       const rows = Array.isArray(json)?json:[json];
       //  وقتُ الإنشاء يختمه الخادم، كما يفعل المطلِق on_work_saved.
       if (table==='works') rows.forEach(r=>{ if(!r.created_at) r.created_at=new Date().toISOString(); });
+      //  ووقتُ الإجابة كذلك — به يُفرَّق من أجابت في وقتها.
+      if (table==='replies') rows.forEach(r=>{ r.at=new Date().toISOString(); });
       const conflict = (u.searchParams.get('on_conflict')||PK[table].join(',')).split(',');
       const out=[];
       for (const r of rows) {

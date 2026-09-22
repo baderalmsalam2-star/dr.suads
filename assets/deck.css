@@ -322,3 +322,36 @@ body.tahrir-on .ink{pointer-events:none}
   .tahrirbar{gap:.25em;padding:.3em .45em}
   .tahrirbar button{font-size:.76rem;padding:.2em .5em}
 }
+
+/* ═══ إجابة الطالبة على سؤال المحاضرة ═══ */
+.opts li.tappable{cursor:pointer;border-radius:8px;
+  transition:background .12s,box-shadow .12s}
+.opts li.tappable:hover{background:rgba(var(--faculty-rgb,13,171,226),.10)}
+.opts li.tappable:focus-visible{outline:2px solid var(--faculty);outline-offset:3px}
+/*  إجابتُها تُعلَّم ولا يُقال أصحيحةٌ هي — الكشفُ بيد الدكتورة. */
+.opts li.mine{background:rgba(var(--faculty-rgb,13,171,226),.16);
+  box-shadow:inset 0 0 0 1px var(--faculty)}
+
+.tally{position:absolute;inset-inline-start:0;bottom:calc(100% + .5em);
+  display:flex;flex-direction:column;gap:.4em;background:var(--navy-2);
+  border:1px solid var(--line);border-radius:12px;padding:.5em .8em;z-index:5;
+  color:var(--surface);font-size:.82rem;box-shadow:0 6px 22px rgba(0,0,0,.28)}
+.tally[hidden]{display:none}
+.tally .bars{display:flex;gap:.45em;align-items:flex-end;height:3.2em}
+.tally .b{display:flex;flex-direction:column;justify-content:flex-end;
+  align-items:center;gap:.2em;min-width:2.6em;font-size:.76rem;
+  color:var(--neutral)}
+.tally .b::before{content:"";display:block;width:100%;
+  height:var(--h,0%);min-height:2px;border-radius:3px 3px 0 0;
+  background:var(--neutral);opacity:.55}
+.tally .b.right{color:var(--surface);font-weight:600}
+.tally .b.right::before{background:var(--faculty);opacity:1}
+
+@media print{.tally{display:none}}
+
+/*  زرُّ الكشف والطيّ في لوحة الحصيلة — تضغطه الدكتورة فيبلغ
+    أجهزةَ الطالبات، أو يُطوى فيعود السؤال سؤالًا. */
+.tally .foldq{align-self:flex-start;font:inherit;font-size:.78rem;
+  background:transparent;color:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:.25em .7em;cursor:pointer}
+.tally .foldq:hover{background:rgba(255,255,255,.1)}

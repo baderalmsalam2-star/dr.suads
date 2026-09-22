@@ -173,6 +173,8 @@
                 submittedAt: "submitted_at", startedAt: "started_at",
                 updatedAt: "updated_at" };
 
+  var M_REPLY = { studentId: "student_id", sectionId: "section_id" };
+
   var M_WORK = { studentId: "student_id", sectionId: "section_id",
                  fileId: "file_id", fileName: "file_name", fileType: "file_type",
                  createdAt: "created_at" };
@@ -371,6 +373,30 @@
       }).then(function (rows) { return fromDb(M_SUB, (rows || [])[0]) || s; });
     },
 
+    /* إجابات أسئلة المحاضرة --------------------------------------- */
+    replies: function (f) {
+      f = f || {};
+      var q = "replies?select=*";
+      if (f.sectionId) q += "&section_id=eq." + enc(f.sectionId);
+      if (f.session != null) q += "&session=eq." + enc(f.session);
+      return req(q).then(function (rows) { return mapAll(M_REPLY, rows); });
+    },
+
+    saveReply: function (r) {
+      var body = toDb(M_REPLY, {
+        id: r.id || (r.studentId + ":" + r.session + ":" + r.q),
+        studentId: r.studentId, sectionId: r.sectionId,
+        session: +r.session, q: +r.q, choice: +r.choice
+      });
+      /*  وقتُ الإجابة يملكه الخادم — به يُفرَّق من أجابت في وقتها
+          ممّن أجابت بعد كشف الجواب — فلا يُرسَل من هنا. */
+      return req("replies?on_conflict=student_id,session,q", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+        body: [body]
+      }).then(function (rows) { return fromDb(M_REPLY, (rows || [])[0]) || r; });
+    },
+
     /* أعمال الطالبات ------------------------------------------- */
     works: function (f) {
       f = f || {};
@@ -477,9 +503,13 @@
     },
 
     /* تصحيحات النصوص ------------------------------------------ */
-    content: function (courseId) {
+    content: function (courseId, ref) {
       var q = "content?select=*";
       if (courseId != null) q += "&course_id=eq." + enc(courseId);
+      /*  عنوانٌ بعينه: تُسأل عنه الطالبةُ كلَّ ثلاث ثوانٍ لتعرف
+          أكُشف الجواب، وخطُّ القلم يسكن هذه الطبقة أيضًا — فجلبُها
+          كلَّها في كل مرة حملٌ ثقيلٌ بلا فائدة. */
+      if (ref != null) q += "&ref=eq." + enc(ref);
       return req(q).then(function (rows) { return mapAll(M_CONTENT, rows); });
     },
 

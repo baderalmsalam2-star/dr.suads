@@ -421,6 +421,110 @@ ok('والدكتورة تعرضه ملء الشاشة', await g.locator('#stage'
 ok('والصورة ظهرت فيه', (await g.locator('#stage img').count()) === 1);
 await g.close();
 
+// ═══ إجابة الطالبة على سؤال المحاضرة ═══
+//  يُقاس بالأثر: لا «ظهرت الخيارات» بل «ضغطت فوصل الصفُّ إلى
+//  الخادم»، ولا «ظهرت الحصيلة» بل «قالت أجابت ٢ وأصابت ١».
+//  تُساق الشرائحُ بالمفاتيح كما تسوقها الدكتورة، لا بتبديل الأصناف
+//  باليد: «كشف» في deck.js يعمل على شريحته هو، فلو زُوّر الصنف
+//  عملت على غيرها ومرّ الفحصُ على ما لا يقع في الدرس.
+async function toQ(page){
+  for (let k=0;k<40;k++){
+    if (await page.locator('.slide.on[data-q]').count()) return k;
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForTimeout(60);
+  }
+  return -1;
+}
+
+//  ينتظر حتى يصحّ الشرط أو تنقضي المهلة — الكشفُ يبلغ جهازها
+//  بالسؤال كلَّ ثلاث ثوانٍ لا في اللحظة.
+async function till(fn, ms=8000){
+  const end=Date.now()+ms;
+  while (Date.now()<end){ if (await fn()) return true; await new Promise(r=>setTimeout(r,250)); }
+  return false;
+}
+
+//  طالبتان في الكشف
+for (const [id,uid,auth] of [['st-q1','0000000011','stud-q1'],['st-q2','0000000012','stud-q2']]) {
+  await fetch(API+'/rest/v1/students',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id,section_id:'wilaya:1',no:+uid.slice(-2),name:'طالبة '+id,
+                         uid,auth_uid:auth,active:true})});
+}
+
+await fetch(API+'/__as/stud-q1');
+p = await open();
+await toQ(p);
+await p.waitForTimeout(400);
+ok('خيارات السؤال تُضغط عند الطالبة',
+   (await p.locator('.slide.on .opts li.tappable').count()) > 0);
+
+//  تضغط الخيار الصحيح
+const rightAt = await p.evaluate(()=>[...document.querySelectorAll('.slide.on .opts li')]
+  .findIndex(li=>li.classList.contains('right')));
+await p.locator('.slide.on .opts li').nth(rightAt).click();
+await p.waitForTimeout(900);
+ok('وتُعلَّم إجابتها', (await p.locator('.slide.on .opts li.mine').count()) === 1);
+ok('ولا يُقال لها أصابت أم أخطأت',
+   !/أصبت|أخطأ/.test(await p.locator('.slide.on').innerText()));
+await p.close();
+
+//  والثانية تخطئ
+await fetch(API+'/__as/stud-q2');
+p = await open();
+await toQ(p);
+await p.waitForTimeout(400);
+const wrongAt = (rightAt + 1) % (await p.locator('.slide.on .opts li').count());
+await p.locator('.slide.on .opts li').nth(wrongAt).click();
+await p.waitForTimeout(900);
+await p.close();
+
+//  الدكتورة ترى الحصيلة
+await fetch(API+'/__as/owner-1');
+p = await open();
+await toQ(p);
+await p.waitForTimeout(1200);
+const tal = (await p.locator('.tally').count()) ? await p.locator('.tally').innerText() : '';
+ok('والدكتورة ترى الحصيلة', /أجابت/.test(tal), tal.replace(/\s+/g,' ').slice(0,70));
+ok('وتقول كم أجابت وكم أصابت',
+   /أجابت ٢/.test(tal) && /أصابت ١/.test(tal), tal.replace(/\s+/g,' ').slice(0,70));
+ok('ولا خياراتٍ تُضغط عندها',
+   (await p.locator('.slide.on .opts li.tappable').count()) === 0);
+await p.close();
+
+// ═══ الكشف يبلغ أجهزتهنّ ═══
+//  الشاشة أمام الدكتورة واحدة والطالبات كلٌّ على جهازها: كان
+//  «كشف» ينكشف عندها وحدها فتبقى شريحتُهنّ سؤالًا بلا تعليل.
+await fetch(API+'/__as/stud-q1');
+const ps = await open();
+await toQ(ps);
+await ps.waitForTimeout(500);
+ok('قبل الكشف: لا جوابَ على جهاز الطالبة',
+   (await ps.locator('.slide.on.reveal').count()) === 0 &&
+   !(await ps.locator('.slide.on .answer').isVisible()));
+
+//  والدكتورة تكشف على شاشتها. وقراءةُ «content» مباحةٌ للجميع،
+//  فتبديلُ الهوية ههنا لا يقطع سؤالَ جهاز الطالبة.
+await fetch(API+'/__as/owner-1');
+const pd = await open();
+await toQ(pd);
+await pd.waitForTimeout(1200);
+ok('وعند الدكتورة زرُّ الكشف لهنّ',
+   (await pd.locator('.tally .foldq').innerText()).includes('اكشفي'));
+await pd.keyboard.press(' ');
+await pd.waitForTimeout(900);
+
+ok('فيبلغ جهازَ الطالبة', await till(()=>ps.locator('.slide.on.reveal').count()));
+ok('ويظهر لها التعليل', await ps.locator('.slide.on .answer').isVisible());
+
+//  ويُطوى فيعود السؤال سؤالًا
+ok('والزرّ صار طيًّا',
+   (await pd.locator('.tally .foldq').innerText()).includes('اطوِ'));
+await pd.locator('.tally .foldq').click();
+await pd.waitForTimeout(900);
+ok('والطيُّ يبلغها كما بلغها الكشف',
+   await till(async()=>(await ps.locator('.slide.on.reveal').count()) === 0));
+await pd.close(); await ps.close();
+
 console.log(`\n── الحصيلة ──\nحالات: ${step.length} · نجح ${step.filter(Boolean).length} · فشل ${step.filter(x=>!x).length}`);
 await b.close(); srv.close(); mock.kill(); back();
 process.exit(step.every(Boolean)?0:1);

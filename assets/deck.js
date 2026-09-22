@@ -195,7 +195,9 @@
       dots = [].slice.call(marks.children);
       show(Math.min(i, slides.length - 1));
     },
-    at: function () { return i; }
+    at: function () { return i; },
+    reveal: function () { reveal(); },
+    fold: function (s) { fold(s); }
   };
 
 
@@ -204,6 +206,17 @@
     if (!s.hasAttribute("data-q")) return;
     s.classList.add("reveal");
     stopTimer();
+    markMore();
+    /*  الكشفُ حدثٌ يُعلَن: الشاشة ههنا واحدة، والطالبات يتابعن كلٌّ
+        على جهازها. فمن سمع الحدث بلّغهنّ. */
+    dispatchEvent(new CustomEvent("tp:reveal", { detail: { index: i, slide: s } }));
+  }
+
+  /*  ويُطوى كما يُكشف — فسؤالٌ بقي مكشوفًا لا يُسأل مرةً أخرى. */
+  function fold(s) {
+    s = s || slides[i];
+    if (!s || !s.hasAttribute("data-q")) return;
+    s.classList.remove("reveal");
     markMore();
   }
 

@@ -118,6 +118,28 @@
                   .then(function () { apply(); });
     },
 
+    /* ─── قيمةٌ تُقرأ من الخادم الآن ───
+       ready() تجلب مرةً واحدةً عند التحميل، وهو الصواب للتصحيحات:
+       فنصُّ السؤال لا يتبدّل والصفحة مفتوحة.
+
+       أما كشفُ جواب سؤال المحاضرة فيتبدّل في أثناء الدرس: تكشفه
+       الدكتورة على شاشتها، فيلزم أن يبلغ أجهزة الطالبات وهنّ ينظرن.
+       فهذه تسأل عن عنوانٍ واحدٍ بعينه لا عن الطبقة كلِّها.
+
+       وتُمحى صفوفُ ذلك العنوان قبل وضع الراجع، فالمحذوف في الخادم
+       يُمحى ههنا — ولولاه لبقي الكشفُ ظاهرًا بعد طيِّه. */
+    fresh: function (ref, field) {
+      return Store.content(COURSE.id, ref).then(function (rows) {
+        var head = ref + "|";
+        Object.keys(over).forEach(function (k) {
+          if (k.slice(0, head.length) === head) delete over[k];
+        });
+        (rows || []).forEach(function (r) { over[key(r.ref, r.field)] = r.value; });
+        apply();
+        return window.TPContent.get(ref, field);
+      });
+    },
+
     /* كم تصحيحًا في هذا المقرر — لصفحة الفحص */
     count: function () { return Object.keys(over).length; },
 
