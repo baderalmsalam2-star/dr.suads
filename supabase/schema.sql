@@ -699,7 +699,10 @@ $$;
 --  فيستخرج مسارات ملفّات التسليم وأسماءها، ويعرف من سلّمت ومن لم
 --  تُسلِّم. ولا تحتاج منحًا: سياساتُ التخزين تستدعيها بصلاحية
 --  مالك الجدول لا بصلاحية الداخلة.
-revoke all on function locked_file(text) from public;
+--  وتُنزع من الأدوار بأسمائها لا من public وحده: Supabase يمنح
+--  anon وauthenticated تنفيذَ كلِّ دالّةٍ تُنشأ، منحًا صريحًا. فكان
+--  revoke ... from public يمرّ ولا يُغلق شيئًا.
+revoke all on function locked_file(text) from public, anon, authenticated;
 
 -- ═══ تخزين ملفات الطالبات ═══
 --  كل ما يمسّ مخطّط storage يُحرَس: هو مملوك لدور آخر على Supabase،

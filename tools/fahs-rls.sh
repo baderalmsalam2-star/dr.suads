@@ -53,6 +53,13 @@ create table if not exists storage.buckets (id text primary key, name text,
 do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$;
 do $$ begin create role anon nologin;          exception when duplicate_object then null; end $$;
 grant usage on schema public, auth, extensions, storage to authenticated, anon;
+
+--  وSupabase يمنح anon وauthenticated تنفيذَ كلِّ دالّةٍ تُنشأ في
+--  public — منحًا صريحًا بـALTER DEFAULT PRIVILEGES، لا وراثةً من
+--  public. فلا يكفي revoke ... from public لإغلاق دالّة.
+--  وبغير محاكاة هذا هنا كان الفحصُ يقول «أُغلقت» والخادمُ الحقيقيّ
+--  يقول «ما زالت مفتوحة» — وهو ما وقع.
+alter default privileges in schema public grant execute on functions to anon, authenticated;
 SQL
 
 psql -h /tmp -p "$PORT" -U postgres -q -f supabase/schema.sql
