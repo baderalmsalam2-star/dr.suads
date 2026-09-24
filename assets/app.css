@@ -467,7 +467,9 @@ a.ref-go:hover{border-bottom-color:var(--faculty)}
           font-size:clamp(.98rem,1.7vw,1.18rem)}
 .ref-text p + p{margin-top:.5em}
 /*  تنبيهٌ لا يُخفي: الشريحةُ فيها أكثرُ من مادّة كما في المحاضرة. */
-.ref-warn{color:var(--danger);font-size:clamp(.72rem,1.2vw,.86rem);
+/*  النصُّ بلون الطالبة لأنه يُقرأ في اللوحات العشر، والحدُّ وحده
+    بلون التنبيه — الحدُّ لا يُقرأ فلا يلزمه حدُّ التباين. */
+.ref-warn{color:var(--student);font-size:clamp(.72rem,1.2vw,.86rem);
           border-inline-start:3px solid var(--danger);padding-inline-start:.7em;
           margin-bottom:.6em;line-height:1.8}
 .ref[hidden],.refs[hidden]{display:none}

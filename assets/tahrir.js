@@ -77,7 +77,7 @@
       String(matn).split(/\n{2,}/).forEach(function (t) {
         if (!t.trim()) return;
         var el = document.createElement("p");
-        el.textContent = t.trim();
+        el.innerHTML = clean(t.trim());
         p.matn.appendChild(el);
       });
     }
@@ -103,7 +103,7 @@
       body.split(/\n{2,}/).forEach(function (t) {
         if (!t.trim()) return;
         var el = document.createElement("p");
-        el.textContent = t.trim();
+        el.innerHTML = clean(t.trim());
         s.querySelector(".matn").appendChild(el);
       });
       if (after && after.parentNode) after.parentNode.insertBefore(s, after.nextSibling);
@@ -117,6 +117,75 @@
     if (window.TPDeck) TPDeck.rescan();
   }
 
+
+  /* ═══ تنسيقٌ محدود: غامق · لون · أكبر ═══
+     «كتبتها يدوي بس التنسيق مو مضبوط، لأن ما في خيار ألوان أو
+     تغميق أو تكبير الخط.» — فالشريحة كانت تُحرَّر نصًّا مجرَّدًا
+     (plaintext-only)، والدكتورة تحتاج أن تُبرز اسمًا أو مذهبًا.
+
+     ولا يُفتح البابُ على مصراعيه: ثلاثةُ وسومٍ لا غير، وكلُّ ما
+     سواها يُجرَّد عند الحفظ وعند العرض معًا. فما يُلصق من Word —
+     وهو يجيء بعشرات الوسوم والأنماط — يدخل نصًّا نظيفًا، ولا
+     تُحقن في صفحة الطالبة وسومٌ لم نقصدها. */
+  var OK = { B: 1, SPAN: 1, BR: 1 };
+  var HUES = { hi: 1, big: 1 };
+
+  function clean(html) {
+    var src = document.createElement("div");
+    src.innerHTML = String(html == null ? "" : html);
+    var out = document.createElement("div");
+
+    (function walk(from, to) {
+      [].forEach.call(from.childNodes, function (n) {
+        if (n.nodeType === 3) { to.appendChild(document.createTextNode(n.nodeValue)); return; }
+        if (n.nodeType !== 1) return;
+        var tag = n.tagName;
+        if (tag === "BR") { to.appendChild(document.createElement("br")); return; }
+        var keepIt = null;
+        if (tag === "B" || tag === "STRONG") keepIt = document.createElement("b");
+        else if (tag === "SPAN") {
+          var c = (n.getAttribute("class") || "").trim();
+          if (HUES[c]) { keepIt = document.createElement("span"); keepIt.className = c; }
+        }
+        if (keepIt) { walk(n, keepIt); to.appendChild(keepIt); }
+        else walk(n, to);          /* وسمٌ غير مأذونٍ: يسقط ويبقى نصُّه */
+      });
+    })(src, out);
+
+    return out.innerHTML;
+  }
+
+  /*  يلفّ ما اختارته أو يرفع اللفّ عنه. والمرجعُ عنصرٌ واحدٌ يحيط
+      بالاختيار كلِّه — فلا يُترك نصفُ الكلمة ملفوفًا ونصفُها لا. */
+  function wrap(kind) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount || sel.isCollapsed) {
+      return TPUI.toast("ظلّلي الكلمة أولًا ثم اضغطي.", "bad");
+    }
+    var range = sel.getRangeAt(0);
+    var host = range.commonAncestorContainer;
+    if (host.nodeType === 3) host = host.parentNode;
+    var has = host.closest(kind === "b" ? "b" : "span." + kind);
+
+    if (has) {                      /* رفعُ اللفّ: يُستبدل بمحتواه */
+      var parent = has.parentNode;
+      while (has.firstChild) parent.insertBefore(has.firstChild, has);
+      parent.removeChild(has);
+      parent.normalize();
+      return;
+    }
+    var node = kind === "b" ? document.createElement("b")
+                            : document.createElement("span");
+    if (kind !== "b") node.className = kind;
+    try { range.surroundContents(node); }
+    catch (e) {
+      /*  اختيارٌ يقطع عنصرًا: يُنسخ نصُّه ويُوضع مكانه. */
+      node.appendChild(range.extractContents());
+      range.insertNode(node);
+    }
+    sel.removeAllRanges();
+  }
+
   /* ─── التحرير في الشريحة نفسها ─── */
   function editable(yes) {
     [].forEach.call(inner.querySelectorAll(".slide"), function (s) {
@@ -124,8 +193,10 @@
       [p.rubric, p.matn].forEach(function (el) {
         if (!el) return;
         if (yes) {
-          el.setAttribute("contenteditable", "plaintext-only");
-          el.dataset.was = el.innerText;
+          /*  المتن يقبل التنسيق المحدود، والعنوانُ لا: عناوينُ
+              المنصة مشكولةٌ بقالبٍ واحد، فلونٌ فيها يكسر الصفّ. */
+          el.setAttribute("contenteditable", el === p.matn ? "true" : "plaintext-only");
+          el.dataset.was = el === p.matn ? serialize(el) : el.innerText;
         } else {
           el.removeAttribute("contenteditable");
         }
@@ -134,15 +205,25 @@
     document.body.classList.toggle("tahrir-on", yes);
   }
 
+  /*  فقرةٌ لكل <p>، يفصلها سطرٌ فارغ، ومعها وسومُها المأذونة.
+      وما كتبته الدكتورة سطورًا في عنصرٍ واحدٍ يُقرأ كما هو. */
+  function serialize(box) {
+    var ps = box.querySelectorAll("p");
+    var parts = ps.length
+      ? [].map.call(ps, function (n) { return clean(n.innerHTML).trim(); })
+      : [clean(box.innerHTML).trim()];
+    return parts.filter(function (t) { return t; }).join("\n\n");
+  }
+
   function saveSlide(s) {
     var p = partsOf(s), r = refOf(s), jobs = [];
     if (p.rubric && p.rubric.innerText !== p.rubric.dataset.was) {
       jobs.push(TPContent.set(r, "rubric", p.rubric.innerText.trim()));
     }
-    if (p.matn && p.matn.innerText !== p.matn.dataset.was) {
+    if (p.matn && serialize(p.matn) !== p.matn.dataset.was) {
       /*  الفقرات تُفصل بسطرٍ فارغ — وهو ما تكتبه الدكتورة بالفعل
           حين تضغط «إدخال» مرّتين. */
-      jobs.push(TPContent.set(r, "matn", p.matn.innerText.replace(/\n{3,}/g, "\n\n").trim()));
+      jobs.push(TPContent.set(r, "matn", serialize(p.matn)));
     }
     return Promise.all(jobs);
   }
@@ -184,6 +265,14 @@
     });
   });
 
+  /*  ثلاثةٌ تظهر في وضع التحرير وحده: تُظلَّل الكلمة ثم تُضغط.
+      والضغطةُ الثانية ترفع ما وُضع. */
+  var bBold = btn("غامق", "تغميق ما ظلّلتِه (ظلّلي أولًا)", function () { wrap("b"); });
+  var bHue  = btn("لون",  "لونٌ يُبرز ما ظلّلتِه",           function () { wrap("hi"); });
+  var bBig  = btn("أكبر", "تكبير خطّ ما ظلّلتِه",            function () { wrap("big"); });
+  var FORMAT = [bBold, bHue, bBig];
+  FORMAT.forEach(function (b) { b.classList.add("fmt"); b.hidden = true; });
+
   var bBack = btn("أرجعي الأصل", "يُرفع التصحيح فيعود نصّ المذكرة", function () {
     var s = curSlide(), r = refOf(s);
     if (!confirm("إرجاع نصّ المذكرة الأصلي لهذه الشريحة؟")) return;
@@ -224,6 +313,7 @@
   function paintBar() {
     bEdit.textContent = on ? "احفظي" : "تحرير";
     bEdit.classList.toggle("on", on);
+    FORMAT.forEach(function (b) { b.hidden = !on; });
     [bBack, bDel, bGone].forEach(function (b) { b.disabled = on; });
   }
 

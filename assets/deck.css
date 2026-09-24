@@ -374,3 +374,11 @@ body.tahrir-on .ink{pointer-events:none}
   background:transparent;color:var(--surface);border:1px solid var(--line);
   border-radius:8px;padding:.25em .7em;cursor:pointer}
 .tally .foldq:hover{background:rgba(255,255,255,.1)}
+
+/*  تنسيقُ الدكتورة داخل الشريحة — ثلاثةٌ لا غير.
+    «ما في خيار ألوان أو تغميق أو تكبير الخط.» */
+.matn b{font-weight:700;color:var(--surface)}
+.matn .hi{color:var(--student)}
+.matn .big{font-size:1.22em;line-height:1.5}
+.tahrirbar button.fmt[hidden]{display:none}
+@media print{.matn .hi{color:#6a4a00}.matn b{color:#000}}

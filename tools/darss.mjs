@@ -579,6 +579,64 @@ ok('والطيُّ يبلغها كما بلغها الكشف',
    await till(async()=>(await ps.locator('.slide.on.reveal').count()) === 0));
 await pd.close(); await ps.close();
 
+// ═══ لا سؤالان متتاليان جوابُهما في موضعٍ واحد ═══
+//  «ما زال اختياره محصورًا في ب» — والمحاضرة السادسة ب ب ج.
+//  الطالبةُ لا ترى المقرر كلَّه، إنما ثلاثةَ أسئلةٍ في محاضرة.
+//  والمحاضراتُ التي دُرِّست تُترك: الإجابةُ تُحفظ برقم الخيار.
+ok('لا سؤالان متتاليان في موضعٍ واحدٍ فيما لم يُدرَّس',
+   await new Promise(r => execFile('python3',
+     ['tafriq.py','wilaya','--from','7','--فحص'], {cwd:'.'}, (e)=>r(!e))),
+   'python3 tools/tafriq.py wilaya --from 7');
+
+// ═══ تنسيقُ الدكتورة داخل الشريحة ═══
+//  «كتبتها يدوي بس التنسيق مو مضبوط، لأن ما في خيار ألوان أو
+//  تغميق أو تكبير الخط.»
+await fetch(API+'/__as/owner-1');
+p = await open();
+await p.waitForTimeout(600);
+ok('أزرارُ التنسيق مخبوءةٌ قبل التحرير',
+   !(await p.locator('.tahrirbar button.fmt').first().isVisible()));
+
+await p.locator('.tahrirbar button', {hasText:'تحرير'}).first().click();
+await p.waitForTimeout(300);
+ok('وتظهر في وضع التحرير',
+   await p.locator('.tahrirbar button.fmt').first().isVisible());
+
+//  تُظلَّل كلمةٌ في متنِ شريحةٍ نصّيةٍ ثم تُغمَّق.
+//  (الشريحةُ المعروضة الآن سؤالٌ لا متن فيه — تُقصد بمعرّفها الثابت.)
+const born = await p.evaluate(()=>{
+  const s=[...document.querySelectorAll('.folio .inner .slide')]
+    .find(x=>x.querySelector('.matn p'));
+  const p0=s.querySelector('.matn p');
+  const r=document.createRange();
+  r.setStart(p0.firstChild,0); r.setEnd(p0.firstChild, Math.min(8,p0.firstChild.length));
+  const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  return s.dataset.born;
+});
+await p.locator('.tahrirbar button', {hasText:'غامق'}).first().click();
+await p.waitForTimeout(200);
+ok('والتغميق يقع على ما ظُلِّل',
+   (await p.locator(`[data-born="${born}"] .matn b`).count()) === 1, born);
+
+//  وما يُلصق من محرّرٍ آخر يُجرَّد
+await p.evaluate((b)=>{
+  const p0=document.querySelector(`[data-born="${b}"] .matn p`);
+  p0.innerHTML += ' <div style="color:red" onclick="alert(1)">ملصوقٌ من وورد</div>';
+}, born);
+await p.locator('.tahrirbar button', {hasText:'احفظي'}).first().click();
+await p.waitForTimeout(1400);
+await p.close();
+
+p = await open();
+await p.waitForTimeout(900);
+ok('والتنسيق يعود بعد إعادة الفتح',
+   (await p.locator(`[data-born="${born}"] .matn b`).count()) === 1);
+const mat = p.locator(`[data-born="${born}"] .matn`);
+ok('وما لُصق من وورد دخل نصًّا مجرَّدًا',
+   (await mat.innerHTML()).indexOf('onclick') < 0 &&
+   (await mat.innerText()).includes('ملصوقٌ من وورد'));
+await p.close();
+
 // ═══ مراجع المقرر ═══
 //  «ممكن تضيف لي مواد الولاية والوكالة والوصايا من القانون الكويتي»
 //  يُقاس بالأثر: لا «ظهرت الصفحة» بل «بحثتُ عن ٧٠٤ فجاء نصُّها كما
