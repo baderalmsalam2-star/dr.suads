@@ -28,6 +28,7 @@
     { id: "grades",     label: "الدرجات",      href: "grades.html",    staff: true },
     { id: "honors",     label: "لوحة الشرف",   href: "honors.html",    staff: true },
     { id: "evidences",  label: "الأدلة",        href: "evidences.html" },
+    { id: "refs",       label: "المراجع",       href: "refs.html" },
     /*  أعمال الطالبات: الطالبة ترفع فيها عملها، والدكتورة تعرضه.
         فالباب لهما معًا — ولكلٍّ ما يخصّه داخل الصفحة. */
     { id: "works",      label: "الأعمال",       href: "works.html" },

@@ -4,7 +4,8 @@
     على اللوح»، ولا «اختفت البطاقة» بل «لم تعد في القائمة عند
     الطالبة وهي فيها عند الدكتورة».  */
 import { chromium } from 'playwright-core';
-import http from 'http'; import fs from 'fs'; import path from 'path';
+import http from 'http';
+import { execFile } from 'child_process'; import fs from 'fs'; import path from 'path';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { take } from './qufl.mjs';
@@ -577,6 +578,51 @@ await pd.waitForTimeout(900);
 ok('والطيُّ يبلغها كما بلغها الكشف',
    await till(async()=>(await ps.locator('.slide.on.reveal').count()) === 0));
 await pd.close(); await ps.close();
+
+// ═══ مراجع المقرر ═══
+//  «ممكن تضيف لي مواد الولاية والوكالة والوصايا من القانون الكويتي»
+//  يُقاس بالأثر: لا «ظهرت الصفحة» بل «بحثتُ عن ٧٠٤ فجاء نصُّها كما
+//  هو في المحاضرة، ومعه بابٌ إليها».
+async function refsPage(){
+  const w=await b.newPage({viewport:{width:1194,height:834}});
+  await w.route('**', r=>{const u=r.request().url();
+    return (u.startsWith('http://127.0.0.1:8994')||u.startsWith(API))?r.continue():r.abort();});
+  w.on('pageerror', e=>console.log('   \u26a0 خطأ صفحة:', String(e).slice(0,140)));
+  await w.goto('http://127.0.0.1:8994/refs.html?section=wilaya:1',{waitUntil:'networkidle'});
+  await w.waitForTimeout(900);
+  return w;
+}
+//  ولا تتخلّف الصفحةُ عن المحاضرات: النصّ مُولَّد، فمتى عُدّلت
+//  شريحةٌ ولم يُعَد التوليدُ اختلف ما تقرؤه الطالبة عمّا تسمعه —
+//  وهو عينُ ما وقع في evidences.js.
+ok('وملفُّ المراجع مطابقٌ للمحاضرات',
+   (await new Promise(r => execFile('python3',
+      ['build_refs.py','wilaya','--check'], {cwd:'.'}, (e)=>r(!e)))),
+   'python3 tools/build_refs.py wilaya');
+
+p = await refsPage();
+const nRef = await p.locator('.ref').count();
+ok('صفحة المراجع تعرض مواد القانون', nRef > 30, nRef + ' مادّة');
+const babs = (await p.locator('.section-title').allInnerTexts()).join(' ');
+ok('وفيها الأبواب الثلاثة',
+   /وِلَايَة/.test(babs) && /وَكَالَة/.test(babs) && /وَصَايَا/.test(babs));
+
+await p.fill('#find', '٧٠٤');
+await p.waitForTimeout(300);
+const shown = await p.locator('.ref:not([hidden])').count();
+ok('والبحث برقم المادّة يُفردها', shown === 1, shown + ' بطاقة');
+ok('ونصُّها هو نصُّ المحاضرة',
+   (await p.locator('.ref:not([hidden]) .ref-text').innerText())
+     .includes('الوكيل ملزم بتنفيذ الوكالة في حدودها المرسومة'));
+ok('ومعها بابٌ إلى محاضرتها',
+   (await p.locator('.ref:not([hidden]) a.ref-go').getAttribute('href') || '')
+     .includes('sessions/wilaya/18'));
+
+await p.fill('#find', 'لفظٌ لا وجود له البتّة');
+await p.waitForTimeout(300);
+ok('وما لا يُوجد يُقال صراحةً',
+   (await p.locator('#emptyBox').innerText()).includes('لا مادّة'));
+await p.close();
 
 console.log(`\n── الحصيلة ──\nحالات: ${step.length} · نجح ${step.filter(Boolean).length} · فشل ${step.filter(x=>!x).length}`);
 await b.close(); srv.close(); mock.kill(); back();

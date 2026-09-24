@@ -77,6 +77,16 @@
       return doc;
     },
 
+    /*  تُستدعى من refs.js — مواد القانون كما وردت في المحاضرات.
+        والملفُّ مُولَّد لا مكتوب: tools/build_refs.py ينقل النصّ من
+        الشريحة، فلا يختلف ما تقرؤه الطالبة عمّا تسمعه. */
+    refs: function (id, doc) {
+      var c = byId(id);
+      if (!c) throw new Error("مراجع لمقرر غير مسجَّل: " + id);
+      c.refs = doc;
+      return doc;
+    },
+
     /*  تُستدعى من exams.js — الاختبارات الرسمية للمقرر.
         معرّف الاختبار يُوسَم بمقرره كما تُوسَم الأوراق، لأن تسليمه
         يُحفظ في الجدول نفسه (submissions) بمعرّفه هذا. */
@@ -134,6 +144,7 @@
     load("courses/" + id + "/activities.js");
     load("courses/" + id + "/exams.js");
     load("courses/" + id + "/evidences.js");
+    load("courses/" + id + "/refs.js");
   });
 
   /* يُنتخب المقرر العامل ويُبنى window.COURSE و window.TP */
