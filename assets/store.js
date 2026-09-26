@@ -778,8 +778,17 @@
       var pts = {};
       kinds.forEach(function (k) { pts[k.id] = k.points; });
 
+      var soft = function (pr, dflt) {
+        return pr.then(null, function () { return dflt; });
+      };
+      var cid = (window.COURSE || {}).id;
       return Promise.all([A.students(filter && filter.sectionId), A.events(filter),
-                          A.submissions({})])
+                          A.submissions({}),
+                          /*  الإجاباتُ والطبقة: لوحةُ الصواب والسرعة تُشتقّ
+                              منهما. وسقوطُهما لا يُسقط اللوحة — تعود إلى
+                              ما رُصد باليد كما كانت. */
+                          soft(A.replies ? A.replies({ sectionId: filter && filter.sectionId }) : Promise.resolve([]), []),
+                          soft(A.content(cid), [])])
         .then(function (r) {
           var students = r[0], events = r[1];
 
@@ -804,6 +813,50 @@
               ref: x.worksheetId, day: day
             }]);
           });
+          /* ─── نقطةُ الإجابة الصحيحة تُشتقّ من جدول الإجابات ───
+             «لوحة الشرف لأكثر وحدة تجاوب صح وبسرعة.»
+
+             وكانت لا تُعرف إلا إن رصدت الدكتورةُ كلَّ طالبةٍ بيدها
+             في أثناء الدرس — وذاك لا يقع وهي تشرح. فصارت تُشتقّ
+             كما تُشتقّ نقطةُ التسليم: من الأثر لا من الرصد.
+
+             والصوابُ يُعرف من «right» في الطبقة، والسرعةُ من فرق ما
+             بين «shownAt» ووقتِ الإجابة الذي يختمه الخادم. وكلاهما
+             يكتبهما جهازُ الدكتورة وحده.
+
+             فمن أجابت ولم تُكشف بعدُ لا تُحسب: لا right لها. وهذا
+             هو الصواب — اللوحةُ بعد الدرس لا في أثنائه. */
+          var meta = {};
+          (r[4] || []).forEach(function (c) {
+            var m = /#q(\d+)$/.exec(c.ref || "");
+            var sn = /:s(\d+)#/.exec(c.ref || "");
+            if (!m || !sn) return;
+            var k = sn[1] + ":" + m[1];
+            (meta[k] = meta[k] || {})[c.field] = c.value;
+          });
+          var pAns = pts.answer != null ? pts.answer : 2;
+          (r[3] || []).forEach(function (x) {
+            var info = meta[String(x.session) + ":" + String(x.q)];
+            if (!info || info.right == null || +info.right !== +x.choice) return;
+            var day = String(x.at || "").slice(0, 10);
+            var f = filter || {};
+            if (f.day && day !== f.day) return;
+            if (f.month && monthKey(day) !== f.month) return;
+            if (f.from && day < f.from) return;
+            if (f.to && day > f.to) return;
+            var secs = null;
+            if (info.shownAt) {
+              var d = (Date.parse(x.at) - Date.parse(info.shownAt)) / 1000;
+              /*  زمنٌ سالبٌ أو مُفرطٌ في الطول لا يُقاس: شريحةٌ
+                  تُركت مفتوحةً، أو ساعةُ جهازٍ متأخّرة. */
+              if (d >= 0 && d < 3600) secs = Math.round(d * 10) / 10;
+            }
+            events = events.concat([{
+              studentId: x.studentId, kind: "answer", points: pAns,
+              ref: "s" + x.session + "#q" + x.q, day: day, secs: secs
+            }]);
+          });
+
           var byId = {};
           students.forEach(function (s) {
             byId[s.id] = { student: s, points: 0, total: 0, counts: {},

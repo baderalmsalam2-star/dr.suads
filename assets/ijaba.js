@@ -171,11 +171,40 @@
      فصار الكشفُ صفًّا في الخادم يقرؤه جهازُ كلِّ طالبة. والكتابةُ
      محصورةٌ في المالكة بالسياسة نفسها التي تحرس سائر التصحيحات —
      فلا تكشف طالبةٌ لنفسها ولا لغيرها. */
+  /*  ═══ ما يلزم لوحةَ الشرف ═══
+      «لوحة الشرف لأكثر وحدة تجاوب صح وبسرعة.»
+
+      واللوحةُ تعرفهما من شيئين لا يملكهما جدولُ الإجابات: أيُّ
+      خيارٍ صوابٌ، ومتى عُرض السؤال. فالخيارُ الصواب لا يُخزَّن مع
+      الإجابة عمدًا — لئلا ترسل الطالبة «أصبتُ» بلا أن تُصيب —
+      والوقتُ المخزون وقتُ الضغط لا وقتُ العرض.
+
+      فتُكتبان في طبقة المحتوى من جهاز الدكتورة وحده:
+
+        shownAt  حين تقف على السؤال أوّلَ مرّة
+        right    حين تكشف الجواب
+
+      وكتابتُهما محصورةٌ في المالكة بسياسة content_write. ولا تُفشي
+      «right» سرًّا: الجوابُ في مصدر الصفحة منذ التحميل، وإنما
+      تُكتب لتقرأها اللوحةُ بعد الدرس.  */
+  function mark_meta(slide, q) {
+    if (!staff) return;
+    var ref = qref(q);
+    if (!TPContent.get(ref, "shownAt")) {
+      TPContent.set(ref, "shownAt", new Date().toISOString())
+        .catch(function () { /* اللوحةُ وحدها تتأثّر، لا الدرس */ });
+    }
+  }
+
   function publish(slide, q, on) {
     shown[q] = !!on;
     if (on) slide.classList.add("reveal");
     else if (window.TPDeck && TPDeck.fold) TPDeck.fold(slide);
     else slide.classList.remove("reveal");
+    var right = rightOf(slide);
+    if (on && right >= 0 && TPContent.get(qref(q), "right") !== String(right)) {
+      TPContent.set(qref(q), "right", String(right)).catch(function () {});
+    }
     return TPContent.set(qref(q), "kashf", on ? "1" : "")
       .then(function () { tally(slide, q); })
       .catch(function (e) {
@@ -224,6 +253,7 @@
     var q = ordinalOf(slide);
     if (q < 0) { board.hidden = true; return; }
     if (staff) {
+      mark_meta(slide, q);
       TPContent.fresh(qref(q), "kashf").then(function (v) {
         shown[q] = v === "1";
         if (shown[q]) slide.classList.add("reveal");

@@ -505,6 +505,15 @@ for (const [id,uid,auth] of [['st-q1','0000000011','stud-q1'],['st-q2','00000000
                          uid,auth_uid:auth,active:true})});
 }
 
+//  الدكتورة تعرض السؤال أوّلًا — كما يقع في الدرس. وبه يُختم
+//  «shownAt» الذي تُقاس منه سرعةُ الإجابة. ولولا هذا الترتيب
+//  لجاءت إجاباتُهنّ قبل عرضه، فلا زمنَ يُقاس.
+await fetch(API+'/__as/owner-1');
+let pre = await open();
+await toQ(pre);
+await pre.waitForTimeout(1200);
+await pre.close();
+
 await fetch(API+'/__as/stud-q1');
 p = await open();
 await toQ(p);
@@ -569,6 +578,22 @@ await pd.waitForTimeout(900);
 
 ok('فيبلغ جهازَ الطالبة', await till(()=>ps.locator('.slide.on.reveal').count()));
 ok('ويظهر لها التعليل', await ps.locator('.slide.on .answer').isVisible());
+
+// ═══ لوحةُ الشرف تعرف من أصابت ومتى ═══
+//  «لوحة الشرف لأكثر وحدة تجاوب صح وبسرعة.» وكانت لا تُعرف إلا
+//  برصد الدكتورة كلَّ طالبةٍ بيدها في أثناء الشرح — وذاك لا يقع.
+//  فتُشتقّ من جدول الإجابات: الصوابُ من «right» والسرعةُ من فرق ما
+//  بين «shownAt» ووقتِ الإجابة الذي يختمه الخادم.
+const board = await pd.evaluate(async () => {
+  const rows = await Store.ranking({ sectionId: 'wilaya:1' });
+  return rows.filter(r => r.right > 0)
+             .map(r => ({ id: r.student.id, right: r.right, secs: r.secs }));
+});
+ok('واللوحةُ تعرف من أصابت', board.length === 1 && board[0].right === 1,
+   JSON.stringify(board));
+ok('ولا تعدّ من أخطأت', !board.some(r => r.id === 'st-q2'));
+ok('وتقيس كم استغرقت', board[0] && board[0].secs !== null,
+   board[0] ? board[0].secs + ' ثانية' : '—');
 
 //  ويُطوى فيعود السؤال سؤالًا
 ok('والزرّ صار طيًّا',
