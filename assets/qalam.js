@@ -48,7 +48,20 @@
       «@» لتعرف صاحبَ الدفتر، فلو جاء الرقمُ قبل «#» قرأت
       «st-sara#0» ولم تجده صفًّا، فرُدّت كتابتُها كلُّها. */
   var MINE = "";
-  function refOf(n) { return REF + "#" + n + MINE; }
+
+  /*  عنوانُ الخطّ يُنسب إلى هويّة الشريحة (data-born) لا إلى
+      موضعها. كان بالموضع، فنقلُ شريحةٍ في الملفّ — أو حذفُها من
+      «تحرير» — يُزحزح ما بعدها، فيظهر خطُّ شريحةٍ على جارتها
+      بصمتٍ تامّ: لا رسالةَ ولا أثر، إنما دائرةٌ حول كلمةٍ ليست هي.
+
+      وما خُطّ قبل التثبيت محفوظٌ بالموضع، فيُقرأ منه إن لم يوجد
+      بالهويّة — ثم يُكتب بالهويّة عند أول حفظ. */
+  function bornOf(n) {
+    var s = slides[n];
+    return (s && s.dataset && s.dataset.born) ? s.dataset.born : String(n);
+  }
+  function refOf(n) { return REF + "#" + bornOf(n) + MINE; }
+  function oldRefOf(n) { return REF + "#" + n + MINE; }
 
   var ink = {};          /* فهرس الشريحة → مصفوفة خطوط */
   var pen = false, erase = false, finger = false;
@@ -333,6 +346,7 @@
     return TPContent.ready().then(function () {
       slides.forEach(function (_, n) {
         var raw = TPContent.get(refOf(n), "ink");
+        if (!raw && refOf(n) !== oldRefOf(n)) raw = TPContent.get(oldRefOf(n), "ink");
         if (!raw) return;
         try { ink[n] = JSON.parse(raw) || []; } catch (x) { ink[n] = []; }
       });
