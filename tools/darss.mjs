@@ -672,6 +672,43 @@ ok('وما لُصق من وورد دخل نصًّا مجرَّدًا',
    (await mat.innerText()).includes('ملصوقٌ من وورد'));
 await p.close();
 
+// ═══ فحص الاتصال: يُسمّي العلّة بعينها ═══
+//  «في طالبات مو قادرين يدخلون على المحاضرة، محجوبة عندهم.»
+//  و«محجوبة» تحتها خمسةُ أسبابٍ علاجُ كلٍّ غيرُ علاج الآخر.
+async function wusool(){
+  const w=await b.newPage({viewport:{width:1194,height:834}});
+  await w.route('**', r=>{const u=r.request().url();
+    return (u.startsWith('http://127.0.0.1:8994')||u.startsWith(API))?r.continue():r.abort();});
+  await w.addInitScript(k=>{try{localStorage.setItem(k,JSON.stringify(
+    {access_token:'tok',refresh_token:'r',expires_at:Date.now()/1000+3600,user:{id:'x'}}))}catch(e){}},
+    'tp.sb.suad.session');
+  w.on('pageerror', e=>console.log('   \u26a0 خطأ صفحة:', String(e).slice(0,140)));
+  await w.goto('http://127.0.0.1:8994/wusool.html?section=wilaya:1',{waitUntil:'networkidle'});
+  await w.waitForTimeout(1200);
+  return w;
+}
+
+//  طالبةٌ في الكشف ولم تُفتح لها محاضرة
+await fetch(API+'/__as/stud-q1');
+p = await wusool();
+ok('فحصُ الاتصال يقول إن الموقع يُفتح',
+   (await p.locator('.wcheck.good').first().innerText()).includes('الموقع يُفتح'));
+ok('ويقول إن حسابها مربوطٌ بالكشف',
+   (await p.locator('.wcheck').allInnerTexts()).join(' ').includes('حسابك مربوطٌ'));
+const v1 = await p.locator('#verdict').innerText();
+ok('ويسمّي العلّة: المحاضرة لم تُفتح', /المفتوحة لكِ/.test(v1) || /لم تُفتح/.test(v1), v1.replace(/\s+/g,' ').slice(0,70));
+await p.close();
+
+//  طالبةٌ حسابُها غير مربوط — علّةٌ أخرى، وعبارةٌ أخرى
+await fetch(API+'/__as/gharib-x');
+p = await wusool();
+const v2 = await p.locator('#verdict').innerText();
+ok('ولغير المربوطة يقول علّتها هي',
+   /غير مربوط|مربوطٌ بكشف/.test(await p.locator('.wcheck.bad').first().innerText()),
+   v2.replace(/\s+/g,' ').slice(0,70));
+ok('ولا يخلط العلّتين', v1 !== v2);
+await p.close();
+
 // ═══ مراجع المقرر ═══
 //  «ممكن تضيف لي مواد الولاية والوكالة والوصايا من القانون الكويتي»
 //  يُقاس بالأثر: لا «ظهرت الصفحة» بل «بحثتُ عن ٧٠٤ فجاء نصُّها كما

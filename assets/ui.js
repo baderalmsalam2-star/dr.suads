@@ -33,6 +33,7 @@
         فالباب لهما معًا — ولكلٍّ ما يخصّه داخل الصفحة. */
     { id: "works",      label: "الأعمال",       href: "works.html" },
     { id: "compose",    label: "مُنشئ المحاضرات",  href: "compose.html", staff: true },
+    { id: "wusool",     label: "فحص الاتصال",  href: "wusool.html" },
     { id: "login",      label: "الحساب",       href: "login.html" },
     { id: "demo",       label: "عرض تجريبي",   href: "demo.html",      staff: true },
     { id: "admin",      label: "الفحص",        href: "admin.html",     admin: true }

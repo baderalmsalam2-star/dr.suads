@@ -474,3 +474,19 @@ a.ref-go:hover{border-bottom-color:var(--faculty)}
           margin-bottom:.6em;line-height:1.8}
 .ref[hidden],.refs[hidden]{display:none}
 @media print{.ref{break-inside:avoid;border-color:#999}}
+
+/* ═══ فحص الاتصال — طبقةٌ طبقة ═══ */
+.wcheck{display:flex;gap:.9em;align-items:flex-start;border:1px solid var(--line);
+        padding:clamp(12px,1.7vw,18px) clamp(14px,2vw,22px);margin-bottom:.6em;
+        background:var(--navy-2)}
+.wcheck.good{border-inline-start:3px solid var(--faculty)}
+.wcheck.bad{border-inline-start:3px solid var(--danger)}
+.wmark{font-size:1.15rem;line-height:1.4;flex:none}
+.wcheck.good .wmark{color:var(--faculty)}
+.wcheck.bad .wmark{color:var(--danger)}
+.wtext{min-width:0}
+.wtext b{font-size:clamp(.92rem,1.5vw,1.08rem)}
+.wwhy{color:var(--neutral);font-size:clamp(.76rem,1.25vw,.9rem);margin-top:.3em;line-height:1.8}
+.whow{color:var(--student);font-size:clamp(.76rem,1.25vw,.9rem);margin-top:.35em;line-height:1.8}
+.wcopy{width:100%;min-height:7em;font:inherit;font-size:.85rem;margin-top:.8em;
+       background:var(--navy-2);color:var(--surface);border:1px solid var(--line);padding:.7em}
