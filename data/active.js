@@ -47,6 +47,30 @@
   window.EVIDENCES = COURSE.evidences || null;
   window.REFS = COURSE.refs || null;
 
+  /* ═══ الأسئلة الجديدة تُلحق بأوراق محاضرتها ═══
+     «أوراق العمل كلها تكرار لأسئلة البوربوينت» — وكان ٨٧ بندًا من
+     ٨٩ مطابقًا حرفًا بحرف. فتُضاف إلى كل ورقةٍ أسئلةُ محاضرتها
+     المولَّدة من نصّها.
+
+     وتُلحق في الآخر لا تُدسّ في الوسط: إجابةُ الطالبة تُحفظ بمعرّف
+     البند، فالإضافةُ لا تمسّ ما سُلّم، والإدراجُ في الوسط لا يمسّه
+     كذلك — لكنّ الترتيب الذي رأته يتبدّل، وهي قد راجعت عليه. */
+  (function () {
+    var extra = COURSE.extraq || null;
+    if (!extra) return;
+    (COURSE.sheets || []).forEach(function (w) {
+      var more = extra[String(w.session)];
+      if (!more || !more.length) return;
+      if (w.type !== "classwork" && w.type !== "homework") return;
+      var have = {};
+      (w.items || []).forEach(function (it) { have[it.id] = 1; });
+      more.forEach(function (it) {
+        if (have[it.id]) return;
+        w.items = (w.items || []).concat([it]);
+      });
+    });
+  })();
+
 
   /* ═══ أدوات مشتركة تعتمد على بيانات المقرر ═══ */
   window.TP = (function (COURSE) {

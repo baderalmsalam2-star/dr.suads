@@ -77,6 +77,15 @@
       return doc;
     },
 
+    /*  تُستدعى من newq.js — أسئلةٌ جديدة تُضاف إلى أوراق العمل.
+        مُولَّدةٌ من نصّ المحاضرة بـtools/asila.py، لا مكتوبةٌ بيد. */
+    extraq: function (id, bySession) {
+      var c = byId(id);
+      if (!c) throw new Error("أسئلة لمقرر غير مسجَّل: " + id);
+      c.extraq = bySession;
+      return bySession;
+    },
+
     /*  تُستدعى من refs.js — مواد القانون كما وردت في المحاضرات.
         والملفُّ مُولَّد لا مكتوب: tools/build_refs.py ينقل النصّ من
         الشريحة، فلا يختلف ما تقرؤه الطالبة عمّا تسمعه. */
@@ -145,6 +154,7 @@
     load("courses/" + id + "/exams.js");
     load("courses/" + id + "/evidences.js");
     load("courses/" + id + "/refs.js");
+    load("courses/" + id + "/newq.js");
   });
 
   /* يُنتخب المقرر العامل ويُبنى window.COURSE و window.TP */

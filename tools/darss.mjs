@@ -672,6 +672,37 @@ ok('وما لُصق من وورد دخل نصًّا مجرَّدًا',
    (await mat.innerText()).includes('ملصوقٌ من وورد'));
 await p.close();
 
+// ═══ أوراق العمل: تكرارٌ وجديد ═══
+//  «أوراق العمل كلها تكرار لأسئلة البوربوينت» — ٨٧ من ٨٩.
+//  والجديدُ مبنيٌّ من نصّ المحاضرة لا مؤلَّف: يُفحص أنه وصل الورقة،
+//  وأن كلَّ اقتباسٍ فيه موجودٌ في محاضرته حرفًا بحرف.
+ok('الأسئلة الجديدة مطابقةٌ للمحاضرات',
+   await new Promise(r => execFile('python3',
+     ['asila.py','wilaya','--check'], {cwd:'.'}, (e)=>r(!e))),
+   'python3 tools/asila.py wilaya');
+
+p = await open();
+const sheets = await p.evaluate(() => {
+  const w = (window.WORKSHEETS || []).filter(x => x.session === 7 &&
+            (x.type === 'classwork' || x.type === 'homework'))[0];
+  if (!w) return null;
+  const nq = (w.items || []).filter(i => /^nq-/.test(i.id));
+  return { all: w.items.length, nq: nq.length,
+           first: nq[0] ? nq[0].prompt : '', opts: nq[0] ? nq[0].options.length : 0,
+           why: nq[0] ? !!nq[0].why : false };
+});
+ok('وقد لحقت بورقة محاضرتها', sheets && sheets.nq > 0,
+   sheets ? `${sheets.nq} جديدًا من ${sheets.all}` : 'لا ورقة');
+ok('ولكلٍّ أربعةُ خيارٍ وتعليل',
+   sheets && sheets.opts === 4 && sheets.why, sheets ? sheets.first.slice(0, 60) : '');
+ok('ولا تُدسّ في الوسط بل تُلحق في الآخر',
+   await p.evaluate(() => {
+     const w = (window.WORKSHEETS || []).filter(x => x.session === 7)[0];
+     const ids = (w.items || []).map(i => /^nq-/.test(i.id));
+     return ids.indexOf(true) === -1 || ids.lastIndexOf(false) < ids.indexOf(true);
+   }));
+await p.close();
+
 // ═══ فحص الاتصال: يُسمّي العلّة بعينها ═══
 //  «في طالبات مو قادرين يدخلون على المحاضرة، محجوبة عندهم.»
 //  و«محجوبة» تحتها خمسةُ أسبابٍ علاجُ كلٍّ غيرُ علاج الآخر.
