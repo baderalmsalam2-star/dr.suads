@@ -42,16 +42,23 @@ def one(part):
 def shape(text):
     """العنوان مشكولًا، أو None إن تعذّر جزءٌ منه."""
     t = text.strip()
-    if not t or already(t): return None
+    if not t: return None
     tail = u''
     if t.endswith(TAIL):
         t, tail = t[:-len(TAIL)], u' — ' + MAP[u'تتمة']
-    parts, out = t.split(SEP), []
+    parts, out, did = t.split(SEP), [], False
     for p in parts:
-        v = one(p.strip())
+        p = p.strip()
+        #  الجزءُ المشكولُ سلفًا يُترك كما هو، ويُشكَّل ما بقي.
+        #  وكان الفحصُ على العنوان كلِّه، فعنوانٌ صدرُه مشكولٌ وذيلُه
+        #  عارٍ يُحكم أنه مشكول — فيبقى ذيلُه أبدًا.
+        if already(p):
+            out.append(p); continue
+        v = one(p)
         if v is None:
-            missing.add(p.strip()); return None
-        out.append(v)
+            missing.add(p); return None
+        out.append(v); did = True
+    if not did: return None
     return SEP.join(out) + tail
 
 def sub_all(src, pattern, group=1):
