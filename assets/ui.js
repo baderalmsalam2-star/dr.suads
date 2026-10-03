@@ -115,7 +115,10 @@
     }
     if (hint) apply(hint);
     (window.TPRole ? TPRole.get() : Promise.resolve("teacher")).then(function (r) {
-      if (r !== "unknown") apply(r);
+      /*  «تعذّر التحقّق» كان يُبقي ما رُسم على الظنّ — فتبقى أدواتُ
+          الدكتورة معروضةً على من ليست هي. والأصلُ الإخفاء حتى يؤكّد
+          الخادم، كما في TPRole.staff(). */
+      apply(r === "unknown" ? "student" : r);
     });
   }
 
@@ -179,8 +182,10 @@
             لحظة أهونُ من أن ينكشف للطالبة ثم يُسحب. */
         a.hidden = !(hint && allowed(p, hint));
         asked.then(function (role) {
-          if (role === "unknown") return;   /* تعذّر السؤال: يبقى الظنّ */
-          a.hidden = !allowed(p, role);
+          /*  «تعذّر السؤال» كان يُبقي الظنَّ، فيبقى بابُ الدكتورة
+              معروضًا على من ليست هي. والأصلُ الإخفاء حتى يؤكّد
+              الخادم — كما في أول زيارة. */
+          a.hidden = !allowed(p, role === "unknown" ? "student" : role);
         });
       }
       nav.appendChild(a);

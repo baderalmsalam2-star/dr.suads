@@ -281,7 +281,7 @@
 
       var head = el("thead");
       var hr = el("tr");
-      ["#", "الاسم", "الرقم الجامعي", "نقاط التفاعل", "التسليمات", ""].forEach(function (h) {
+      ["#", "الاسم", "الرقم الجامعي", "الحساب", "نقاط التفاعل", "التسليمات", ""].forEach(function (h) {
         hr.appendChild(el("th", "", h));
       });
       head.appendChild(hr);
@@ -310,6 +310,25 @@
         }
         tr.appendChild(tdName);
         tr.appendChild(el("td", "num", s.uid ? ar(s.uid) : "—"));
+
+        /* ═══ حالُ الربط ═══
+           «الطالبات ما يقدرون يجاوبون، ولا تسليم واجبات، ولا لوحة
+           شرف» — وثلاثتُها بابٌ واحد: صفٌّ غير مربوطٍ بحساب تردّ
+           سياساتُ الخادم كلَّ ما يأتي منه. فلا إجابةَ تُحفظ، ولا
+           ورقةَ تُسلَّم، ولا نقطةَ تُحسب.
+
+           وكان الكشفُ لا يُظهر ذلك، فتقف الدكتورة أمام ثلاثة أعطاب
+           ظاهرُها مختلفٌ وأصلُها واحد، ولا دليلَ يدلّها. */
+        var tdLink = el("td");
+        if (s.authUid) {
+          tdLink.appendChild(el("span", "chip gold", "مربوط"));
+        } else {
+          tdLink.appendChild(el("span", "chip warn", "لم تدخل بعد"));
+          tdLink.appendChild(document.createTextNode(" "));
+          tdLink.appendChild(el("span", "mail",
+            s.uid ? "s" + s.uid + "@ku.edu.kw" : "بلا رقم جامعي"));
+        }
+        tr.appendChild(tdLink);
 
         var row = rank[s.id];
         tr.appendChild(el("td", "num", ar((row && row.points) || 0)));
@@ -346,6 +365,18 @@
 
       table.appendChild(body);
 
+      /*  سطرٌ واحد يُغني عن تصفّح الكشف: كم طالبةً لم يُربط صفُّها.
+          وهؤلاء لا تُحفظ لهنّ إجابةٌ ولا تسليمٌ ولا نقطة. */
+      var loose = list.filter(function (x) { return !x.authUid; });
+      if (loose.length) {
+        var noRec = loose.filter(function (x) { return !x.uid; }).length;
+        emptyBox.appendChild(el("div", "warn-box",
+          TPUI.students(loose.length) + " لم يُربط صفُّها بحساب — " +
+          "ولا تُحفظ لهنّ إجابةٌ في المحاضرة، ولا تسليمُ ورقة، ولا نقطةٌ في لوحة الشرف. " +
+          (noRec ? "ومنهنّ " + TPUI.students(noRec) + " بلا رقمٍ جامعيّ في الكشف. " : "") +
+          "ويُربط الصفُّ وحدَه متى دخلت الطالبة ببريدها الجامعي المطابق لرقمها."));
+      }
+
       if (anyPlaceholder) {
         emptyBox.appendChild(el("div", "note-box",
           "الأسماء المعلّمة بـ«اسم مبدئي» مولَّدة تلقائيًا من عدد الشعبة في ملف المقرر (data/courses/<المقرر>/course.js). " +
@@ -373,6 +404,7 @@
 
     var tdN = el("td"); tdN.appendChild(nameIn); tr.appendChild(tdN);
     var tdU = el("td"); tdU.appendChild(uidIn); tr.appendChild(tdU);
+    tr.appendChild(el("td", "num", "—"));   /* الحساب */
     tr.appendChild(el("td", "num", "—"));
     tr.appendChild(el("td", "num", "—"));
 

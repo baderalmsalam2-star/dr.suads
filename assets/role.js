@@ -16,10 +16,35 @@
   var SEEN = "tp.role.seen";          /* آخر دورٍ أكّده الخادم */
   var cached = null;
 
-  function seen() { try { return localStorage.getItem(SEEN); } catch (e) { return null; } }
+  /*  ═══ الظنُّ مقيَّدٌ بصاحبه ═══
+      كان يُخزَّن الدورُ وحده: «teacher». فمن دخلت الدكتورةُ مرّةً
+      على جهازه ثم دخل هو بحساب طالب، رأى الشريطَ كاملًا — الطالبات
+      والدرجات والرصد — لأن الظنَّ باقٍ ولا يعرف لمن هو.
+
+      والحاجزُ في الخادم فلا تُفتح له البيانات، لكنه يرى أبوابًا
+      ليست له ويظنّ المنصة مكشوفة. فيُحفظ معرّفُ الحساب مع الدور،
+      ولا يُؤخذ الظنُّ إلا لصاحبه. */
+  function who() {
+    try {
+      var s = window.TPAuth && TPAuth.session();
+      return (s && s.user && s.user.id) ? String(s.user.id) : "";
+    } catch (e) { return ""; }
+  }
+
+  function seen() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(SEEN) || "null");
+      if (!raw || typeof raw !== "object") return null;   /* صيغةٌ قديمة: تُهمَل */
+      return raw.uid === who() ? raw.role : null;
+    } catch (e) { return null; }
+  }
+
   function remember(r) {
-    try { if (r === "admin" || r === "teacher" || r === "student") localStorage.setItem(SEEN, r); }
-    catch (e) { /* تصفّح خاص */ }
+    try {
+      if (r === "admin" || r === "teacher" || r === "student") {
+        localStorage.setItem(SEEN, JSON.stringify({ uid: who(), role: r }));
+      }
+    } catch (e) { /* تصفّح خاص */ }
   }
 
   function local() {

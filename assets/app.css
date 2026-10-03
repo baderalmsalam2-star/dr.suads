@@ -490,3 +490,10 @@ a.ref-go:hover{border-bottom-color:var(--faculty)}
 .whow{color:var(--student);font-size:clamp(.76rem,1.25vw,.9rem);margin-top:.35em;line-height:1.8}
 .wcopy{width:100%;min-height:7em;font:inherit;font-size:.85rem;margin-top:.8em;
        background:var(--navy-2);color:var(--surface);border:1px solid var(--line);padding:.7em}
+
+/*  حالُ ربط الحساب في كشف الطالبات: من لم يُربط صفُّها تُردّ كلُّ
+    كتابةٍ منها — إجابةً وتسليمًا ونقطة. فيُعرض بريدُها المتوقَّع
+    إلى جنبها، فتُقابله الدكتورةُ بما دخلت به. */
+.chip.warn{border-color:var(--danger);color:var(--danger)}
+.mail{color:var(--neutral);font-size:.78em;white-space:nowrap;
+      font-variant-numeric:tabular-nums}

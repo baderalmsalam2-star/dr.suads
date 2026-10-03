@@ -716,6 +716,80 @@ ok('ولا تُدسّ في الوسط بل تُلحق في الآخر',
    }));
 await p.close();
 
+// ═══ ظنُّ الجهاز لا يُورَّث ═══
+//  «سويت حساب، كل الفئات طلعت لي — يمكن لأني مسوي تسجيل دخول على
+//  حساب د. سعاد من قبل من تلفوني.» وهو كذلك: كان آخرُ دورٍ يُخزَّن
+//  وحده بلا صاحب، فيراه من دخل بعده بحسابٍ آخر.
+{
+  const w=await b.newPage({viewport:{width:1194,height:834}});
+  await w.route('**', r=>{const u=r.request().url();
+    return (u.startsWith('http://127.0.0.1:8994')||u.startsWith(API))?r.continue():r.abort();});
+  //  جهازٌ دخلت عليه الدكتورةُ من قبل، ثم دخل عليه طالب
+  await w.addInitScript(() => {
+    try {
+      localStorage.setItem('tp.role.seen', JSON.stringify({uid:'owner-1', role:'teacher'}));
+      localStorage.setItem('tp.sb.suad.session', JSON.stringify(
+        {access_token:'tok', refresh_token:'r',
+         expires_at:Date.now()/1000+3600, user:{id:'stud-q1'}}));
+    } catch(e){}
+  });
+  await fetch(API+'/__as/stud-q1');
+  await w.goto('http://127.0.0.1:8994/index.html?section=wilaya:1',{waitUntil:'networkidle'});
+  await w.waitForTimeout(1000);
+  const tabs=(await w.locator('.nav-main').innerText());
+  ok('ولا يرث الطالبُ ظنَّ الدكتورة',
+     !/الطالبات|الدرجات|الباركود/.test(tabs), tabs.replace(/\s+/g,' ').slice(0,70));
+  await w.close();
+}
+
+//  وظنُّ صاحبه يبقى له
+{
+  const w=await b.newPage({viewport:{width:1194,height:834}});
+  await w.route('**', r=>{const u=r.request().url();
+    return (u.startsWith('http://127.0.0.1:8994')||u.startsWith(API))?r.continue():r.abort();});
+  await w.addInitScript(() => {
+    try {
+      localStorage.setItem('tp.role.seen', JSON.stringify({uid:'owner-1', role:'teacher'}));
+      localStorage.setItem('tp.sb.suad.session', JSON.stringify(
+        {access_token:'tok', refresh_token:'r',
+         expires_at:Date.now()/1000+3600, user:{id:'owner-1'}}));
+    } catch(e){}
+  });
+  await fetch(API+'/__as/owner-1');
+  await w.goto('http://127.0.0.1:8994/index.html?section=wilaya:1',{waitUntil:'networkidle'});
+  await w.waitForTimeout(1000);
+  ok('ويبقى ظنُّ الدكتورة لها',
+     /الطالبات/.test(await w.locator('.nav-main').innerText()));
+  await w.close();
+}
+
+// ═══ الكشف يقول من رُبط صفُّها ومن لم يُربط ═══
+//  «الطالبات ما يقدرون يجاوبون، ولا تسليم واجبات، ولا لوحة شرف»
+//  وثلاثتُها بابٌ واحد: صفٌّ غير مربوطٍ بحساب تردّ سياساتُ الخادم
+//  كلَّ ما يأتي منه. وكان الكشفُ لا يُظهر ذلك.
+await fetch(API+'/rest/v1/students',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({id:'st-loose',section_id:'wilaya:1',no:40,name:'طالبةٌ بلا حساب',
+                       uid:'2200000040',auth_uid:null,active:true})});
+await fetch(API+'/__as/owner-1');
+{
+  const w=await b.newPage({viewport:{width:1194,height:834}});
+  await w.route('**', r=>{const u=r.request().url();
+    return (u.startsWith('http://127.0.0.1:8994')||u.startsWith(API))?r.continue():r.abort();});
+  await w.addInitScript(k=>{try{localStorage.setItem(k,JSON.stringify(
+    {access_token:'tok',refresh_token:'r',expires_at:Date.now()/1000+3600,user:{id:'x'}}))}catch(e){}},
+    'tp.sb.suad.session');
+  await w.goto('http://127.0.0.1:8994/students.html?section=wilaya:1',{waitUntil:'networkidle'});
+  await w.waitForTimeout(1000);
+  const txt=(await w.locator('table.grid').innerText());
+  ok('الكشف يميّز المربوطة من غيرها',
+     /مربوط/.test(txt) && /لم تدخل بعد/.test(txt));
+  ok('ويعرض بريدَ غير المربوطة المتوقَّع',
+     txt.includes('s2200000040@ku.edu.kw'));
+  ok('ويُنبّه بعددهنّ وبأثر ذلك',
+     /لم يُربط صفُّها بحساب/.test(await w.locator('#emptyBox').innerText()));
+  await w.close();
+}
+
 // ═══ فحص الاتصال: يُسمّي العلّة بعينها ═══
 //  «في طالبات مو قادرين يدخلون على المحاضرة، محجوبة عندهم.»
 //  و«محجوبة» تحتها خمسةُ أسبابٍ علاجُ كلٍّ غيرُ علاج الآخر.
